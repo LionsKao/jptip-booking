@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 老師登入</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="strip"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <img class="hero-mascot" src="../assets/images/maneki-neko.png" alt="招財貓吉祥物">
+    <h1>老師專用後台</h1>
+    <p>管理你的課程與預約時段。</p>
+  </div>
+
+  <!-- Login -->
+  <section class="section" id="login">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/key.png" alt=""><h2>老師登入</h2></div>
+    <p class="section-desc">Email 一次性驗證碼登入（無密碼）。</p>
+
+    <div class="login-card" data-login data-role="teacher" data-step="1">
+
+      <div class="login-step login-step-1">
+        <div class="row" style="align-items:flex-start;">
+          <div class="field" data-login-email-field>
+            <div class="field-float">
+              <input type="email" id="login-email" placeholder=" " autocomplete="email">
+              <label for="login-email">Email</label>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn blue" data-login-send>取得驗證碼</button>
+      </div>
+
+      <div class="login-step login-step-2">
+
+        <div class="otp-row" role="group" aria-label="6 位數驗證碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 1 碼" disabled>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 2 碼" disabled>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 3 碼" disabled>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 4 碼" disabled>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 5 碼" disabled>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼" disabled>
+        </div>
+
+        <div class="row login-actions">
+          <button type="button" class="btn green" data-login-submit disabled>登入</button>
+          <button type="button" class="btn outline" data-login-resend disabled>重新取得驗證碼</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script src="../script.js"></script>
+</body>
+</html>

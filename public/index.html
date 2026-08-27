@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking</title>
+<link rel="icon" type="image/png" href="assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .entry-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .entry-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    text-decoration: none;
+    color: var(--text-main);
+    text-align: left;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .15s ease;
+  }
+  .entry-card:hover {
+    border-color: var(--color-blue);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  .entry-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .entry-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .entry-card-primary {
+    padding: var(--space-5) var(--space-6);
+  }
+  .entry-card-primary .entry-card-icon {
+    width: 64px; height: 64px;
+  }
+  .entry-card-primary h3 { margin: 0 0 4px; font-size: 1.375rem; }
+  .entry-card-primary p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
+
+  .entry-cards-secondary {
+    display: flex;
+    gap: var(--space-4);
+  }
+  .entry-card-secondary {
+    flex: 1;
+    padding: var(--space-4);
+  }
+  .entry-card-secondary .entry-card-icon {
+    width: 40px; height: 40px;
+  }
+  .entry-card-secondary span { font-size: var(--fs-small); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="strip"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <img class="hero-mascot" src="assets/images/maneki-neko.png" alt="招財貓吉祥物">
+    <h1>JPTIP 1vs1 日語學習</h1>
+    <p>現在就開始線上學習吧，一對一課程隨時預約<br>喜歡的老師、喜歡的時間，通通由你決定！</p>
+  </div>
+
+  <div class="entry-cards">
+    <a class="entry-card entry-card-primary" href="student/">
+      <span class="entry-card-icon"><img src="assets/icons/student.png" alt=""></span>
+      <span>
+        <h3>學生登入</h3>
+        <p>立即預約課程，開始你的學習之旅</p>
+      </span>
+    </a>
+    <div class="entry-cards-secondary">
+      <a class="entry-card entry-card-secondary" href="teacher/">
+        <span class="entry-card-icon"><img src="assets/icons/laptop.png" alt=""></span>
+        <span>老師登入</span>
+      </a>
+      <a class="entry-card entry-card-secondary" href="admin/">
+        <span class="entry-card-icon"><img src="assets/icons/admin.png" alt=""></span>
+        <span>管理者登入</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — UI Component 展示牆</title>
+<link rel="icon" type="image/png" href="assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="strip"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <img class="hero-mascot" src="assets/images/maneki-neko.png" alt="招財貓吉祥物">
+    <h1>什麼時候才有新電腦做預約介面</h1>
+    <p>現在就開始線上學習吧，一對一課程隨時預約，喜歡的老師、喜歡的時間，通通由你決定！</p>
+  </div>
+
+  <!-- Login -->
+  <section class="section" id="login">
+    <div class="section-title"><span class="chip"></span><h2>登入</h2></div>
+    <p class="section-desc">Email 一次性驗證碼登入（無密碼）。</p>
+
+    <div class="login-card" data-login data-step="1">
+
+      <div class="login-step login-step-1">
+        <div class="row" style="align-items:flex-start;">
+          <div class="field" data-login-email-field>
+            <div class="field-float">
+              <input type="email" id="login-email" placeholder=" " autocomplete="email">
+              <label for="login-email">Email</label>
+            </div>
+            <div class="field-error">請輸入有效的 Email 格式</div>
+          </div>
+        </div>
+        <button type="button" class="btn blue" data-login-send>取得驗證碼</button>
+      </div>
+
+      <div class="login-step login-step-2">
+        <p class="text-small login-sent-msg"><i class="fa-solid fa-fw fa-envelope-circle-check"></i> 已寄出驗證碼，請查看信箱</p>
+
+        <div class="otp-row" role="group" aria-label="6 位數驗證碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 1 碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 2 碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 3 碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 4 碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 5 碼">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼">
+        </div>
+
+        <div class="row login-actions">
+          <button type="button" class="btn green" data-login-submit>登入</button>
+          <button type="button" class="btn outline sm" data-login-resend disabled>重新取得驗證碼（30s）</button>
+        </div>
+        <p class="text-small login-success-msg" hidden><i class="fa-solid fa-fw fa-circle-check"></i> 登入成功，歡迎回來！</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Form -->
+  <section class="section" id="form">
+    <div class="section-title"><img class="title-icon" src="assets/icons/chat.png" alt=""><h2>輸入框 / Form</h2></div>
+    <p class="section-desc">Focus 光暈、error 抖動提示。</p>
+    <div class="row" style="align-items:flex-start;">
+      <div class="field">
+        <div class="field-float">
+          <input type="text" id="name" placeholder=" ">
+          <label for="name">學生姓名</label>
+        </div>
+        <div class="field-hint">將顯示於預約清單中</div>
+      </div>
+
+      <div class="field error">
+        <div class="field-float">
+          <input type="email" id="email" placeholder=" ">
+          <label for="email">Email</label>
+        </div>
+        <div class="field-error">請輸入有效的 Email 格式</div>
+      </div>
+
+      <div class="field">
+        <div class="field-float">
+          <textarea id="note" placeholder=" "></textarea>
+          <label for="note">給老師的留言（選填）</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Date & Time Picker -->
+  <section class="section" id="datetime">
+    <div class="section-title"><img class="title-icon" src="assets/icons/icon-calendar.png" alt=""><h2>請選擇日期與時間</h2></div>
+    <div class="row" style="align-items:flex-start;">
+      <div class="datepicker" data-datepicker>
+        <div class="datepicker-header">
+          <button type="button" data-prev><i class="fa-solid fa-fw fa-chevron-left"></i></button>
+          <span data-month-label>2026 年 8 月</span>
+          <button type="button" data-next><i class="fa-solid fa-fw fa-chevron-right"></i></button>
+        </div>
+        <div class="datepicker-weekdays">
+          <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+        </div>
+        <div class="datepicker-grid-wrap"><div class="datepicker-grid" data-grid></div></div>
+      </div>
+
+      <div style="flex:1; min-width:260px;">
+        <div class="time-slots">
+          <div class="time-slot disabled">09:00</div>
+          <div class="time-slot">10:00</div>
+          <div class="time-slot selected">11:00</div>
+          <div class="time-slot">12:00</div>
+          <div class="time-slot">13:00</div>
+          <div class="time-slot">14:00</div>
+          <div class="time-slot disabled">15:00</div>
+          <div class="time-slot">16:00</div>
+          <div class="time-slot">17:00</div>
+          <div class="time-slot">18:00</div>
+          <div class="time-slot">19:00</div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Timezone -->
+  <section class="section" id="timezone">
+    <div class="section-title"><img class="title-icon" src="assets/icons/earth.png" alt=""><h2>請選擇時區</h2></div>
+    <div class="timezone-bar" id="timezone-bar">
+      <div class="tz-cards">
+        <div class="tz-card selected" data-value="Taipei Standard Time">
+          <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+          <span class="tz-card-offset">UTC+08:00</span>
+          <span class="tz-card-city">台北</span>
+        </div>
+        <div class="tz-card" data-value="Tokyo Standard Time">
+          <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+          <span class="tz-card-offset">UTC+09:00</span>
+          <span class="tz-card-city">大阪、札幌、東京</span>
+        </div>
+        <div class="tz-card" data-value="SE Asia Standard Time">
+          <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+          <span class="tz-card-offset">UTC+07:00</span>
+          <span class="tz-card-city">曼谷、河內、雅加達</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="teachers">
+    <div class="section-title"><img class="title-icon" src="assets/icons/woman.png" alt=""><h2>請選擇老師</h2></div>
+    <div class="grid-cards">
+      <div class="tilt-card teacher-card selected" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-1.jpg');"></div>
+        <h4>田中老師</h4>
+        <p class="text-small">日文會話・5 年教學經驗</p>
+        <p class="text-caption teacher-motto">「一緒に学び、共に成長していきましょう。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-2.jpg');"></div>
+        <h4>佐藤老師</h4>
+        <p class="text-small">商用日文・JLPT N1</p>
+        <p class="text-caption teacher-motto">「失敗を恐れず、新しい世界へ踏み出そう！」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-3.jpg');"></div>
+        <h4>鈴木老師</h4>
+        <p class="text-small">日文文法・JLPT 檢定專攻</p>
+        <p class="text-caption teacher-motto">「毎日の小さな積み重ねが、大きな力になる。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-4.jpg');"></div>
+        <h4>山田老師</h4>
+        <p class="text-small">動漫日文・流行文化會話</p>
+        <p class="text-caption teacher-motto">「臭豆腐の美味しさがわかる人は、もう私の仲間です。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-5.jpg');"></div>
+        <h4>高橋老師</h4>
+        <p class="text-small">會話練習・生活日文</p>
+        <p class="text-caption teacher-motto">「授業よりも、放課後の台湾夜市グルメが本番です。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-6.jpg');"></div>
+        <h4>中村老師</h4>
+        <p class="text-small">聽力訓練・新聞日文</p>
+        <p class="text-caption teacher-motto">「私の体の半分は、タピオカミルクティーとルーロー飯でできています。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-7.jpg');"></div>
+        <h4>小林老師</h4>
+        <p class="text-small">文法解析・句型整理</p>
+        <p class="text-caption teacher-motto">「質問は大歓迎！でもパクチーは大盛りでよろしく。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-8.jpg');"></div>
+        <h4>渡辺老師</h4>
+        <p class="text-small">作文指導・寫作技巧</p>
+        <p class="text-caption teacher-motto">「私の体の半分は、タピオカミルクティーとルーロー飯でできています。」</p>
+      </div>
+      <div class="tilt-card teacher-card" data-group="teacher">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="teacher-avatar" style="background-image: url('assets/teachers/teacher-9.jpg');"></div>
+        <h4>伊藤老師</h4>
+        <p class="text-small">旅遊日文・觀光導覽</p>
+        <p class="text-caption teacher-motto">「旅は人生の教科書、日本語はその地図です。」</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Course cards -->
+  <section class="section" id="courses">
+    <div class="section-title"><img class="title-icon" src="assets/icons/books.png" alt=""><h2>請選擇課程</h2></div>
+    <div class="grid-cards grid-cards-lg">
+      <div class="tilt-card course-card selected" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j1);"></div>
+        <h4>N5 綜合日本語 J1</h4>
+        <p class="text-small">第 1 課到第 4 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j2);"></div>
+        <h4>N5 綜合日本語 J2</h4>
+        <p class="text-small">第 5 課到第 8 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j3);"></div>
+        <h4>N5 綜合日本語 J3</h4>
+        <p class="text-small">第 9 課到第 13 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j4);"></div>
+        <h4>N4 綜合日本語 J4</h4>
+        <p class="text-small">第 1 課到第 6 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j5);"></div>
+        <h4>N4 綜合日本語 J5</h4>
+        <p class="text-small">第 7 課到第 12 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j6);"></div>
+        <h4>N4 綜合日本語 J6</h4>
+        <p class="text-small">第 13 課到第 18 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j7);"></div>
+        <h4>N3 綜合日本語 J7</h4>
+        <p class="text-small">第 1 課到第 4 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j8);"></div>
+        <h4>N3 綜合日本語 J8</h4>
+        <p class="text-small">第 5 課到第 8 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j9);"></div>
+        <h4>N3 綜合日本語 J9</h4>
+        <p class="text-small">第 9 課到第 12 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j10);"></div>
+        <h4>N2 綜合日本語 J10</h4>
+        <p class="text-small">第 13 課到第 15 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j11);"></div>
+        <h4>N2 綜合日本語 J11</h4>
+        <p class="text-small">第 16 課到第 18 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j12);"></div>
+        <h4>N2 綜合日本語 J12</h4>
+        <p class="text-small">第 19 課到第 21 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--level-j13);"></div>
+        <h4>N2 綜合日本語 J13</h4>
+        <p class="text-small">第 22 課到第 24 課</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--color-steel);"></div>
+        <h4>商務日文 基礎會話篇</h4>
+        <p class="text-small">精準掌握職場敬語與日常電話社交等核心庶務</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+      <div class="tilt-card course-card" data-group="course">
+        <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
+        <div class="course-tag" style="background:var(--color-steel);"></div>
+        <h4>商務日文 應用會話篇</h4>
+        <p class="text-small">靈活應對跨部門協調、客戶提案及複雜客訴等深度商務談判</p>
+        <p class="text-caption course-duration"><i class="fa-solid fa-fw fa-clock"></i> 1 小時 40 分鐘</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pill / Badge -->
+  <section class="section" id="pills">
+    <div class="section-title"><img class="title-icon" src="assets/icons/drugs.png" alt=""><h2>Pill / Badge / Tag 狀態</h2></div>
+    <p class="section-desc">預約狀態標籤。</p>
+    <div class="row">
+      <span class="pill confirmed has-icon"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span>
+      <span class="pill info has-icon"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">預約</span>
+      <span class="pill cancelled has-icon"><img class="pill-icon" src="assets/icons/close.png" alt="">取消</span>
+      <span class="pill pending has-icon"><img class="pill-icon" src="assets/icons/icon-alert.png" alt="">需處理</span>
+      <span class="pill undefined">未定義</span>
+      <span class="pill tone-navy">未定義</span>
+      <span class="pill tone-blue">未定義</span>
+      <span class="pill tone-orange">未定義</span>
+      <span class="pill tone-red">未定義</span>
+      <span class="pill tone-coral">未定義</span>
+      <span class="pill tone-teal">未定義</span>
+      <span class="pill tone-green">未定義</span>
+      <span class="pill tone-purple">未定義</span>
+      <span class="pill tone-rose">未定義</span>
+      <span class="pill tone-mint">未定義</span>
+      <span class="pill tone-butter">未定義</span>
+      <span class="pill tone-peach">未定義</span>
+    </div>
+  </section>
+
+  <!-- Design Tokens -->
+  <section class="section" id="tokens">
+    <div class="section-title"><img class="title-icon" src="assets/icons/swatches.png" alt=""><h2>Design Tokens 色票</h2></div>
+    <p class="section-desc">柔和粉色系，定義成 CSS variables 供全站元件共用。</p>
+    <div class="swatches">
+      <div class="swatch"><div class="fill navy"></div><div class="label">Navy<br><code>--color-navy</code></div></div>
+      <div class="swatch"><div class="fill blue"></div><div class="label">Blue<br><code>--color-blue</code></div></div>
+      <div class="swatch"><div class="fill orange"></div><div class="label">Orange<br><code>--color-orange</code></div></div>
+      <div class="swatch"><div class="fill red"></div><div class="label">Red<br><code>--color-red</code></div></div>
+      <div class="swatch"><div class="fill coral"></div><div class="label">Coral<br><code>--color-coral</code></div></div>
+      <div class="swatch"><div class="fill teal"></div><div class="label">Teal<br><code>--color-teal</code></div></div>
+      <div class="swatch"><div class="fill green"></div><div class="label">Green<br><code>--color-green</code></div></div>
+      <div class="swatch"><div class="fill purple"></div><div class="label">Purple<br><code>--color-purple</code></div></div>
+      <div class="swatch"><div class="fill rose"></div><div class="label">Rose<br><code>--color-rose</code></div></div>
+      <div class="swatch"><div class="fill mint"></div><div class="label">Mint<br><code>--color-mint</code></div></div>
+      <div class="swatch"><div class="fill butter"></div><div class="label">Butter<br><code>--color-butter</code></div></div>
+      <div class="swatch"><div class="fill peach"></div><div class="label">Peach<br><code>--color-peach</code></div></div>
+    </div>
+  </section>
+
+  <!-- Typography -->
+  <section class="section" id="typography">
+    <div class="section-title"><img class="title-icon" src="assets/icons/typography.png" alt=""><h2>Typography 字級</h2></div>
+    <p class="section-desc">&lt;p class="section-desc"&gt; 英數使用 Manrope，漢字回退至 Google Noto Sans TC。</p>
+    <h1>&lt;h1&gt; 頁面主標題 Booking</h1>
+    <h2>&lt;h2&gt; 區塊標題 Booking</h2>
+    <p>&lt;p&gt; Body 內文文字範例，這是一段用來檢視行高與可讀性的示範文字 Lorem ipsum.</p>
+    <p class="text-small">&lt;p class="text-small"&gt; Small 輔助說明文字範例</p>
+    <p class="text-caption">&lt;p class="text-caption"&gt; CAPTION 標籤／註記文字</p>
+  </section>
+
+  <!-- Buttons -->
+  <section class="section" id="buttons">
+    <div class="section-title"><img class="title-icon" src="assets/icons/click.png" alt=""><h2>Buttons 按鈕</h2></div>
+    <p class="section-desc">7 色系列，含 hover / active / disabled 狀態動畫。</p>
+
+    <div class="subsection">
+      <h3>色彩系列</h3>
+      <div class="row">
+        <button class="btn navy">Navy</button>
+        <button class="btn blue">Blue</button>
+        <button class="btn orange">Orange</button>
+        <button class="btn red">Red</button>
+        <button class="btn coral">Coral</button>
+        <button class="btn teal">Teal</button>
+        <button class="btn green">Green</button>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>狀態</h3>
+      <div class="row">
+        <button class="btn">預設 / Hover 試試</button>
+        <button class="btn" disabled>Disabled</button>
+        <button class="btn outline">Outline</button>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>尺寸</h3>
+      <div class="row">
+        <button class="btn sm">Small</button>
+        <button class="btn">Medium</button>
+        <button class="btn lg">Large</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dropdown -->
+  <section class="section" id="dropdown">
+    <div class="section-title"><img class="title-icon" src="assets/icons/down-arrow.png" alt=""><h2>Dropdown 下拉選單</h2></div>
+    <p class="section-desc">完全自訂，不使用瀏覽器原生 select 外觀。</p>
+    <div class="row">
+      <div class="dropdown" id="course-dropdown" data-placeholder="請選擇科目">
+        <button type="button" class="dropdown-trigger">
+          <span class="label">請選擇科目</span>
+          <span class="arrow"></span>
+        </button>
+        <ul class="dropdown-menu">
+          <li data-value="日文會話">日文會話<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="商用日文">商用日文<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="JLPT 檢定">JLPT 檢定<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="動漫日文">動漫日文<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+        </ul>
+      </div>
+
+      <div class="dropdown" data-multi="true" data-placeholder="請選擇上課時段">
+        <button type="button" class="dropdown-trigger">
+          <span class="label">請選擇上課時段（可複選）</span>
+          <span class="arrow"></span>
+        </button>
+        <ul class="dropdown-menu">
+          <li data-value="平日早上">平日早上<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="平日晚上">平日晚上<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="週末">週末<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pictures misc -->
+  <section class="section" id="pictures">
+    <div class="section-title"><span class="chip"></span><h2>圖片 / 頭像 其他樣式</h2></div>
+    <p class="section-desc">圓形大頭貼與方形縮圖卡片的基本樣式（純色 block 佔位）。</p>
+    <div class="row">
+      <div class="avatar-circle"></div>
+      <div style="width:160px;"><div class="thumb-square"></div></div>
+    </div>
+  </section>
+
+  <!-- Stripe selection card -->
+  <section class="section" id="stripe-cards">
+    <div class="section-title"><span class="chip"></span><h2>外框選取卡片</h2></div>
+    <p class="section-desc">預設外框 <code>#ddd</code> 5px；選取後外框變成跑動的條紋（借用 Bootstrap <code>progress-bar-striped</code> 的效果）。</p>
+    <div class="grid-cards">
+      <div class="stripe-card selected">
+        <div class="stripe-card-inner">
+          <h4>線上教室</h4>
+          <p class="text-small">Zoom 視訊上課</p>
+        </div>
+      </div>
+      <div class="stripe-card">
+        <div class="stripe-card-inner">
+          <h4>到府教學</h4>
+          <p class="text-small">老師到家中授課</p>
+        </div>
+      </div>
+      <div class="stripe-card">
+        <div class="stripe-card-inner">
+          <h4>教室上課</h4>
+          <p class="text-small">至補習班教室上課</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal -->
+  <section class="section" id="modal-demo">
+    <div class="section-title"><span class="chip"></span><h2>Modal 彈窗</h2></div>
+    <p class="section-desc">遮罩淡入淡出，內容從下方滑入（不使用 scale）。</p>
+    <button class="btn" data-modal-open="confirmModal">開啟確認預約 Modal</button>
+
+    <div class="modal-overlay" id="confirmModal">
+      <div class="modal">
+        <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+        <h3>確認預約</h3>
+        <p class="text-small">田中老師・日文 N3 會話班</p>
+        <p class="text-small">2026/08/26（三）11:00</p>
+        <div class="modal-actions">
+          <button class="btn outline" data-modal-close style="flex:1;">取消</button>
+          <button class="btn green" style="flex:1;">確認預約</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Booking table -->
+  <section class="section" id="table">
+    <div class="section-title"><span class="chip"></span><h2>預約清單 Table</h2></div>
+    <p class="section-desc">手機寬度自動轉為卡片式呈現。</p>
+    <div class="table-wrap">
+      <table class="bookings">
+        <thead>
+          <tr>
+            <th>學生姓名</th>
+            <th>老師</th>
+            <th>課程</th>
+            <th>日期時間</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="學生姓名">王小明</td>
+            <td data-label="老師">田中老師</td>
+            <td data-label="課程">日文 N3 會話班</td>
+            <td data-label="日期時間">2026/08/26 11:00</td>
+            <td data-label="狀態"><span class="pill confirmed has-icon"><img class="pill-icon" src="assets/icons/check.png" alt="">已確認</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="學生姓名">李小華</td>
+            <td data-label="老師">佐藤老師</td>
+            <td data-label="課程">商用日文實戰班</td>
+            <td data-label="日期時間">2026/08/27 20:00</td>
+            <td data-label="狀態"><span class="pill pending has-icon"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">待確認</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="學生姓名">周小美</td>
+            <td data-label="老師">鈴木老師</td>
+            <td data-label="課程">JLPT N2 檢定衝刺班</td>
+            <td data-label="日期時間">2026/08/24 16:00</td>
+            <td data-label="狀態"><span class="pill cancelled has-icon"><img class="pill-icon" src="assets/icons/close.png" alt="">已取消</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
