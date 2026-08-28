@@ -3,64 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LionBooking — 管理者登入</title>
+<title>LionBooking — 管理者主頁</title>
 <link rel="icon" type="image/png" href="../assets/icons/favicon.png">
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="../style.css">
+<style>
+  body.placeholder-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  body.placeholder-page .page {
+    width: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .placeholder-card {
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-7) var(--space-6);
+    box-shadow: var(--shadow-sm);
+  }
+  .placeholder-card img { width: 72px; height: 72px; margin: 0 auto var(--space-4); display: block; }
+  .placeholder-card h1 { margin: 0 0 var(--space-2); font-size: 1.5rem; }
+  .placeholder-card p { margin: 0 0 var(--space-6); color: var(--text-muted); }
+  .placeholder-card .back-link { display: inline-block; color: var(--color-primary); font-weight: 600; text-decoration: none; }
+  .placeholder-card .back-link:hover { text-decoration: underline; }
+</style>
 </head>
-<body>
+<body class="placeholder-page">
 
 <div class="page">
-
-  <div class="hero">
-    <div class="strip"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <img class="hero-mascot" src="../assets/images/maneki-neko.png" alt="招財貓吉祥物">
-    <h1>管理者後台</h1>
-    <p>管理老師、課程與系統設定。</p>
+  <div class="placeholder-card">
+    <img src="../assets/icons/admin.png" alt="">
+    <h1>管理者主頁</h1>
+    <p>登入成功，歡迎回來！這裡之後會是老師、課程與系統設定的管理畫面。</p>
+    <a class="back-link" href="../">‹ 回首頁</a>
   </div>
-
-  <!-- Login -->
-  <section class="section" id="login">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/key.png" alt=""><h2>管理者登入</h2></div>
-    <p class="section-desc">Email 一次性驗證碼登入（無密碼）。</p>
-
-    <div class="login-card" data-login data-role="admin" data-step="1">
-
-      <div class="login-step login-step-1">
-        <div class="row" style="align-items:flex-start;">
-          <div class="field" data-login-email-field>
-            <div class="field-float">
-              <input type="email" id="login-email" placeholder=" " autocomplete="email">
-              <label for="login-email">Email</label>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn blue" data-login-send>取得驗證碼</button>
-      </div>
-
-      <div class="login-step login-step-2">
-
-        <div class="otp-row" role="group" aria-label="6 位數驗證碼">
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 1 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 2 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 3 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 4 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 5 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼" disabled>
-        </div>
-
-        <div class="row login-actions">
-          <button type="button" class="btn green" data-login-submit disabled>登入</button>
-          <button type="button" class="btn outline" data-login-resend disabled>重新取得驗證碼</button>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
 </div>
 
-<script src="../script.js"></script>
 </body>
 </html>

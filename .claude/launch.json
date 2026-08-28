@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "booking-worker",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["wrangler", "dev", "--port", "12345"],
-      "port": 12345
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 12346
     }
   ]
 }

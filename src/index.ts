@@ -80,6 +80,11 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
     return Response.json({ error: '無效的角色' }, { status: 400 });
   }
 
+  const existing = await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ?`).bind(email).first();
+  if (!existing) {
+    return Response.json({ error: '查無此帳號，請確認 Email 是否正確' }, { status: 400 });
+  }
+
   const code = generateCode();
 
   await env.DB.prepare(
@@ -120,16 +125,9 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
     await env.DB.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`).bind(row.id).run();
   }
 
-  const table = ROLE_TABLES[role];
-  const existing = await env.DB.prepare(`SELECT id FROM ${table} WHERE email = ?`).bind(email).first();
-  if (!existing) {
-    // First-time login: create a bare-minimum record. Name/phone (students) or
-    // meeting_link (teachers) get filled in later via profile update.
-    await env.DB.prepare(
-      `INSERT INTO ${table} (name, email) VALUES (?, ?)`
-    ).bind(email.split('@')[0], email).run();
-  }
-
+  // No account-creation fallback here: handleOtpRequest already refuses to
+  // send a code for an email that isn't in the role's table, so by the time
+  // a code is verified the account is guaranteed to already exist.
   return Response.json({ ok: true });
 }
 
@@ -137,6 +135,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    if (url.pathname === '/api/config' && request.method === 'GET') {
+      // Lets the frontend tell test/dev sites apart from production (e.g. to
+      // show the test-account quick-fill avatars only where ALLOW_ANY_OTP is
+      // set) without duplicating that flag anywhere else.
+      return Response.json({ testMode: env.ALLOW_ANY_OTP === 'true' });
+    }
     if (url.pathname === '/api/otp/request' && request.method === 'POST') {
       return handleOtpRequest(request, env);
     }

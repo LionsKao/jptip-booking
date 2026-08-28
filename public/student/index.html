@@ -3,63 +3,241 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LionBooking — 學生登入</title>
+<title>LionBooking — 學生主頁</title>
 <link rel="icon" type="image/png" href="../assets/icons/favicon.png">
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="../style.css">
+<style>
+  body.dashboard {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  body.dashboard .page {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-6);
+  }
+
+  .dash-header {
+    position: fixed;
+    top: var(--space-6);
+    right: var(--space-6);
+    z-index: 10;
+  }
+  .avatar-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    padding: 0;
+    border: 3px solid var(--line);
+    background: var(--bg-card-alt);
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .15s ease;
+  }
+  .avatar-btn:hover {
+    border-color: var(--color-blue);
+  }
+  .avatar-btn.pop {
+    animation: day-select .35s ease;
+  }
+  .avatar-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .avatar-menu {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    right: 0;
+    min-width: 140px;
+    background: var(--bg-card);
+    border: 3px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+  .avatar-menu.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .avatar-menu button {
+    display: block;
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border: none;
+    background: none;
+    text-align: left;
+    font-family: inherit;
+    font-size: var(--fs-small);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  .avatar-menu button:hover {
+    background: var(--bg-card-alt);
+  }
+
+  .dash-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .dash-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    padding: var(--space-5) 40px;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .dash-card:hover {
+    border-color: var(--color-blue);
+    box-shadow: var(--shadow-md);
+  }
+  .dash-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 64px;
+    height: 64px;
+  }
+  .dash-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .dash-card h3 { margin: 0 0 4px; font-size: 1.375rem; }
+  .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
+
+  @media (max-width: 640px) {
+    .dash-header {
+      top: var(--space-3);
+      right: var(--space-3);
+    }
+    .dash-card {
+      padding: var(--space-4) var(--space-4);
+      gap: var(--space-3);
+    }
+  }
+</style>
 </head>
-<body>
+<body class="dashboard">
 
 <div class="page">
 
-  <div class="hero">
-    <div class="strip"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <img class="hero-mascot" src="../assets/images/maneki-neko.png" alt="招財貓吉祥物">
-    <h1>JPTIP 1vs1 日語學習</h1>
-    <p>現在就開始線上學習吧，一對一課程隨時預約<br>喜歡的老師、喜歡的時間，通通由你決定！</p>
+  <div class="dash-header">
+    <button type="button" class="avatar-btn" id="avatar-btn">
+      <img src="../assets/test-users/monkey.png" alt="">
+    </button>
+    <div class="avatar-menu" id="avatar-menu">
+      <button type="button" id="logout-btn">登出</button>
+    </div>
   </div>
 
-  <!-- Login -->
-  <section class="section" id="login">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/key.png" alt=""><h2>學生登入</h2></div>
-
-    <div class="login-card" data-login data-role="student" data-step="1">
-
-      <div class="login-step login-step-1">
-        <div class="row" style="align-items:flex-start;">
-          <div class="field" data-login-email-field>
-            <div class="field-float">
-              <input type="email" id="login-email" placeholder=" " autocomplete="email">
-              <label for="login-email">Email</label>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn blue" data-login-send>取得驗證碼</button>
-      </div>
-
-      <div class="login-step login-step-2">
-
-        <div class="otp-row" role="group" aria-label="6 位數驗證碼">
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 1 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 2 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 3 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 4 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 5 碼" disabled>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼" disabled>
-        </div>
-
-        <div class="row login-actions">
-          <button type="button" class="btn green" data-login-submit disabled>登入</button>
-          <button type="button" class="btn outline" data-login-resend disabled>重新取得驗證碼</button>
-        </div>
-      </div>
-
-    </div>
-  </section>
+  <div class="dash-cards">
+    <button type="button" class="dash-card" data-action="meeting-room">
+      <span class="dash-card-icon"><img src="../assets/icons/online-training.png" alt=""></span>
+      <span>
+        <h3>會議室</h3>
+        <p>進入線上課程的會議室</p>
+      </span>
+    </button>
+    <button type="button" class="dash-card" data-action="new-booking">
+      <span class="dash-card-icon"><img src="../assets/icons/add-event.png" alt=""></span>
+      <span>
+        <h3>新增預約</h3>
+        <p>預約新的課程時段</p>
+      </span>
+    </button>
+    <button type="button" class="dash-card" data-action="booking-history">
+      <span class="dash-card-icon"><img src="../assets/icons/flash-card.png" alt=""></span>
+      <span>
+        <h3>預約紀錄</h3>
+        <p>查看已預約的課程與紀錄</p>
+      </span>
+    </button>
+    <button type="button" class="dash-card" data-action="messages">
+      <span class="dash-card-icon"><img src="../assets/icons/message.png" alt=""></span>
+      <span>
+        <h3>留言</h3>
+        <p>查看與老師的留言</p>
+      </span>
+    </button>
+    <button type="button" class="dash-card" data-action="settings">
+      <span class="dash-card-icon"><img src="../assets/icons/cogwheel.png" alt=""></span>
+      <span>
+        <h3>設定</h3>
+        <p>管理個人資料與偏好設定</p>
+      </span>
+    </button>
+  </div>
 
 </div>
 
-<script src="../script.js"></script>
+<script>
+  const avatarBtn = document.getElementById('avatar-btn');
+  const avatarMenu = document.getElementById('avatar-menu');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  avatarBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    avatarBtn.classList.remove('pop');
+    void avatarBtn.offsetWidth;
+    avatarBtn.classList.add('pop');
+    avatarMenu.classList.toggle('open');
+  });
+
+  document.addEventListener('click', () => {
+    avatarMenu.classList.remove('open');
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    window.location.href = '../';
+  });
+
+  // TODO: 之後管理者為學生設定專屬會議室連結後,改成開啟該連結
+  document.querySelector('[data-action="meeting-room"]').addEventListener('click', () => {
+    window.open('https://www.google.com', '_blank');
+  });
+
+  document.querySelector('[data-action="new-booking"]').addEventListener('click', () => {
+    window.location.href = 'booking.html';
+  });
+
+  function applyTiltEffect(card, intensity = 6) {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const rotateX = (-y * intensity).toFixed(2);
+      const rotateY = (x * intensity).toFixed(2);
+      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow = '';
+    });
+  }
+
+  document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));
+</script>
+
 </body>
 </html>

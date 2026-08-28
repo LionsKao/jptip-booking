@@ -9,19 +9,23 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="style.css">
 <style>
+  .entry-view {
+    width: 100%;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
   .entry-cards {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
-    margin-top: var(--space-5);
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
+    gap: var(--space-5);
+    margin-top: 0;
+    width: 100%;
   }
   .entry-card {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-5);
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
     background: var(--bg-card);
@@ -29,12 +33,27 @@
     text-decoration: none;
     color: var(--text-main);
     text-align: left;
-    transition: border-color .18s ease, box-shadow .18s ease, transform .15s ease;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .15s ease, opacity .5s ease;
   }
   .entry-card:hover {
     border-color: var(--color-blue);
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+  }
+  .entry-card[hidden] {
+    display: none !important;
+  }
+  .entry-card.leaving {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .entry-card.role-locked {
+    cursor: default;
+  }
+  .entry-card.role-locked:hover {
+    border-color: var(--line);
+    box-shadow: var(--shadow-sm);
   }
   .entry-card-icon {
     display: flex;
@@ -44,7 +63,7 @@
   }
   .entry-card-icon img { width: 100%; height: 100%; object-fit: contain; }
   .entry-card-primary {
-    padding: var(--space-5) var(--space-6);
+    padding: var(--space-5) 40px;
   }
   .entry-card-primary .entry-card-icon {
     width: 64px; height: 64px;
@@ -52,52 +71,237 @@
   .entry-card-primary h3 { margin: 0 0 4px; font-size: 1.375rem; }
   .entry-card-primary p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
-  .entry-cards-secondary {
+  body.home {
+    min-height: 100vh;
     display: flex;
-    gap: var(--space-4);
+    align-items: center;
+    justify-content: center;
   }
-  .entry-card-secondary {
+  body.home .page {
+    width: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .login-form-area {
+    margin-top: var(--space-5);
+    opacity: 0;
+    transition: opacity .32s ease;
+  }
+  .login-form-area.active {
+    opacity: 1;
+  }
+  .login-form-area .login-card {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    min-height: 370px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 3px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-sm);
+  }
+  .login-form-area .login-card-body {
     flex: 1;
-    padding: var(--space-4);
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-  .entry-card-secondary .entry-card-icon {
-    width: 40px; height: 40px;
+  .login-form-area #login-email {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
-  .entry-card-secondary span { font-size: var(--fs-small); font-weight: 600; }
+  .login-form-area .field,
+  .login-form-area .otp-row {
+    margin-bottom: var(--space-4);
+  }
+  /* .otp-row lives inside .login-step-2, which has overflow:hidden for its
+     collapse/expand animation — so the "day-select" pop (translateY up to
+     -7px) gets clipped the instant it rises past .login-step-2's own top
+     edge. A gap as margin-bottom on the resend button (outside
+     .login-step-2) doesn't move that edge at all; padding-top on .otp-row
+     itself does, giving the lift real room before it hits the clip. */
+  .login-form-area [data-login-send] {
+    margin-bottom: 0;
+  }
+  .login-form-area .otp-row {
+    padding-top: var(--space-4);
+  }
+  /* The OTP boxes' default size (48px + 8px gaps) adds up to 328px, wider
+     than this card's 300px content column — shrink them so all 6 fit
+     without being clipped by .login-step-2's overflow:hidden (needed for
+     its collapse/expand animation). */
+  .login-form-area .otp-box {
+    width: 40px;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    margin-bottom: var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-3) var(--space-5);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-family: inherit;
+    font-size: var(--fs-small);
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .back-link:hover {
+    border-color: var(--color-blue);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Dev-only quick-fill: pick a test account's avatar to fill the Email
+     field instead of typing it out every time. Sits below the login card
+     as its own block so it never affects the card's own size. */
+  .test-quick-fill {
+    margin-top: var(--space-5);
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+  .test-quick-fill button {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    background: var(--bg-card-alt);
+    cursor: pointer;
+    transition: border-color .15s ease;
+  }
+  /* The circular crop lives on this inner wrapper, not the button itself —
+     the button needs overflow visible so the .selected checkmark badge
+     (positioned outside its box, top-right) doesn't get clipped. */
+  .test-quick-fill button .avatar-crop {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .test-quick-fill button:hover {
+    border-color: var(--color-blue);
+  }
+  .test-quick-fill button.pop {
+    animation: day-select .35s ease;
+  }
+  .test-quick-fill button.selected {
+    border-color: var(--color-blue);
+  }
+  .test-quick-fill button.selected::after {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--color-green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .65rem;
+    box-shadow: var(--shadow-sm);
+  }
+  /* Once the OTP step is showing it's no longer useful anyway (the Email
+     field is already filled in) — hide it so it doesn't clutter the view. */
+  .login-card[data-step="2"] ~ .test-quick-fill {
+    display: none;
+  }
+  .test-quick-fill button img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 </style>
 </head>
-<body>
+<body class="home">
 
 <div class="page">
 
-  <div class="hero">
-    <div class="strip"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <img class="hero-mascot" src="assets/images/maneki-neko.png" alt="招財貓吉祥物">
-    <h1>JPTIP 1vs1 日語學習</h1>
-    <p>現在就開始線上學習吧，一對一課程隨時預約<br>喜歡的老師、喜歡的時間，通通由你決定！</p>
-  </div>
-
-  <div class="entry-cards">
-    <a class="entry-card entry-card-primary" href="student/">
-      <span class="entry-card-icon"><img src="assets/icons/student.png" alt=""></span>
-      <span>
-        <h3>學生登入</h3>
-        <p>立即預約課程，開始你的學習之旅</p>
-      </span>
-    </a>
-    <div class="entry-cards-secondary">
-      <a class="entry-card entry-card-secondary" href="teacher/">
+  <div class="entry-view" id="entry-view">
+    <div class="entry-cards" id="entry-cards">
+      <button type="button" class="entry-card entry-card-primary" data-role="student">
+        <span class="entry-card-icon"><img src="assets/icons/student.png" alt=""></span>
+        <span>
+          <h3>學生登入</h3>
+          <p>立即預約課程，開始你的學習之旅</p>
+        </span>
+      </button>
+      <button type="button" class="entry-card entry-card-primary" data-role="teacher">
         <span class="entry-card-icon"><img src="assets/icons/laptop.png" alt=""></span>
-        <span>老師登入</span>
-      </a>
-      <a class="entry-card entry-card-secondary" href="admin/">
+        <span>
+          <h3>老師登入</h3>
+          <p>管理你的課程與預約時段</p>
+        </span>
+      </button>
+      <button type="button" class="entry-card entry-card-primary" data-role="admin">
         <span class="entry-card-icon"><img src="assets/icons/admin.png" alt=""></span>
-        <span>管理者登入</span>
-      </a>
+        <span>
+          <h3>管理者登入</h3>
+          <p>管理老師、課程與系統設定</p>
+        </span>
+      </button>
+    </div>
+
+    <div class="login-form-area" id="login-view" hidden>
+
+      <button type="button" class="back-link" data-login-back><i class="fa-solid fa-fw fa-arrow-left"></i> 返回</button>
+
+      <div class="login-card" data-login data-role="">
+
+        <div class="login-card-body">
+          <div class="row" style="align-items:flex-start;">
+            <div class="field" data-login-email-field>
+              <div class="field-float">
+                <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn blue" data-login-send>取得驗證碼</button>
+
+          <div class="login-step-2">
+
+            <div class="otp-row" role="group" aria-label="6 位數驗證碼">
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 1 碼" disabled>
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 2 碼" disabled>
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 3 碼" disabled>
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 4 碼" disabled>
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 5 碼" disabled>
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼" disabled>
+            </div>
+
+            <button type="button" class="btn green" data-login-submit disabled>登入</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="test-quick-fill" data-test-quick-fill></div>
+
     </div>
   </div>
 
 </div>
 
+<script src="script.js"></script>
 </body>
 </html>
