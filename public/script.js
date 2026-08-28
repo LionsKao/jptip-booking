@@ -76,7 +76,7 @@ document.addEventListener('click', (e) => {
   let viewYear = 2026;
   let viewMonth = 7; // 0-indexed: 7 = August
   const today = { year: 2026, month: 7, day: 26 };
-  let selected = { year: 2026, month: 7, day: 1 };
+  let selected = null;
 
   function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
   function firstWeekdayMon0(y, m) { const d = new Date(y, m, 1).getDay(); return (d + 6) % 7; }
@@ -110,12 +110,13 @@ document.addEventListener('click', (e) => {
       return btn;
     }
     const isToday = viewYear === today.year && viewMonth === today.month && day === today.day;
-    const isSelected = viewYear === selected.year && viewMonth === selected.month && day === selected.day;
+    const isSelected = !!selected && viewYear === selected.year && viewMonth === selected.month && day === selected.day;
     if (isToday) btn.classList.add('today');
     if (isSelected) btn.classList.add('selected');
     btn.addEventListener('click', () => {
       selected = { year: viewYear, month: viewMonth, day };
       render();
+      picker.dispatchEvent(new CustomEvent('datepicker:change', { bubbles: true }));
     });
     return btn;
   }

@@ -460,6 +460,12 @@
     background: #d8d3ca; color: #a89f92; cursor: not-allowed;
     box-shadow: none; transform: none; filter: none;
   }
+  .btn.is-disabled {
+    background: #d8d3ca; color: #a89f92; cursor: not-allowed;
+    box-shadow: none; transform: none; filter: none;
+  }
+  .btn.is-disabled:hover { box-shadow: none; filter: none; }
+  .btn.is-disabled:active { filter: none; }
 
   .btn.navy   { background: var(--color-navy); }
   .btn.blue   { background: var(--color-blue); }
@@ -783,19 +789,19 @@
 
   .time-slots {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: var(--space-2);
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: var(--space-3);
   }
   .time-slot {
     position: relative;
-    padding: 20px 8px;
+    padding: 12px 8px;
     text-align: center;
     border-radius: var(--radius-md);
     border: 4px solid var(--line);
     background: var(--bg-card);
     font-family: var(--font-en);
     font-weight: 600;
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     will-change: transform;
@@ -808,18 +814,134 @@
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     position: absolute;
-    top: -9px; right: -9px;
-    width: 22px; height: 22px;
+    top: -10px; right: -10px;
+    width: 26px; height: 26px;
     border-radius: 50%;
     background: var(--color-green);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: .65rem;
+    font-size: .8rem;
     box-shadow: var(--shadow-sm);
   }
   .time-slot.disabled { color: var(--text-muted); background: var(--bg-card-alt); border-color: var(--bg-card-alt); cursor: not-allowed; transform: none; }
+
+  /* ========================================================================
+     Booking confirmation summary
+     ======================================================================== */
+
+  .confirm-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .confirm-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--bg-card-alt);
+    border: 3px solid transparent;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .confirm-row:hover {
+    border-color: var(--color-blue);
+    transform: translateY(-2px);
+  }
+  .confirm-row-icon {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.1rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .confirm-row-icon.tone-course   { background: var(--color-orange); }
+  .confirm-row-icon.tone-teacher  { background: var(--color-blue); }
+  .confirm-row-icon.tone-datetime { background: var(--color-teal); }
+  .confirm-row-icon.tone-timezone { background: var(--color-purple); }
+  .confirm-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .confirm-row-label {
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+  }
+  .confirm-row-value {
+    font-weight: 700;
+    font-size: 1.0625rem;
+  }
+  .confirm-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+  .confirm-actions .btn { min-width: 220px; }
+
+  .confirm-highlight {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-5) 40px;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: default;
+    position: relative;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease;
+  }
+  .confirm-highlight-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 64px;
+    height: 64px;
+  }
+
+  /* ========================================================================
+     Booking status card (success / cancelled / ...)
+     ======================================================================== */
+
+  .status-card { text-align: center; padding-top: var(--space-7); padding-bottom: var(--space-7); }
+  .status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto var(--space-5);
+    border-radius: 50%;
+    background: var(--color-green);
+    color: #fff;
+    font-size: 1.75rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .status-icon.tone-red { background: var(--color-red); }
+  .status-card h2 { margin: 0 0 var(--space-4); }
+  .status-card p {
+    color: var(--text-muted);
+    font-size: var(--fs-body);
+    line-height: 1.7;
+    margin: 0 0 var(--space-5);
+  }
+  .status-card .btn { min-width: 220px; }
+  .confirm-highlight-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .confirm-highlight h3 { margin: 0 0 4px; font-size: 1.375rem; font-variant-numeric: tabular-nums; }
+  .confirm-highlight p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
   /* ========================================================================
      Form elements
@@ -1106,6 +1228,8 @@
     line-height: 1.5;
   }
 
+  .course-card h4,
+  .course-card .text-small { font-variant-numeric: tabular-nums; }
   .course-card .course-tag {
     height: 6px;
     border-radius: var(--radius-pill);

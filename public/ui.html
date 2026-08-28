@@ -223,6 +223,60 @@
     <p>現在就開始線上學習吧，一對一課程隨時預約，喜歡的老師、喜歡的時間，通通由你決定！</p>
   </div>
 
+  <!-- Booking confirmation -->
+  <section class="section" id="confirm" style="width:604px; margin-left:auto; margin-right:auto;">
+    <div class="section-title"><img class="title-icon" src="assets/icons/thumbs-up.png" alt=""><h2>確認預約</h2></div>
+    <div class="confirm-summary">
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/books.png" alt=""></span>
+        <span>
+          <p>課程</p>
+          <h3>N5 綜合日本語 J1</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/woman.png" alt=""></span>
+        <span>
+          <p>老師</p>
+          <h3>田中老師</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/icon-calendar.png" alt=""></span>
+        <span>
+          <p>日期時間</p>
+          <h3>2026 年 08 月 01 日 11:00</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/earth.png" alt=""></span>
+        <span>
+          <p>時區</p>
+          <h3>UTC+08:00 台北</h3>
+        </span>
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn blue lg">預約</button>
+    </div>
+  </section>
+
+  <!-- Booking success -->
+  <section class="section status-card" id="success" style="width:540px; margin-left:auto; margin-right:auto;">
+    <div class="status-icon"><i class="fa-solid fa-check"></i></div>
+    <h2>預約成功！</h2>
+    <p>感謝你的預約，老師已經收到通知囉。<br>期待很快在課堂上與你相見！</p>
+    <button type="button" class="btn blue lg">回到首頁</button>
+  </section>
+
+  <!-- Booking cancelled -->
+  <section class="section status-card" id="cancelled" style="width:540px; margin-left:auto; margin-right:auto;">
+    <div class="status-icon tone-red"><i class="fa-solid fa-xmark"></i></div>
+    <h2>預約取消！</h2>
+    <p>這堂課程的預約已經取消，若是不小心點到，可以重新預約時段。<br>有任何問題歡迎透過留言功能聯繫老師。</p>
+    <button type="button" class="btn blue lg">回到首頁</button>
+  </section>
+
   <!-- Courses -->
   <section class="section" id="courses">
     <div class="section-title"><img class="title-icon" src="assets/icons/books.png" alt=""><h2>請選擇課程</h2></div>
@@ -936,5 +990,8 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  document.querySelectorAll('.confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
+</script>
 </body>
 </html>
