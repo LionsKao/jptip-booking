@@ -259,7 +259,9 @@
   #dropdown .section-title,
   #timezone .section-title,
   #datetime .section-title,
-  #teachers .section-title { margin-bottom: var(--space-5); }
+  #teachers .section-title,
+  #table-hero .section-title,
+  #table-hero-2 .section-title { margin-bottom: var(--space-5); }
 
   .section-title h2 {
     margin: 0;
@@ -684,7 +686,7 @@
     background: var(--bg-card);
     cursor: pointer;
     will-change: transform;
-    transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .35s ease, box-shadow .35s ease;
+    transition: border-color .2s ease, background-color .18s ease, color .18s ease, transform .35s ease, box-shadow .35s ease;
   }
   .tz-card:hover { border-color: var(--color-blue); }
   .tz-card.selected {
@@ -805,7 +807,7 @@
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     will-change: transform;
-    transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .35s ease, box-shadow .35s ease;
+    transition: border-color .2s ease, background-color .18s ease, color .18s ease, transform .35s ease, box-shadow .35s ease;
   }
   .time-slot:hover { border-color: var(--color-blue); box-shadow: var(--shadow-sm); }
   .time-slot.selected { background: var(--bg-card); border-color: var(--color-blue); animation: day-select .35s ease; }
@@ -844,7 +846,7 @@
     border-radius: var(--radius-md);
     background: var(--bg-card-alt);
     border: 3px solid transparent;
-    transition: border-color .18s ease, transform .18s ease;
+    transition: border-color .2s ease, transform .18s ease;
   }
   .confirm-row:hover {
     border-color: var(--color-blue);
@@ -1116,7 +1118,6 @@
     @apply flex items-start;
     gap: var(--space-2);
     max-width: 360px;
-    width: 100%;
     padding: var(--space-3) var(--space-5);
     border-radius: var(--radius-md);
     background: var(--bg-card);
@@ -1149,7 +1150,7 @@
     cursor: pointer;
     will-change: transform;
     transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .25s ease;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
     overflow: visible;
   }
   .tilt-card:hover { box-shadow: var(--shadow-lg); }
@@ -1250,7 +1251,7 @@
     box-shadow: var(--shadow-md);
     opacity: 0;
     transform: translateY(6px);
-    transition: opacity .25s ease, transform .25s ease;
+    transition: opacity .2s ease, transform .2s ease;
   }
   .tilt-card.selected .select-badge {
     opacity: 1;
@@ -1416,6 +1417,7 @@
     border-bottom: 1px solid var(--bg-card-alt);
     font-size: var(--fs-small);
   }
+  table.bookings td[data-label="日期時間"] { font-variant-numeric: tabular-nums; }
   table.bookings tbody tr { transition: background-color .15s ease; }
   table.bookings tbody tr:hover { background: var(--bg-card-alt); }
 
@@ -1445,6 +1447,107 @@
       color: var(--text-muted);
     }
   }
+
+  /* ========================================================================
+     Booking record cards
+     ======================================================================== */
+
+  .booking-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-3);
+  }
+  .booking-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+    cursor: default;
+  }
+  .booking-card:has(.pill.info) {
+    cursor: pointer;
+  }
+  .booking-card:has(.pill.info):hover {
+    border-color: var(--color-blue);
+  }
+  .booking-card-status { position: absolute; top: var(--space-4); right: var(--space-5); }
+  .booking-card-info { display: flex; flex-direction: column; gap: 2px; }
+  .booking-card-info > :first-child { padding-right: 90px; }
+  .booking-card-info h4 { margin: 0; font-size: 1.125rem; color: var(--text-muted); }
+  .booking-card-info p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); font-weight: 600; }
+  .booking-card-info .booking-card-datetime { font-variant-numeric: tabular-nums; font-size: var(--fs-small); }
+  .booking-card-info .booking-card-course { color: var(--text-main); font-size: 1.125rem; }
+  .booking-card-side { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); width: 100%; }
+  .booking-card-side .btn.sm { padding: 10px 20px; }
+
+  /* Pagination */
+  .pagination-demo { display: flex; flex-direction: column; gap: var(--space-6); }
+  .pagination-demo-item { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .pagination-demo-label { font-size: var(--fs-small); font-weight: 700; color: var(--text-muted); }
+
+  .pagination { display: flex; align-items: center; gap: var(--space-2); }
+  .pagination button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: border-color .2s ease, background .2s ease, color .2s ease;
+  }
+  .pagination button:hover:not(:disabled):not(.active) { border-color: var(--color-blue); }
+  .pagination button.active { border-color: var(--color-blue); background: var(--color-blue); color: var(--text-on-dark); }
+  .pagination button:disabled { opacity: .4; cursor: default; }
+  .pagination-ellipsis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .pagination-simple { display: flex; align-items: center; gap: var(--space-4); }
+  .pagination-simple .pagination-info {
+    min-width: 130px;
+    text-align: center;
+    font-size: var(--fs-small);
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pagination-dots { display: flex; align-items: center; gap: var(--space-2); }
+  .pagination-dots button {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--line);
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .pagination-dots button.active { background: var(--color-blue); transform: scale(1.3); }
 }
 
 /* ==========================================================================

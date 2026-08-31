@@ -35,7 +35,7 @@
     text-align: left;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color .18s ease, box-shadow .18s ease, transform .15s ease, opacity .5s ease;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .15s ease, opacity .5s ease;
   }
   .entry-card:hover {
     border-color: var(--color-blue);
@@ -92,6 +92,7 @@
     opacity: 1;
   }
   .login-form-area .login-card {
+    position: relative;
     max-width: none;
     width: 100%;
     margin: 0;
@@ -143,26 +144,25 @@
     width: 40px;
   }
   .back-link {
+    position: absolute;
+    top: var(--space-4);
+    left: var(--space-4);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    align-self: flex-start;
-    margin-bottom: var(--space-5);
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    padding: var(--space-3) var(--space-5);
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    background: none;
     color: var(--text-muted);
-    font-weight: 600;
-    font-family: inherit;
     font-size: var(--fs-small);
     cursor: pointer;
-    transition: border-color .18s ease, box-shadow .18s ease;
+    transition: border-color .2s ease, color .2s ease;
   }
   .back-link:hover {
     border-color: var(--color-blue);
-    box-shadow: var(--shadow-md);
+    color: var(--color-blue);
   }
 
   /* Dev-only quick-fill: pick a test account's avatar to fill the Email
@@ -184,7 +184,7 @@
     border: 3px solid var(--line);
     background: var(--bg-card-alt);
     cursor: pointer;
-    transition: border-color .15s ease;
+    transition: border-color .2s ease;
   }
   /* The circular crop lives on this inner wrapper, not the button itself —
      the button needs overflow visible so the .selected checkmark badge
@@ -264,9 +264,9 @@
 
     <div class="login-form-area" id="login-view" hidden>
 
-      <button type="button" class="back-link" data-login-back><i class="fa-solid fa-fw fa-arrow-left"></i> 返回</button>
-
       <div class="login-card" data-login data-role="">
+
+        <button type="button" class="back-link" data-login-back aria-label="返回"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
 
         <div class="login-card-body">
           <div class="row" style="align-items:flex-start;">

@@ -38,7 +38,7 @@
     background: var(--bg-card-alt);
     cursor: pointer;
     overflow: hidden;
-    transition: border-color .15s ease;
+    transition: border-color .2s ease;
   }
   .avatar-btn:hover {
     border-color: var(--color-blue);
@@ -98,6 +98,9 @@
     display: flex;
     align-items: center;
     gap: var(--space-5);
+    width: 540px;
+    max-width: 100%;
+    margin: 0 auto;
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
     background: var(--bg-card);
@@ -106,7 +109,7 @@
     cursor: pointer;
     font-family: inherit;
     padding: var(--space-5) 40px;
-    transition: border-color .18s ease, box-shadow .18s ease;
+    transition: border-color .2s ease, box-shadow .2s ease;
   }
   .dash-card:hover {
     border-color: var(--color-blue);
@@ -171,14 +174,14 @@
         <p>查看已預約的課程與紀錄</p>
       </span>
     </button>
-    <button type="button" class="dash-card" data-action="messages">
+    <button type="button" class="dash-card" data-action="messages" hidden>
       <span class="dash-card-icon"><img src="../assets/icons/message.png" alt=""></span>
       <span>
         <h3>留言</h3>
         <p>查看與老師的留言</p>
       </span>
     </button>
-    <button type="button" class="dash-card" data-action="settings">
+    <button type="button" class="dash-card" data-action="settings" hidden>
       <span class="dash-card-icon"><img src="../assets/icons/cogwheel.png" alt=""></span>
       <span>
         <h3>設定</h3>

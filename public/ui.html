@@ -61,7 +61,7 @@
     font-size: var(--fs-small);
     cursor: pointer;
     box-shadow: var(--shadow-sm);
-    transition: border-color .18s ease, box-shadow .18s ease, color .18s ease;
+    transition: border-color .2s ease, box-shadow .2s ease, color .2s ease;
   }
   .back-v3:hover { border-color: var(--color-blue); color: var(--color-blue); box-shadow: var(--shadow-md); }
 
@@ -112,7 +112,7 @@
     font-family: inherit;
     font-size: var(--fs-small);
     cursor: pointer;
-    transition: border-color .18s ease, box-shadow .18s ease, transform .15s ease;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .15s ease;
   }
   .back-v6:hover { border-color: var(--color-blue); box-shadow: var(--shadow-md); }
 
@@ -178,7 +178,7 @@
     color: var(--text-main);
     cursor: pointer;
     box-shadow: var(--shadow-sm);
-    transition: border-color .18s ease, box-shadow .18s ease, color .18s ease;
+    transition: border-color .2s ease, box-shadow .2s ease, color .2s ease;
   }
   .wizard-v5-back:hover { border-color: var(--color-blue); color: var(--color-blue); box-shadow: var(--shadow-md); }
   .wizard-v5-next { flex: 1; }
@@ -223,6 +223,244 @@
     <p>現在就開始線上學習吧，一對一課程隨時預約，喜歡的老師、喜歡的時間，通通由你決定！</p>
   </div>
 
+  <section class="section" id="confirm-hero" style="width:604px; margin-left:auto; margin-right:auto;">
+    <div class="section-title"><img class="title-icon" src="assets/icons/close.png" alt=""><h2>取消預約</h2></div>
+    <div class="confirm-summary">
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/books.png" alt=""></span>
+        <span>
+          <p>課程</p>
+          <h3>N5 綜合日本語 J1</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/woman.png" alt=""></span>
+        <span>
+          <p>老師</p>
+          <h3>田中老師</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="assets/icons/icon-calendar.png" alt=""></span>
+        <span>
+          <p>日期</p>
+          <h3>2026 年 08 月 01 日 星期六 11:00</h3>
+        </span>
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn red lg">取消</button>
+    </div>
+  </section>
+
+  <section class="section" id="table-hero-2">
+    <div class="section-title"><img class="title-icon" src="assets/icons/parchment.png" alt=""><h2>預約紀錄（卡片）</h2></div>
+    <div class="booking-cards">
+      <div class="booking-card">
+        <span class="pill pending has-icon booking-card-status"><img class="pill-icon" src="assets/icons/icon-alert.png" alt="">需處理</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>山本老師</h4>
+          <p class="booking-card-datetime">2026/09/18 五 20:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill tone-navy has-icon booking-card-status"><img class="pill-icon" src="assets/icons/question.png" alt="">缺席</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>小林老師</h4>
+          <p class="booking-card-datetime">2026/09/12 六 14:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill info has-icon booking-card-status"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">預約</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>田中老師</h4>
+          <p class="booking-card-datetime">2026/09/10 四 20:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill info has-icon booking-card-status"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">預約</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>佐藤老師</h4>
+          <p class="booking-card-datetime">2026/09/05 六 11:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill cancelled has-icon booking-card-status"><img class="pill-icon" src="assets/icons/close.png" alt="">取消</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>鈴木老師</h4>
+          <p class="booking-card-datetime">2026/08/29 六 16:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill confirmed has-icon booking-card-status"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>田中老師</h4>
+          <p class="booking-card-datetime">2026/08/26 三 11:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill confirmed has-icon booking-card-status"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>渡辺老師</h4>
+          <p class="booking-card-datetime">2026/08/20 四 20:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill confirmed has-icon booking-card-status"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>伊藤老師</h4>
+          <p class="booking-card-datetime">2026/08/15 六 16:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill cancelled has-icon booking-card-status"><img class="pill-icon" src="assets/icons/close.png" alt="">取消</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>中村老師</h4>
+          <p class="booking-card-datetime">2026/08/12 三 19:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill confirmed has-icon booking-card-status"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>加藤老師</h4>
+          <p class="booking-card-datetime">2026/08/08 六 10:00</p>
+        </div>
+      </div>
+      <div class="booking-card">
+        <span class="pill confirmed has-icon booking-card-status"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span>
+        <div class="booking-card-info">
+          <p class="booking-card-course">N5 綜合日本語 J2</p>
+          <h4>小林老師</h4>
+          <p class="booking-card-datetime">2026/08/03 一 11:00</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="table-hero">
+    <div class="section-title"><img class="title-icon" src="assets/icons/parchment.png" alt=""><h2>預約紀錄（表格）</h2></div>
+    <div class="table-wrap">
+      <table class="bookings">
+        <thead>
+          <tr>
+            <th>課程</th>
+            <th>老師</th>
+            <th>日期</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="課程">N5 綜合日本語 J2</td>
+            <td data-label="老師">田中老師</td>
+            <td data-label="日期時間">2026/09/10 20:00</td>
+            <td data-label="狀態"><span class="pill info has-icon"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">預約</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="課程">N5 綜合日本語 J2</td>
+            <td data-label="老師">佐藤老師</td>
+            <td data-label="日期時間">2026/09/05 11:00</td>
+            <td data-label="狀態"><span class="pill info has-icon"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">預約</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="課程">N5 綜合日本語 J2</td>
+            <td data-label="老師">鈴木老師</td>
+            <td data-label="日期時間">2026/08/29 16:00</td>
+            <td data-label="狀態"><span class="pill cancelled has-icon"><img class="pill-icon" src="assets/icons/close.png" alt="">取消</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="課程">N5 綜合日本語 J2</td>
+            <td data-label="老師">田中老師</td>
+            <td data-label="日期時間">2026/08/26 11:00</td>
+            <td data-label="狀態"><span class="pill confirmed has-icon"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="課程">N5 綜合日本語 J2</td>
+            <td data-label="老師">渡辺老師</td>
+            <td data-label="日期時間">2026/08/20 20:00</td>
+            <td data-label="狀態"><span class="pill confirmed has-icon"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+          <tr>
+            <td data-label="課程">N5 綜合日本語 J2</td>
+            <td data-label="老師">伊藤老師</td>
+            <td data-label="日期時間">2026/08/15 16:00</td>
+            <td data-label="狀態"><span class="pill confirmed has-icon"><img class="pill-icon" src="assets/icons/check.png" alt="">完成</span></td>
+            <td data-label="操作"><button class="btn sm outline">詳情</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" id="pagination-demo">
+    <div class="section-title"><span class="chip"></span><h2>分頁 Pagination</h2></div>
+    <div class="pagination-demo">
+      <div class="pagination-demo-item">
+        <p class="pagination-demo-label">數字分頁</p>
+        <div class="pagination">
+          <button type="button" aria-label="上一頁"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" class="active">1</button>
+          <button type="button">2</button>
+          <button type="button">3</button>
+          <span class="pagination-ellipsis">…</span>
+          <button type="button">8</button>
+          <button type="button" aria-label="下一頁"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+      <div class="pagination-demo-item">
+        <p class="pagination-demo-label">完整分頁（含首頁/末頁）</p>
+        <div class="pagination">
+          <button type="button" aria-label="第一頁"><i class="fa-solid fa-angles-left"></i></button>
+          <button type="button" aria-label="上一頁"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" class="active">1</button>
+          <button type="button">2</button>
+          <button type="button">3</button>
+          <button type="button">4</button>
+          <button type="button">5</button>
+          <button type="button" aria-label="下一頁"><i class="fa-solid fa-chevron-right"></i></button>
+          <button type="button" aria-label="最後一頁"><i class="fa-solid fa-angles-right"></i></button>
+        </div>
+      </div>
+      <div class="pagination-demo-item">
+        <p class="pagination-demo-label">簡易上下頁</p>
+        <div class="pagination-simple">
+          <button type="button" class="btn sm outline" disabled>‹ 上一頁</button>
+          <span class="pagination-info">第 1 頁，共 8 頁</span>
+          <button type="button" class="btn sm outline">下一頁 ›</button>
+        </div>
+      </div>
+      <div class="pagination-demo-item">
+        <p class="pagination-demo-label">載入更多</p>
+        <button type="button" class="btn outline">載入更多</button>
+      </div>
+      <div class="pagination-demo-item">
+        <p class="pagination-demo-label">圓點分頁（適合手機）</p>
+        <div class="pagination-dots">
+          <button type="button" class="active" aria-label="第 1 頁"></button>
+          <button type="button" aria-label="第 2 頁"></button>
+          <button type="button" aria-label="第 3 頁"></button>
+          <button type="button" aria-label="第 4 頁"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Booking confirmation -->
   <section class="section" id="confirm" style="width:604px; margin-left:auto; margin-right:auto;">
     <div class="section-title"><img class="title-icon" src="assets/icons/thumbs-up.png" alt=""><h2>確認預約</h2></div>
@@ -244,15 +482,8 @@
       <div class="confirm-highlight">
         <span class="confirm-highlight-icon"><img src="assets/icons/icon-calendar.png" alt=""></span>
         <span>
-          <p>日期時間</p>
-          <h3>2026 年 08 月 01 日 11:00</h3>
-        </span>
-      </div>
-      <div class="confirm-highlight">
-        <span class="confirm-highlight-icon"><img src="assets/icons/earth.png" alt=""></span>
-        <span>
-          <p>時區</p>
-          <h3>UTC+08:00 台北</h3>
+          <p>日期</p>
+          <h3>2026 年 08 月 01 日 星期六 11:00</h3>
         </span>
       </div>
     </div>
@@ -725,8 +956,8 @@
       <span class="pill info has-icon"><img class="pill-icon" src="assets/icons/icon-hourglass.png" alt="">預約</span>
       <span class="pill cancelled has-icon"><img class="pill-icon" src="assets/icons/close.png" alt="">取消</span>
       <span class="pill pending has-icon"><img class="pill-icon" src="assets/icons/icon-alert.png" alt="">需處理</span>
+      <span class="pill tone-navy has-icon"><img class="pill-icon" src="assets/icons/question.png" alt="">缺席</span>
       <span class="pill undefined">未定義</span>
-      <span class="pill tone-navy">未定義</span>
       <span class="pill tone-blue">未定義</span>
       <span class="pill tone-orange">未定義</span>
       <span class="pill tone-red">未定義</span>
@@ -950,8 +1181,8 @@
         <thead>
           <tr>
             <th>學生姓名</th>
-            <th>老師</th>
             <th>課程</th>
+            <th>老師</th>
             <th>日期時間</th>
             <th>狀態</th>
             <th>操作</th>
@@ -992,6 +1223,7 @@
 <script src="script.js"></script>
 <script>
   document.querySelectorAll('.confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
+  document.querySelectorAll('.booking-card').forEach((card) => applyTiltEffect(card, 6));
 </script>
 </body>
 </html>

@@ -17,10 +17,10 @@
     margin-left: auto;
     margin-right: auto;
   }
-  .booking-step[data-step="4"] {
+  .booking-step[data-step="3"] {
     margin-top: calc(var(--space-7) + var(--space-5));
   }
-  .booking-step[data-step="3"] {
+  .booking-step[data-step="2"] {
     width: 1000px;
     margin-top: calc(var(--space-7) + var(--space-6));
   }
@@ -36,7 +36,7 @@
   }
 
   .dash-header {
-    position: fixed;
+    position: absolute;
     top: var(--space-6);
     right: var(--space-6);
     z-index: 10;
@@ -50,7 +50,7 @@
     background: var(--bg-card-alt);
     cursor: pointer;
     overflow: hidden;
-    transition: border-color .15s ease;
+    transition: border-color .2s ease;
   }
   .avatar-btn:hover {
     border-color: var(--color-blue);
@@ -103,6 +103,8 @@
 
   .booking-step[hidden] { display: none !important; }
 
+  .page .section-title { margin-bottom: var(--space-5); }
+
   .notice-card {
     width: 540px;
     margin: 0 auto var(--space-6);
@@ -141,7 +143,15 @@
     flex-direction: column;
     align-items: center;
   }
-  #start-booking { min-width: 220px; margin-top: var(--space-5); }
+  #start-booking { min-width: 220px; }
+
+  #success-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #back-home-btn { min-width: 220px; }
+  #success-step .status-card p { margin-bottom: 0; }
 
   .wizard-nav {
     display: flex;
@@ -221,43 +231,12 @@
         <li>課程講義與教材將於預約成功後寄送至你的信箱，請記得提前下載</li>
         <li>如遇網路不穩或臨時無法上線，請盡快透過留言功能通知老師</li>
       </ul>
-      <button type="button" class="btn blue lg" id="start-booking">開始預約</button>
     </div>
+    <button type="button" class="btn blue" id="start-booking">開始預約</button>
   </section>
 
-  <!-- Step 2: 請選擇時區 -->
+  <!-- Step 2: 請選擇課程 -->
   <div class="booking-step" data-step="2" hidden>
-    <section class="section">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/earth.png" alt=""><h2>請選擇時區</h2></div>
-      <div class="timezone-bar">
-        <div class="tz-cards">
-          <div class="tz-card selected" data-value="Taipei Standard Time">
-            <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
-            <span class="tz-card-offset">UTC+08:00</span>
-            <span class="tz-card-city">台北</span>
-          </div>
-          <div class="tz-card" data-value="Tokyo Standard Time">
-            <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
-            <span class="tz-card-offset">UTC+09:00</span>
-            <span class="tz-card-city">大阪、札幌、東京</span>
-          </div>
-          <div class="tz-card" data-value="SE Asia Standard Time">
-            <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
-            <span class="tz-card-offset">UTC+07:00</span>
-            <span class="tz-card-city">曼谷、河內、雅加達</span>
-          </div>
-        </div>
-      </div>
-    </section>
-    <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="1">上一步</button>
-      <span class="wizard-step-counter" data-step-num="2"></span>
-      <button type="button" class="btn blue" data-wizard-next="3">下一步</button>
-    </div>
-  </div>
-
-  <!-- Step 3: 請選擇課程 -->
-  <div class="booking-step" data-step="3" hidden>
     <section class="section">
     <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>請選擇課程</h2></div>
     <div class="grid-cards grid-cards-lg">
@@ -358,15 +337,15 @@
     </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="2">上一步</button>
-      <span class="wizard-step-counter" data-step-num="3"></span>
-      <button type="button" class="btn blue" data-wizard-next="4">下一步</button>
+      <button type="button" class="btn outline" data-wizard-prev="1">上一步</button>
+      <span class="wizard-step-counter" data-step-num="2"></span>
+      <button type="button" class="btn blue" data-wizard-next="3">下一步</button>
     </div>
   </div>
 
-  <!-- Step 4: 請選擇老師 -->
-  <div class="booking-step" data-step="4" hidden>
-    <section class="section">
+  <!-- Step 3: 請選擇老師 -->
+  <div class="booking-step" data-step="3" hidden>
+    <section class="section" id="teachers">
     <div class="section-title"><img class="title-icon" src="../assets/icons/woman.png" alt=""><h2>請選擇老師</h2></div>
     <div class="grid-cards">
       <div class="tilt-card teacher-card" data-group="teacher">
@@ -428,14 +407,14 @@
     </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="3">上一步</button>
-      <span class="wizard-step-counter" data-step-num="4"></span>
-      <button type="button" class="btn blue" data-wizard-next="5">下一步</button>
+      <button type="button" class="btn outline" data-wizard-prev="2">上一步</button>
+      <span class="wizard-step-counter" data-step-num="3"></span>
+      <button type="button" class="btn blue" data-wizard-next="4">下一步</button>
     </div>
   </div>
 
-  <!-- Step 5: 請選擇日期與時間 -->
-  <div class="booking-step" data-step="5" hidden>
+  <!-- Step 4: 請選擇日期與時間 -->
+  <div class="booking-step" data-step="4" hidden>
     <section class="section">
     <div class="section-title"><img class="title-icon" src="../assets/icons/icon-calendar.png" alt=""><h2>請選擇日期與時間</h2></div>
     <div class="row" style="align-items:flex-start; gap: var(--space-5);">
@@ -469,10 +448,46 @@
     </div>
     </section>
     <div class="wizard-nav">
+      <button type="button" class="btn outline" data-wizard-prev="3">上一步</button>
+      <span class="wizard-step-counter" data-step-num="4"></span>
+      <button type="button" class="btn blue" data-wizard-next="5">下一步</button>
+    </div>
+  </div>
+
+  <!-- Step 5: 確認預約 -->
+  <div class="booking-step" data-step="5" hidden>
+    <section class="section" id="confirm" style="width:604px; margin-left:auto; margin-right:auto;">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/thumbs-up.png" alt=""><h2>確認預約</h2></div>
+      <div class="confirm-summary">
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span><p>課程</p><h3 data-confirm-course>—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
+          <span><p>老師</p><h3 data-confirm-teacher>—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
+          <span><p>日期</p><h3 data-confirm-datetime>—</h3></span>
+        </div>
+      </div>
+    </section>
+    <div class="wizard-nav">
       <button type="button" class="btn outline" data-wizard-prev="4">上一步</button>
       <span class="wizard-step-counter" data-step-num="5"></span>
-      <button type="button" class="btn blue" data-wizard-next="6">下一步</button>
+      <button type="button" class="btn blue" id="submit-booking">預約</button>
     </div>
+  </div>
+
+  <!-- 預約成功 -->
+  <div id="success-step" hidden>
+    <section class="section status-card" id="success" style="width:540px; margin-left:auto; margin-right:auto;">
+      <div class="status-icon"><i class="fa-solid fa-check"></i></div>
+      <h2>預約成功！</h2>
+      <p>感謝你的預約，老師已經收到通知囉。<br>期待很快在課堂上與你相見！</p>
+    </section>
+    <button type="button" class="btn blue" id="back-home-btn">回到首頁</button>
   </div>
 
 </div>
@@ -486,12 +501,36 @@
   });
   function showStep(n) {
     steps.forEach((s) => { s.hidden = Number(s.dataset.step) !== n; });
-    document.body.classList.toggle('centered', n === 1 || n === 2 || n === 5);
+    document.body.classList.toggle('centered', n === 1 || n === 4 || n === 5);
     window.scrollTo(0, 0);
   }
 
-  // DEV: 開發階段直接跳到日期時間選擇,測試完畢後移除
-  showStep(5);
+  function populateConfirmStep() {
+    const courseName = document.querySelector('.booking-step[data-step="2"] .course-card.selected h4');
+    const teacherName = document.querySelector('.booking-step[data-step="3"] .teacher-card.selected h4');
+    const monthLabel = document.querySelector('[data-month-label]');
+    const selectedDay = document.querySelector('.datepicker-grid button.selected');
+    const selectedSlot = document.querySelector('.time-slot.selected');
+
+    document.querySelector('[data-confirm-course]').textContent = courseName ? courseName.textContent : '—';
+    document.querySelector('[data-confirm-teacher]').textContent = teacherName ? teacherName.textContent : '—';
+
+    if (monthLabel && selectedDay) {
+      const day = String(selectedDay.textContent).padStart(2, '0');
+      const time = selectedSlot ? selectedSlot.textContent : '';
+      const match = monthLabel.textContent.match(/(\d+)\s*年\s*(\d+)\s*月/);
+      const weekdayNames = ['日', '一', '二', '三', '四', '五', '六'];
+      let weekday = '';
+      if (match) {
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(selectedDay.textContent));
+        weekday = ` 星期${weekdayNames[date.getDay()]}`;
+      }
+      document.querySelector('[data-confirm-datetime]').textContent = `${monthLabel.textContent} ${day} 日${weekday} ${time}`;
+    }
+  }
+  document.querySelectorAll('.confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
+
+  showStep(1);
 
   const avatarBtn = document.getElementById('avatar-btn');
   const avatarMenu = document.getElementById('avatar-menu');
@@ -515,13 +554,24 @@
 
   document.getElementById('start-booking').addEventListener('click', () => showStep(2));
 
+  document.getElementById('submit-booking').addEventListener('click', () => {
+    steps.forEach((s) => { s.hidden = true; });
+    document.getElementById('success-step').hidden = false;
+    document.body.classList.add('centered');
+    window.scrollTo(0, 0);
+  });
+
+  document.getElementById('back-home-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+
   document.querySelectorAll('[data-wizard-prev]').forEach((btn) => {
     btn.addEventListener('click', () => showStep(Number(btn.dataset.wizardPrev)));
   });
   const REQUIRED_SELECTION_STEPS = [
-    { step: 3, message: '請先選擇課程', isComplete: (stepEl) => !!stepEl.querySelector('.course-card.selected') },
-    { step: 4, message: '請先選擇老師', isComplete: (stepEl) => !!stepEl.querySelector('.teacher-card.selected') },
-    { step: 5, message: '請先選擇日期與時間', isComplete: (stepEl) => !!stepEl.querySelector('.datepicker-grid button.selected') && !!stepEl.querySelector('.time-slot.selected') },
+    { step: 2, message: '請先選擇課程', isComplete: (stepEl) => !!stepEl.querySelector('.course-card.selected') },
+    { step: 3, message: '請先選擇老師', isComplete: (stepEl) => !!stepEl.querySelector('.teacher-card.selected') },
+    { step: 4, message: '請先選擇日期與時間', isComplete: (stepEl) => !!stepEl.querySelector('.datepicker-grid button.selected') && !!stepEl.querySelector('.time-slot.selected') },
   ];
 
   document.querySelectorAll('[data-wizard-next]').forEach((btn) => {
@@ -535,7 +585,10 @@
       }
       const next = Number(btn.dataset.wizardNext);
       const nextStep = steps.find((s) => Number(s.dataset.step) === next);
-      if (nextStep) showStep(next);
+      if (nextStep) {
+        if (next === 5) populateConfirmStep();
+        showStep(next);
+      }
     });
   });
 
@@ -549,8 +602,8 @@
 
   // Course / teacher: auto-select when only one option is actually bookable.
   [
-    { step: 3, cardSelector: '.course-card' },
-    { step: 4, cardSelector: '.teacher-card' },
+    { step: 2, cardSelector: '.course-card' },
+    { step: 3, cardSelector: '.teacher-card' },
   ].forEach(({ step, cardSelector }) => {
     const stepEl = document.querySelector(`.booking-step[data-step="${step}"]`);
     const availableCards = [...stepEl.querySelectorAll(cardSelector)].filter((c) => !c.classList.contains('locked'));
@@ -560,12 +613,12 @@
   });
 
   // Datetime: needs both a date and a time slot picked.
-  const datetimeStepEl = document.querySelector('.booking-step[data-step="5"]');
-  datetimeStepEl.addEventListener('datepicker:change', () => refreshNextButtonState(5));
+  const datetimeStepEl = document.querySelector('.booking-step[data-step="4"]');
+  datetimeStepEl.addEventListener('datepicker:change', () => refreshNextButtonState(4));
   datetimeStepEl.querySelectorAll('.time-slot:not(.disabled)').forEach((slot) => {
-    slot.addEventListener('click', () => refreshNextButtonState(5));
+    slot.addEventListener('click', () => refreshNextButtonState(4));
   });
-  refreshNextButtonState(5);
+  refreshNextButtonState(4);
 </script>
 
 </body>
