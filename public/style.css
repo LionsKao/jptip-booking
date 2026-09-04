@@ -197,6 +197,24 @@
   .fixed {
     position: fixed;
   }
+  .container {
+    width: 100%;
+    @media (width >= 40rem) {
+      max-width: 40rem;
+    }
+    @media (width >= 48rem) {
+      max-width: 48rem;
+    }
+    @media (width >= 64rem) {
+      max-width: 64rem;
+    }
+    @media (width >= 80rem) {
+      max-width: 80rem;
+    }
+    @media (width >= 96rem) {
+      max-width: 96rem;
+    }
+  }
   .block {
     display: block;
   }
@@ -228,6 +246,9 @@
   .outline {
     outline-style: var(--tw-outline-style);
     outline-width: 1px;
+  }
+  .filter {
+    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
   .transition {
     transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events;
@@ -410,8 +431,8 @@
     background: var(--color-orange);
   }
   .section-title .title-icon {
-    width: 26px;
-    height: 26px;
+    width: 34px;
+    height: 34px;
   }
   i.section-title-icon, .section-title i.title-icon {
     font-size: 22px;
@@ -544,16 +565,6 @@
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-5);
   }
-  @media (max-width: 1024px) {
-    #teachers .grid-cards, .grid-cards-lg {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  @media (max-width: 640px) {
-    #teachers .grid-cards, .grid-cards-lg {
-      grid-template-columns: 1fr;
-    }
-  }
   .grid-cards-lg .course-card {
     padding: var(--space-6) var(--space-6) var(--space-4);
   }
@@ -566,6 +577,39 @@
   .grid-cards-lg .course-card .course-tag {
     height: 10px;
     margin-bottom: var(--space-4);
+  }
+  @media (max-width: 1024px) {
+    #teachers .grid-cards, .grid-cards-lg {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 640px) {
+    #teachers .grid-cards, .grid-cards-lg {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+    .grid-cards-lg .course-card {
+      padding: var(--space-4);
+    }
+    .grid-cards-lg .course-card .course-tag {
+      margin-bottom: var(--space-3);
+    }
+    .grid-cards-lg .course-card h4 {
+      font-size: 1.125rem;
+      line-height: 1.35;
+      margin-bottom: var(--space-1);
+    }
+    .grid-cards-lg .course-card .text-small {
+      font-size: .875rem;
+      line-height: 1.4;
+    }
+    .grid-cards-lg .course-card .text-caption {
+      font-size: .875rem;
+      line-height: 1.4;
+    }
+    .grid-cards-lg .course-card .text-caption b {
+      font-weight: 400;
+    }
   }
   .swatches {
     display: grid;
@@ -801,6 +845,26 @@
     @supports (color: color-mix(in lab, red, red)) {
       background: color-mix(in srgb, var(--color-teal) 28%, white);
     }
+  }
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: var(--fs-small);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: border-color .2s ease, box-shadow .2s ease, color .2s ease;
+  }
+  .back-btn:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+    box-shadow: var(--shadow-md);
   }
   .btn.sm {
     padding: 8px 16px;
@@ -1343,6 +1407,16 @@
     width: 64px;
     height: 64px;
   }
+  @media (max-width: 640px) {
+    .confirm-highlight {
+      gap: var(--space-4);
+      padding: var(--space-4);
+    }
+    .confirm-highlight-icon {
+      width: 48px;
+      height: 48px;
+    }
+  }
   .status-card {
     text-align: center;
     padding-top: var(--space-7);
@@ -1515,7 +1589,6 @@
     color: var(--text-main);
     box-shadow: var(--shadow-sm);
     outline: none;
-    caret-color: transparent;
     transition: border-color .2s ease, box-shadow .2s ease, transform .15s ease;
   }
   @media (max-width: 380px) {
@@ -1667,6 +1740,64 @@
     font-size: 1.875rem;
     font-weight: 700;
     box-shadow: var(--shadow-sm);
+    transition: transform .3s ease, box-shadow .3s ease;
+  }
+  #teachers .teacher-card:hover .teacher-avatar {
+    transform: scale(1.06);
+  }
+  #teachers .teacher-card:nth-child(1):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-butter);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-butter) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(2):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-rose);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-rose) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(3):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-mint);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-mint) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(4):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-peach);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-peach) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(5):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-purple);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-purple) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(6):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-teal);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-teal) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(7):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-coral);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-coral) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(8):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-blue);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-blue) 55%, transparent);
+    }
+  }
+  #teachers .teacher-card:nth-child(9):hover .teacher-avatar {
+    box-shadow: var(--shadow-sm), 0 0 0 6px var(--color-orange);
+    @supports (color: color-mix(in lab, red, red)) {
+      box-shadow: var(--shadow-sm), 0 0 0 6px color-mix(in srgb, var(--color-orange) 55%, transparent);
+    }
   }
   .teacher-card {
     text-align: center;
@@ -2259,6 +2390,59 @@
   inherits: false;
   initial-value: solid;
 }
+@property --tw-blur {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-brightness {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-contrast {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-grayscale {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-hue-rotate {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-invert {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-opacity {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-saturate {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-sepia {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-drop-shadow {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-drop-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-drop-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-drop-shadow-size {
+  syntax: "*";
+  inherits: false;
+}
 @property --tw-font-weight {
   syntax: "*";
   inherits: false;
@@ -2273,6 +2457,19 @@
       --tw-skew-y: initial;
       --tw-border-style: solid;
       --tw-outline-style: solid;
+      --tw-blur: initial;
+      --tw-brightness: initial;
+      --tw-contrast: initial;
+      --tw-grayscale: initial;
+      --tw-hue-rotate: initial;
+      --tw-invert: initial;
+      --tw-opacity: initial;
+      --tw-saturate: initial;
+      --tw-sepia: initial;
+      --tw-drop-shadow: initial;
+      --tw-drop-shadow-color: initial;
+      --tw-drop-shadow-alpha: 100%;
+      --tw-drop-shadow-size: initial;
       --tw-font-weight: initial;
     }
   }

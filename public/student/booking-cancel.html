@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 取消預約</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.booking-cancel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  body.booking-cancel .page {
+    max-width: 1048px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .section-title { margin-bottom: var(--space-5); }
+
+  #confirm,
+  #cancelled {
+    width: 604px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #cancelled-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #cancelled-step .status-card p { margin-bottom: 0; }
+  #back-home-btn { min-width: 220px; }
+  #cancelled {
+    width: 540px;
+  }
+
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    width: 604px;
+    max-width: 100%;
+    margin: var(--space-6) auto 0;
+  }
+  .wizard-nav .btn { min-width: 160px; }
+
+  @media (max-width: 1048px) {
+    body.booking-cancel .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    #confirm,
+    #cancelled {
+      width: 100%;
+    }
+    .wizard-nav {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+    .wizard-nav .btn { min-width: 0; flex: 1 1 0; text-align: center; }
+    .confirm-highlight {
+      gap: var(--space-4);
+      padding: var(--space-4);
+    }
+    .confirm-highlight-icon {
+      width: 48px;
+      height: 48px;
+    }
+    .confirm-highlight h3 {
+      font-size: 1.125rem;
+    }
+  }
+</style>
+</head>
+<body class="booking-cancel">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section" id="confirm">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/close.png" alt=""><h2>取消預約</h2></div>
+    <div class="confirm-summary">
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+        <span>
+          <p>課程</p>
+          <h3 data-confirm-course>—</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
+        <span>
+          <p>老師</p>
+          <h3 data-confirm-teacher>—</h3>
+        </span>
+      </div>
+      <div class="confirm-highlight">
+        <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
+        <span>
+          <p>日期</p>
+          <h3 data-confirm-datetime>—</h3>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <div class="wizard-nav" id="confirm-nav">
+    <button type="button" class="btn outline" id="prev-btn">上一頁</button>
+    <button type="button" class="btn red" id="cancel-btn">確定取消預約</button>
+  </div>
+
+  <div id="cancelled-step" hidden>
+    <section class="section status-card" id="cancelled">
+      <div class="status-icon tone-red"><i class="fa-solid fa-xmark"></i></div>
+      <h2>預約取消！</h2>
+      <p>這堂課程的預約已經取消。</p>
+    </section>
+    <button type="button" class="btn blue" id="back-home-btn">回到首頁</button>
+  </div>
+
+</div>
+
+<script src="../script.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  document.querySelector('[data-confirm-course]').textContent = params.get('course') || '—';
+  document.querySelector('[data-confirm-teacher]').textContent = params.get('teacher') || '—';
+  document.querySelector('[data-confirm-datetime]').textContent = params.get('datetime') || '—';
+
+  document.querySelectorAll('.confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'booking-history.html';
+  });
+
+  document.getElementById('prev-btn').addEventListener('click', () => {
+    window.location.href = 'booking-history.html';
+  });
+
+  document.getElementById('cancel-btn').addEventListener('click', () => {
+    document.getElementById('confirm').hidden = true;
+    document.getElementById('confirm-nav').hidden = true;
+    document.getElementById('cancelled-step').hidden = false;
+  });
+
+  document.getElementById('back-home-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+</script>
+
+</body>
+</html>

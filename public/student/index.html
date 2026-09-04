@@ -17,77 +17,27 @@
   }
   body.dashboard .page {
     width: 100%;
-    max-width: 640px;
+    max-width: 550px;
     margin: 0 auto;
     padding-top: var(--space-6);
     padding-bottom: var(--space-6);
   }
 
-  .dash-header {
-    position: fixed;
+  .back-header {
+    position: absolute;
     top: var(--space-6);
-    right: var(--space-6);
+    left: var(--space-6);
     z-index: 10;
   }
-  .avatar-btn {
-    width: 64px;
-    height: 64px;
+
+  .modal-icon {
+    width: 76px; height: 76px;
     border-radius: 50%;
-    padding: 0;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-    cursor: pointer;
-    overflow: hidden;
-    transition: border-color .2s ease;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
   }
-  .avatar-btn:hover {
-    border-color: var(--color-blue);
-  }
-  .avatar-btn.pop {
-    animation: day-select .35s ease;
-  }
-  .avatar-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .avatar-menu {
-    position: absolute;
-    top: calc(100% + var(--space-2));
-    right: 0;
-    min-width: 140px;
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    opacity: 0;
-    transform: translateY(-6px);
-    pointer-events: none;
-    transition: opacity .15s ease, transform .15s ease;
-  }
-  .avatar-menu.open {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  .avatar-menu button {
-    display: block;
-    width: 100%;
-    padding: var(--space-3) var(--space-4);
-    border: none;
-    background: none;
-    text-align: left;
-    font-family: inherit;
-    font-size: var(--fs-small);
-    color: var(--text-main);
-    cursor: pointer;
-    transition: background .15s ease;
-  }
-  .avatar-menu button:hover {
-    background: var(--bg-card-alt);
-  }
+  .modal-icon.danger { background: rgba(255, 138, 138, .18); color: var(--color-red); }
 
   .dash-cards {
     display: flex;
@@ -98,7 +48,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-5);
-    width: 540px;
+    width: 550px;
     max-width: 100%;
     margin: 0 auto;
     border-radius: var(--radius-lg);
@@ -128,9 +78,9 @@
   .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
   @media (max-width: 640px) {
-    .dash-header {
+    .back-header {
       top: var(--space-3);
-      right: var(--space-3);
+      left: var(--space-3);
     }
     .dash-card {
       padding: var(--space-4) var(--space-4);
@@ -141,16 +91,23 @@
 </head>
 <body class="dashboard">
 
-<div class="page">
+<div class="back-header">
+  <button type="button" class="back-btn" id="logout-btn" data-modal-open="logoutConfirmModal"><i class="fa-solid fa-fw fa-arrow-right-from-bracket"></i></button>
+</div>
 
-  <div class="dash-header">
-    <button type="button" class="avatar-btn" id="avatar-btn">
-      <img src="../assets/test-users/monkey.png" alt="">
-    </button>
-    <div class="avatar-menu" id="avatar-menu">
-      <button type="button" id="logout-btn">登出</button>
+<div class="modal-overlay" id="logoutConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3>確定要登出嗎？</h3>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 登出</button>
     </div>
   </div>
+</div>
+
+<div class="page">
 
   <div class="dash-cards">
     <button type="button" class="dash-card" data-action="meeting-room">
@@ -170,7 +127,7 @@
     <button type="button" class="dash-card" data-action="booking-history">
       <span class="dash-card-icon"><img src="../assets/icons/flash-card.png" alt=""></span>
       <span>
-        <h3>預約紀錄</h3>
+        <h3>我的課程</h3>
         <p>查看已預約的課程與紀錄</p>
       </span>
     </button>
@@ -192,24 +149,9 @@
 
 </div>
 
+<script src="../script.js"></script>
 <script>
-  const avatarBtn = document.getElementById('avatar-btn');
-  const avatarMenu = document.getElementById('avatar-menu');
-  const logoutBtn = document.getElementById('logout-btn');
-
-  avatarBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    avatarBtn.classList.remove('pop');
-    void avatarBtn.offsetWidth;
-    avatarBtn.classList.add('pop');
-    avatarMenu.classList.toggle('open');
-  });
-
-  document.addEventListener('click', () => {
-    avatarMenu.classList.remove('open');
-  });
-
-  logoutBtn.addEventListener('click', () => {
+  document.getElementById('logout-confirm-btn').addEventListener('click', () => {
     window.location.href = '../';
   });
 
@@ -220,6 +162,10 @@
 
   document.querySelector('[data-action="new-booking"]').addEventListener('click', () => {
     window.location.href = 'booking.html';
+  });
+
+  document.querySelector('[data-action="booking-history"]').addEventListener('click', () => {
+    window.location.href = 'booking-history.html';
   });
 
   function applyTiltEffect(card, intensity = 6) {

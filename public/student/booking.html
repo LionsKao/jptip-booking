@@ -18,7 +18,11 @@
     margin-right: auto;
   }
   .booking-step[data-step="3"] {
+    width: 1000px;
     margin-top: calc(var(--space-7) + var(--space-5));
+  }
+  .booking-step[data-step="3"] #teachers .grid-cards {
+    grid-template-columns: repeat(2, 1fr);
   }
   .booking-step[data-step="2"] {
     width: 1000px;
@@ -35,79 +39,70 @@
     padding-bottom: 0;
   }
 
-  .dash-header {
+  .back-header {
     position: absolute;
     top: var(--space-6);
-    right: var(--space-6);
+    left: var(--space-6);
     z-index: 10;
   }
-  .avatar-btn {
-    width: 64px;
-    height: 64px;
+
+  .modal-icon {
+    width: 76px; height: 76px;
     border-radius: 50%;
-    padding: 0;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-    cursor: pointer;
-    overflow: hidden;
-    transition: border-color .2s ease;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
   }
-  .avatar-btn:hover {
-    border-color: var(--color-blue);
-  }
-  .avatar-btn.pop {
-    animation: day-select .35s ease;
-  }
-  .avatar-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .avatar-menu {
-    position: absolute;
-    top: calc(100% + var(--space-2));
-    right: 0;
-    min-width: 140px;
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    opacity: 0;
-    transform: translateY(-6px);
-    pointer-events: none;
-    transition: opacity .15s ease, transform .15s ease;
-  }
-  .avatar-menu.open {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  .avatar-menu button {
-    display: block;
-    width: 100%;
-    padding: var(--space-3) var(--space-4);
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+
+  .quota-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: none;
-    text-align: left;
-    font-family: inherit;
-    font-size: var(--fs-small);
-    color: var(--text-main);
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 18px;
     cursor: pointer;
-    transition: background .15s ease;
+    vertical-align: middle;
+    transition: color .2s ease, opacity .2s ease;
   }
-  .avatar-menu button:hover {
-    background: var(--bg-card-alt);
+  .quota-info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
+  #course-quota-attended,
+  #course-quota-booked {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .booking-step[data-step="2"] .grid-cards-lg {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .booking-step[data-step="2"] .grid-cards-lg .course-card .text-small {
+    font-size: 1rem;
   }
 
   .booking-step[hidden] { display: none !important; }
 
   .page .section-title { margin-bottom: var(--space-5); }
 
-  .notice-card {
+  #confirm {
+    width: 604px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #success {
     width: 540px;
-    margin: 0 auto var(--space-6);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .notice-card {
+    width: 550px;
+    margin: 0 auto;
     border-radius: var(--radius-lg);
     background: var(--bg-card);
     box-shadow: var(--shadow-sm);
@@ -142,8 +137,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-top: calc(64px + var(--space-5));
   }
-  #start-booking { min-width: 220px; }
 
   #success-step {
     display: flex;
@@ -152,6 +147,10 @@
   }
   #back-home-btn { min-width: 220px; }
   #success-step .status-card p { margin-bottom: 0; }
+
+  .wizard-viewport {
+    position: relative;
+  }
 
   .wizard-nav {
     display: flex;
@@ -181,42 +180,150 @@
     }
   }
   @media (max-width: 1000px) {
-    .booking-step {
+    .booking-step,
+    .booking-step[data-step="2"],
+    .booking-step[data-step="3"] {
       width: 100%;
       max-width: 1000px;
     }
   }
   @media (max-width: 640px) {
+    .booking-step[data-step="1"] {
+      margin-top: 0;
+    }
+    .booking-step[data-step="2"] .grid-cards-lg {
+      grid-template-columns: 1fr;
+    }
+    #confirm,
+    #success {
+      width: 100%;
+    }
+    .confirm-highlight h3 {
+      font-size: 1.125rem;
+    }
     .notice-card {
       width: 100%;
-      max-width: 540px;
+      max-width: 550px;
       padding: var(--space-4);
     }
-    .dash-header {
+    .notice-list {
+      font-size: .875rem;
+    }
+    .notice-card-icon {
+      width: 56px;
+      height: 56px;
+      margin-bottom: var(--space-4);
+    }
+    .back-header {
       top: var(--space-3);
-      right: var(--space-3);
+      left: var(--space-3);
+    }
+    /* Steps 1/4/5 use body.booking.centered to vertically center on desktop;
+       on mobile that just pushes the card down an inconsistent amount
+       depending on content height, so drop the centering and give it a
+       fixed top margin instead. */
+    body.booking.centered {
+      min-height: 0;
+      display: block;
+    }
+    body.booking.centered .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+      padding-bottom: var(--space-5);
+    }
+    body.booking .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .booking-step[data-step="2"],
+    .booking-step[data-step="3"] {
+      margin-top: 0;
     }
     .wizard-nav {
       width: 100%;
       flex-wrap: wrap;
       justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
     }
-    .wizard-nav .btn { min-width: 0; flex: 1 1 auto; }
+    .wizard-nav .btn { min-width: 0; flex: 1 1 0; text-align: center; }
+    .course-card.not-purchased,
+    .course-card.completed { display: none; }
+
+    /* Teacher list: 2-up compact cards (avatar + name only) so 8 teachers
+       don't take ~3.5 screens of scrolling. */
+    #teachers .grid-cards {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3);
+    }
+    #teachers .teacher-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: var(--space-4) var(--space-3);
+    }
+    #teachers .teacher-avatar {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto var(--space-2);
+    }
+    #teachers .teacher-card h4 {
+      font-size: 1.125rem;
+      background: none !important;
+      padding: 0;
+    }
+    #teachers .teacher-card .text-small,
+    #teachers .teacher-motto {
+      display: none;
+    }
   }
 </style>
 </head>
 <body class="booking centered">
 
-<div class="dash-header">
-  <button type="button" class="avatar-btn" id="avatar-btn">
-    <img src="../assets/test-users/monkey.png" alt="">
-  </button>
-  <div class="avatar-menu" id="avatar-menu">
-    <button type="button" id="logout-btn">登出</button>
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="modal-overlay" id="bookingAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-fw fa-triangle-exclamation"></i></div>
+    <h3 id="booking-alert-text"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-fw fa-triangle-exclamation"></i></div>
+    <h3>確定要離開嗎？</h3>
+    <p class="text-small">目前的預約進度將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="courseQuotaModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
+    <h3 id="course-quota-name">—</h3>
+    <p class="text-small">已上課：<b id="course-quota-attended">—</b></p>
+    <p class="text-small">已預約：<b id="course-quota-booked">—</b></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
   </div>
 </div>
 
 <div class="page">
+
+<div class="wizard-viewport" id="wizard-viewport">
 
   <!-- Step 1: 注意事項 -->
   <section class="booking-step" data-step="1">
@@ -232,7 +339,9 @@
         <li>如遇網路不穩或臨時無法上線，請盡快透過留言功能通知老師</li>
       </ul>
     </div>
-    <button type="button" class="btn blue" id="start-booking">開始預約</button>
+    <div class="wizard-nav">
+      <button type="button" class="btn blue" id="start-booking"><i class="fa-solid fa-fw fa-calendar-check"></i> 開始預約</button>
+    </div>
   </section>
 
   <!-- Step 2: 請選擇課程 -->
@@ -240,7 +349,7 @@
     <section class="section">
     <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>請選擇課程</h2></div>
     <div class="grid-cards grid-cards-lg">
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked completed" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon tone-green">完成</span></span>
         <div class="course-tag" style="background:var(--level-j1);"></div>
         <h4>N5 綜合日本語 J1</h4>
@@ -249,86 +358,82 @@
       <div class="tilt-card course-card" data-group="course">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="course-tag" style="background:var(--level-j2);"></div>
-        <h4>N5 綜合日本語 J2</h4>
+        <h4>N5 綜合日本語 J2 <button type="button" class="quota-info-btn" data-course-name="N5 綜合日本語 J2" data-attended="14/16" data-booked="15/16" aria-label="查看課程次數"><i class="fa-solid fa-fw fa-circle-question"></i></button></h4>
         <p class="text-small">第 5 課到第 8 課</p>
-        <p class="text-caption course-quota">已上課：<b>14/16</b></p>
-        <p class="text-caption course-quota">已預約：<b>15/16</b></p>
       </div>
       <div class="tilt-card course-card has-ribbon locked" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon tone-red">無次數</span></span>
         <div class="course-tag" style="background:var(--level-j3);"></div>
-        <h4>N5 綜合日本語 J3</h4>
+        <h4>N5 綜合日本語 J3 <button type="button" class="quota-info-btn" data-course-name="N5 綜合日本語 J3" data-attended="13/16" data-booked="16/16" aria-label="查看課程次數"><i class="fa-solid fa-fw fa-circle-question"></i></button></h4>
         <p class="text-small">第 9 課到第 13 課</p>
-        <p class="text-caption course-quota">已上課：<b>13/16</b></p>
-        <p class="text-caption course-quota">已預約：<b>16/16</b></p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j4);"></div>
         <h4>N4 綜合日本語 J4</h4>
         <p class="text-small">第 1 課到第 6 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j5);"></div>
         <h4>N4 綜合日本語 J5</h4>
         <p class="text-small">第 7 課到第 12 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j6);"></div>
         <h4>N4 綜合日本語 J6</h4>
         <p class="text-small">第 13 課到第 18 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j7);"></div>
         <h4>N3 綜合日本語 J7</h4>
         <p class="text-small">第 1 課到第 4 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j8);"></div>
         <h4>N3 綜合日本語 J8</h4>
         <p class="text-small">第 5 課到第 8 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j9);"></div>
         <h4>N3 綜合日本語 J9</h4>
         <p class="text-small">第 9 課到第 12 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j10);"></div>
         <h4>N2 綜合日本語 J10</h4>
         <p class="text-small">第 13 課到第 15 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j11);"></div>
         <h4>N2 綜合日本語 J11</h4>
         <p class="text-small">第 16 課到第 18 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j12);"></div>
         <h4>N2 綜合日本語 J12</h4>
         <p class="text-small">第 19 課到第 21 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--level-j13);"></div>
         <h4>N2 綜合日本語 J13</h4>
         <p class="text-small">第 22 課到第 24 課</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--color-steel);"></div>
         <h4>商務日文 基礎會話篇</h4>
         <p class="text-small">精準掌握職場敬語與日常電話社交等核心庶務</p>
       </div>
-      <div class="tilt-card course-card has-ribbon locked" data-group="course">
+      <div class="tilt-card course-card has-ribbon locked not-purchased" data-group="course">
         <span class="ribbon-clip"><span class="course-ribbon">未購買</span></span>
         <div class="course-tag" style="background:var(--color-steel);"></div>
         <h4>商務日文 應用會話篇</h4>
@@ -337,9 +442,9 @@
     </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="1">上一步</button>
+      <button type="button" class="btn outline" data-wizard-prev="1"><i class="fa-solid fa-fw fa-arrow-left"></i> 上一步</button>
       <span class="wizard-step-counter" data-step-num="2"></span>
-      <button type="button" class="btn blue" data-wizard-next="3">下一步</button>
+      <button type="button" class="btn blue" data-wizard-next="3">下一步 <i class="fa-solid fa-fw fa-arrow-right"></i></button>
     </div>
   </div>
 
@@ -351,65 +456,81 @@
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-1.jpg');"></div>
-        <h4>田中老師</h4>
-        <p class="text-small">日文會話・5 年教學經驗</p>
+        <div class="teacher-info">
+          <h4>田中老師</h4>
+          <p class="text-small">日文會話・5 年教學經驗</p>
+        </div>
         <p class="text-caption teacher-motto">「一緒に学び、共に成長していきましょう。」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-2.jpg');"></div>
-        <h4>佐藤老師</h4>
-        <p class="text-small">商用日文・JLPT N1</p>
+        <div class="teacher-info">
+          <h4>佐藤老師</h4>
+          <p class="text-small">商用日文・JLPT N1</p>
+        </div>
         <p class="text-caption teacher-motto">「失敗を恐れず、新しい世界へ踏み出そう！」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-3.jpg');"></div>
-        <h4>鈴木老師</h4>
-        <p class="text-small">日文文法・JLPT 檢定專攻</p>
+        <div class="teacher-info">
+          <h4>鈴木老師</h4>
+          <p class="text-small">日文文法・JLPT 檢定專攻</p>
+        </div>
         <p class="text-caption teacher-motto">「毎日の小さな積み重ねが、大きな力になる。」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-4.jpg');"></div>
-        <h4>山田老師</h4>
-        <p class="text-small">動漫日文・流行文化會話</p>
+        <div class="teacher-info">
+          <h4>山田老師</h4>
+          <p class="text-small">動漫日文・流行文化會話</p>
+        </div>
         <p class="text-caption teacher-motto">「臭豆腐の美味しさがわかる人は、もう私の仲間です。」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-5.jpg');"></div>
-        <h4>高橋老師</h4>
-        <p class="text-small">會話練習・生活日文</p>
+        <div class="teacher-info">
+          <h4>高橋老師</h4>
+          <p class="text-small">會話練習・生活日文</p>
+        </div>
         <p class="text-caption teacher-motto">「授業よりも、放課後の台湾夜市グルメが本番です。」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-6.jpg');"></div>
-        <h4>中村老師</h4>
-        <p class="text-small">聽力訓練・新聞日文</p>
+        <div class="teacher-info">
+          <h4>中村老師</h4>
+          <p class="text-small">聽力訓練・新聞日文</p>
+        </div>
         <p class="text-caption teacher-motto">「私の体の半分は、タピオカミルクティーとルーロー飯でできています。」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-7.jpg');"></div>
-        <h4>小林老師</h4>
-        <p class="text-small">文法解析・句型整理</p>
+        <div class="teacher-info">
+          <h4>小林老師</h4>
+          <p class="text-small">文法解析・句型整理</p>
+        </div>
         <p class="text-caption teacher-motto">「質問は大歓迎！でもパクチーは大盛りでよろしく。」</p>
       </div>
       <div class="tilt-card teacher-card" data-group="teacher">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('../assets/teachers/teacher-8.jpg');"></div>
-        <h4>渡辺老師</h4>
-        <p class="text-small">作文指導・寫作技巧</p>
+        <div class="teacher-info">
+          <h4>渡辺老師</h4>
+          <p class="text-small">作文指導・寫作技巧</p>
+        </div>
         <p class="text-caption teacher-motto">「私の体の半分は、タピオカミルクティーとルーロー飯でできています。」</p>
       </div>
     </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="2">上一步</button>
+      <button type="button" class="btn outline" data-wizard-prev="2"><i class="fa-solid fa-fw fa-arrow-left"></i> 上一步</button>
       <span class="wizard-step-counter" data-step-num="3"></span>
-      <button type="button" class="btn blue" data-wizard-next="4">下一步</button>
+      <button type="button" class="btn blue" data-wizard-next="4">下一步 <i class="fa-solid fa-fw fa-arrow-right"></i></button>
     </div>
   </div>
 
@@ -448,15 +569,15 @@
     </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="3">上一步</button>
+      <button type="button" class="btn outline" data-wizard-prev="3"><i class="fa-solid fa-fw fa-arrow-left"></i> 上一步</button>
       <span class="wizard-step-counter" data-step-num="4"></span>
-      <button type="button" class="btn blue" data-wizard-next="5">下一步</button>
+      <button type="button" class="btn blue" data-wizard-next="5">下一步 <i class="fa-solid fa-fw fa-arrow-right"></i></button>
     </div>
   </div>
 
   <!-- Step 5: 確認預約 -->
   <div class="booking-step" data-step="5" hidden>
-    <section class="section" id="confirm" style="width:604px; margin-left:auto; margin-right:auto;">
+    <section class="section" id="confirm">
       <div class="section-title"><img class="title-icon" src="../assets/icons/thumbs-up.png" alt=""><h2>確認預約</h2></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
@@ -474,7 +595,7 @@
       </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn outline" data-wizard-prev="4">上一步</button>
+      <button type="button" class="btn outline" data-wizard-prev="4"><i class="fa-solid fa-fw fa-arrow-left"></i> 上一步</button>
       <span class="wizard-step-counter" data-step-num="5"></span>
       <button type="button" class="btn blue" id="submit-booking">預約</button>
     </div>
@@ -482,13 +603,15 @@
 
   <!-- 預約成功 -->
   <div id="success-step" hidden>
-    <section class="section status-card" id="success" style="width:540px; margin-left:auto; margin-right:auto;">
+    <section class="section status-card" id="success">
       <div class="status-icon"><i class="fa-solid fa-check"></i></div>
       <h2>預約成功！</h2>
       <p>感謝你的預約，老師已經收到通知囉。<br>期待很快在課堂上與你相見！</p>
     </section>
-    <button type="button" class="btn blue" id="back-home-btn">回到首頁</button>
+    <button type="button" class="btn blue" id="back-home-btn"><i class="fa-solid fa-fw fa-house"></i> 回到首頁</button>
   </div>
+
+</div>
 
 </div>
 
@@ -499,9 +622,20 @@
   document.querySelectorAll('.wizard-step-counter').forEach((el) => {
     el.textContent = `${el.dataset.stepNum} / ${totalSteps}`;
   });
-  function showStep(n) {
-    steps.forEach((s) => { s.hidden = Number(s.dataset.step) !== n; });
-    document.body.classList.toggle('centered', n === 1 || n === 4 || n === 5);
+
+  const successStep = document.getElementById('success-step');
+
+  function transitionPanels(current, next) {
+    if (current) current.hidden = true;
+    next.hidden = false;
+  }
+
+  function showStep(n, forward = true) {
+    const current = [...steps, successStep].find((s) => !s.hidden);
+    const next = steps.find((s) => Number(s.dataset.step) === n);
+    if (!next) return;
+    transitionPanels(current, next, forward);
+    document.body.classList.toggle('centered', n === 4 || n === 5);
     window.scrollTo(0, 0);
   }
 
@@ -521,42 +655,52 @@
       const match = monthLabel.textContent.match(/(\d+)\s*年\s*(\d+)\s*月/);
       const weekdayNames = ['日', '一', '二', '三', '四', '五', '六'];
       let weekday = '';
+      let weekdayChar = '';
       if (match) {
         const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(selectedDay.textContent));
-        weekday = ` 星期${weekdayNames[date.getDay()]}`;
+        weekdayChar = weekdayNames[date.getDay()];
+        weekday = ` 星期${weekdayChar}`;
       }
-      document.querySelector('[data-confirm-datetime]').textContent = `${monthLabel.textContent} ${day} 日${weekday} ${time}`;
+      const isMobile = window.matchMedia('(max-width: 640px)').matches;
+      const text = isMobile && match
+        ? `${match[1]} / ${match[2].padStart(2, '0')} / ${day} ${weekdayChar} ${time}`
+        : `${monthLabel.textContent} ${day} 日${weekday} ${time}`;
+      document.querySelector('[data-confirm-datetime]').textContent = text;
     }
   }
   document.querySelectorAll('.confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
 
+  document.querySelectorAll('.quota-info-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('course-quota-name').textContent = btn.dataset.courseName;
+      document.getElementById('course-quota-attended').textContent = btn.dataset.attended;
+      document.getElementById('course-quota-booked').textContent = btn.dataset.booked;
+      document.getElementById('courseQuotaModal').classList.add('open');
+    });
+  });
+
   showStep(1);
 
-  const avatarBtn = document.getElementById('avatar-btn');
-  const avatarMenu = document.getElementById('avatar-menu');
-  const logoutBtn = document.getElementById('logout-btn');
-
-  avatarBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    avatarBtn.classList.remove('pop');
-    void avatarBtn.offsetWidth;
-    avatarBtn.classList.add('pop');
-    avatarMenu.classList.toggle('open');
+  document.getElementById('back-btn').addEventListener('click', () => {
+    const current = [...steps, successStep].find((s) => !s.hidden);
+    const currentStepNum = current && current !== successStep ? Number(current.dataset.step) : null;
+    if (current === successStep || currentStepNum === 1) {
+      window.location.href = 'index.html';
+      return;
+    }
+    document.getElementById('leaveConfirmModal').classList.add('open');
   });
 
-  document.addEventListener('click', () => {
-    avatarMenu.classList.remove('open');
+  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
   });
 
-  logoutBtn.addEventListener('click', () => {
-    window.location.href = '../';
-  });
-
-  document.getElementById('start-booking').addEventListener('click', () => showStep(2));
+  document.getElementById('start-booking').addEventListener('click', () => showStep(2, true));
 
   document.getElementById('submit-booking').addEventListener('click', () => {
-    steps.forEach((s) => { s.hidden = true; });
-    document.getElementById('success-step').hidden = false;
+    const current = steps.find((s) => !s.hidden);
+    transitionPanels(current, successStep, true);
     document.body.classList.add('centered');
     window.scrollTo(0, 0);
   });
@@ -566,7 +710,7 @@
   });
 
   document.querySelectorAll('[data-wizard-prev]').forEach((btn) => {
-    btn.addEventListener('click', () => showStep(Number(btn.dataset.wizardPrev)));
+    btn.addEventListener('click', () => showStep(Number(btn.dataset.wizardPrev), false));
   });
   const REQUIRED_SELECTION_STEPS = [
     { step: 2, message: '請先選擇課程', isComplete: (stepEl) => !!stepEl.querySelector('.course-card.selected') },
@@ -580,14 +724,15 @@
       const stepNum = currentStep ? Number(currentStep.dataset.step) : null;
       const rule = REQUIRED_SELECTION_STEPS.find((r) => r.step === stepNum);
       if (rule && !rule.isComplete(currentStep)) {
-        showToast(rule.message, 'warning');
+        document.getElementById('booking-alert-text').textContent = rule.message;
+        document.getElementById('bookingAlertModal').classList.add('open');
         return;
       }
       const next = Number(btn.dataset.wizardNext);
       const nextStep = steps.find((s) => Number(s.dataset.step) === next);
       if (nextStep) {
         if (next === 5) populateConfirmStep();
-        showStep(next);
+        showStep(next, true);
       }
     });
   });

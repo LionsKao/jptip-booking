@@ -82,7 +82,7 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
 
   const existing = await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ?`).bind(email).first();
   if (!existing) {
-    return Response.json({ error: '查無此帳號，請確認 Email 是否正確' }, { status: 400 });
+    return Response.json({ error: '無此帳號' }, { status: 400 });
   }
 
   const code = generateCode();

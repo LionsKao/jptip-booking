@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 我的課程</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.booking-history .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .section-title { margin-bottom: var(--space-5); }
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+
+  #history-cards,
+  #today-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .booking-card.is-clickable { cursor: pointer; }
+  .booking-card:hover { border-color: var(--color-blue); }
+
+  .booking-card-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 122px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .booking-card-empty:hover {
+    border-color: var(--color-blue);
+  }
+
+  #history-detail-view .section {
+    position: relative;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .confirm-highlight:hover {
+    border-color: var(--color-blue);
+  }
+
+  .course-ribbon.tone-orange { background: var(--color-orange); }
+  .course-ribbon.tone-navy { background: var(--color-navy); }
+
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+  .wizard-nav[hidden] { display: none; }
+  .wizard-nav .btn { min-width: 160px; }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.danger { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+
+  .info-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color .2s ease, opacity .2s ease;
+  }
+  .info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
+
+  @media (max-width: 1048px) {
+    body.booking-history .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.booking-history .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #history-cards,
+    #today-cards {
+      grid-template-columns: 1fr;
+    }
+    .wizard-nav {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .wizard-nav .btn { min-width: 0; flex: 1 1 0; }
+  }
+</style>
+</head>
+<body class="booking-history">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house" id="back-btn-icon"></i></button>
+</div>
+
+<div class="page">
+
+  <div id="history-list-view">
+
+    <section class="section" id="today-group">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/flag.png" alt=""><h2>今天的課程</h2></div>
+      <div class="booking-cards" id="today-cards"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2>我的課程</h2><button type="button" class="info-btn" data-modal-open="historyRecordInfoModal" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></div>
+      <div class="booking-cards" id="history-cards"></div>
+    </section>
+
+    <div class="page-nav">
+      <div class="pagination" id="history-pagination"></div>
+    </div>
+
+  </div>
+
+  <div id="history-detail-view" hidden>
+    <section class="section">
+      <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>課程詳情</h2></div>
+      <div class="confirm-summary">
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span><p>課程</p><h3 id="detail-course">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
+          <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
+          <span><p>日期</p><h3 id="detail-datetime">—</h3></span>
+        </div>
+      </div>
+    </section>
+    <div class="wizard-nav">
+      <button type="button" class="btn red" id="cancel-booking-btn"><i class="fa-solid fa-fw fa-xmark"></i> 取消預約</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="cancelConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-xmark"></i></div>
+    <h3>確定要取消預約嗎？</h3>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="historyRecordInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-clock-rotate-left"></i></div>
+    <h3>我的課程最多顯示 365 天內</h3>
+    <p class="text-small">從今天往回算 365 天，超過的課程紀錄就不會再顯示囉。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  const STATUS_MAP = {
+    pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
+    absent:    { cls: 'tone-navy', icon: 'question.png',       label: '缺席' },
+    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', label: '預約' },
+    cancelled: { cls: 'cancelled', icon: 'close.png',          label: '取消' },
+    attended:  { cls: 'confirmed', icon: 'check.png',          label: '完成' },
+  };
+  const RIBBON_TONE_MAP = {
+    pending:   { tone: 'tone-orange', label: '需處理' },
+    absent:    { tone: 'tone-navy',   label: '缺席' },
+    upcoming:  { tone: 'tone-blue',   label: '預約' },
+    cancelled: { tone: 'tone-red',    label: '取消' },
+    attended:  { tone: 'tone-green',  label: '完成' },
+  };
+
+  const records = [
+    { id: 1,  course: 'N5 綜合日本語 J2', teacher: '山本老師', date: '2026/09/18', time: '20:00', status: 'pending' },
+    { id: 2,  course: 'N5 綜合日本語 J2', teacher: '小林老師', date: '2026/09/12', time: '14:00', status: 'absent' },
+    { id: 3,  course: 'N5 綜合日本語 J2', teacher: '田中老師', date: '2026/09/10', time: '20:00', status: 'upcoming' },
+    { id: 4,  course: 'N5 綜合日本語 J2', teacher: '佐藤老師', date: '2026/09/05', time: '11:00', status: 'upcoming' },
+    { id: 5,  course: 'N5 綜合日本語 J2', teacher: '鈴木老師', date: '2026/08/29', time: '16:00', status: 'cancelled' },
+    { id: 6,  course: 'N5 綜合日本語 J2', teacher: '田中老師', date: '2026/08/26', time: '11:00', status: 'attended' },
+    { id: 7,  course: 'N5 綜合日本語 J2', teacher: '渡辺老師', date: '2026/08/20', time: '20:00', status: 'attended' },
+    { id: 8,  course: 'N5 綜合日本語 J2', teacher: '伊藤老師', date: '2026/08/15', time: '16:00', status: 'attended' },
+    { id: 9,  course: 'N5 綜合日本語 J2', teacher: '中村老師', date: '2026/08/12', time: '19:00', status: 'cancelled' },
+    { id: 10, course: 'N5 綜合日本語 J2', teacher: '加藤老師', date: '2026/08/08', time: '10:00', status: 'attended' },
+    { id: 11, course: 'N5 綜合日本語 J2', teacher: '小林老師', date: '2026/08/03', time: '11:00', status: 'attended' },
+  ];
+
+  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+  function formatDateTime(dateStr, timeStr) {
+    const d = new Date(dateStr.replace(/\//g, '-'));
+    const weekday = WEEKDAY_NAMES[d.getDay()];
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    if (isMobile) return `${dateStr} ${weekday} ${timeStr}`;
+    const [y, m, day] = dateStr.split('/');
+    return `${y} 年 ${m} 月 ${day} 日 星期${weekday} ${timeStr}`;
+  }
+
+  function renderHistoryCard(r) {
+    const s = STATUS_MAP[r.status];
+    return `<div class="booking-card is-clickable" data-id="${r.id}">
+      <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+      <div class="booking-card-info">
+        <p class="booking-card-course">${r.course}</p>
+        <h4>${r.teacher}</h4>
+        <p class="booking-card-datetime">${formatDateTime(r.date, r.time)}</p>
+      </div>
+    </div>`;
+  }
+
+  function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    pageState.page = Math.min(pageState.page, totalPages);
+    const start = (pageState.page - 1) * pageSize;
+    const pageItems = items.slice(start, start + pageSize);
+
+    containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
+    if (onRender) onRender(containerEl);
+
+    paginationEl.innerHTML = '';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.setAttribute('aria-label', '上一頁');
+    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    prevBtn.disabled = pageState.page === 1;
+    prevBtn.addEventListener('click', () => {
+      pageState.page--;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(prevBtn);
+
+    for (let p = 1; p <= totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p;
+      if (p === pageState.page) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        pageState.page = p;
+        paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+      });
+      paginationEl.appendChild(btn);
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.setAttribute('aria-label', '下一頁');
+    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    nextBtn.disabled = pageState.page === totalPages;
+    nextBtn.addEventListener('click', () => {
+      pageState.page++;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(nextBtn);
+  }
+
+  const historyPageState = { page: 1 };
+
+  function bindCardClicks(containerEl) {
+    containerEl.querySelectorAll('.booking-card').forEach((card) => {
+      applyTiltEffect(card);
+      card.addEventListener('click', () => showHistoryDetail(Number(card.dataset.id)));
+    });
+  }
+
+  function renderHistoryCards() {
+    paginate(records, 10, renderHistoryCard,
+      document.getElementById('history-cards'),
+      document.getElementById('history-pagination'),
+      historyPageState,
+      '<p style="text-align:center;color:var(--text-muted);">尚無課程紀錄</p>',
+      bindCardClicks);
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function renderTodayGroup() {
+    const today = todayStr();
+    const todayRecords = records.filter((r) => r.date === today && r.status !== 'cancelled');
+    const cardsEl = document.getElementById('today-cards');
+    cardsEl.innerHTML = todayRecords.length
+      ? todayRecords.map(renderHistoryCard).join('')
+      : '<div class="booking-card-empty">今天沒有課程</div>';
+    bindCardClicks(cardsEl);
+    cardsEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
+  }
+
+  renderHistoryCards();
+  renderTodayGroup();
+
+  document.querySelectorAll('#history-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
+
+  // ==========================================================================
+  // 課程詳情：查看 / 取消預約
+  // ==========================================================================
+  let activeRecordId = null;
+
+  function showHistoryDetail(id) {
+    const record = records.find((r) => r.id === id);
+    if (!record) return;
+    activeRecordId = id;
+    document.getElementById('detail-course').textContent = record.course;
+    document.getElementById('detail-teacher').textContent = record.teacher;
+    document.getElementById('detail-datetime').textContent = formatDateTime(record.date, record.time);
+    document.getElementById('history-list-view').hidden = true;
+    document.getElementById('history-detail-view').hidden = false;
+    document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';
+
+    const ribbon = RIBBON_TONE_MAP[record.status];
+    document.getElementById('detail-status-ribbon').hidden = !ribbon;
+    if (ribbon) {
+      const ribbonText = document.getElementById('detail-status-ribbon-text');
+      ribbonText.textContent = ribbon.label;
+      ribbonText.className = `course-ribbon ${ribbon.tone}`;
+    }
+    document.querySelector('#history-detail-view .wizard-nav').hidden = record.status !== 'upcoming';
+
+    window.scrollTo(0, 0);
+  }
+
+  function hideHistoryDetail() {
+    activeRecordId = null;
+    document.getElementById('history-detail-view').hidden = true;
+    document.getElementById('history-list-view').hidden = false;
+    document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-house';
+  }
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (!document.getElementById('history-detail-view').hidden) {
+      hideHistoryDetail();
+      return;
+    }
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('cancel-booking-btn').addEventListener('click', () => {
+    document.getElementById('cancelConfirmModal').classList.add('open');
+  });
+
+  document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+    const record = records.find((r) => r.id === activeRecordId);
+    if (record) record.status = 'cancelled';
+    document.getElementById('cancelConfirmModal').classList.remove('open');
+    hideHistoryDetail();
+    renderHistoryCards();
+    renderTodayGroup();
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 休假申請</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.teacher-page .page {
+    max-width: 860px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .section-narrow {
+    max-width: 800px;
+  }
+
+  .leave-datepicker-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .date-popover {
+    position: relative;
+  }
+  .date-popover-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-width: 300px;
+    font-family: var(--font-cn);
+    font-size: var(--fs-body);
+    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-main);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .date-popover-trigger:hover {
+    border-color: var(--color-blue);
+  }
+  .date-popover.open .date-popover-trigger {
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  }
+  .date-popover-trigger i {
+    color: var(--text-muted);
+  }
+  .date-popover-panel {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    left: 0;
+    z-index: 20;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+  .date-popover.open .date-popover-panel {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .btn.butter {
+    background: var(--color-butter);
+    color: #6b4f12;
+    padding: 15px 28px;
+  }
+  .btn.butter:hover {
+    filter: brightness(0.97);
+  }
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+
+  .leave-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 80px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .leave-card:hover {
+    border-color: var(--color-blue);
+  }
+  .leave-card-date {
+    font-weight: 700;
+    font-size: 1.0625rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #leave-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .section-title {
+    margin-bottom: var(--space-5);
+  }
+
+  .info-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color .2s ease, opacity .2s ease;
+  }
+  .info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+
+  @media (max-width: 1048px) {
+    body.teacher-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.teacher-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .leave-datepicker-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .date-popover {
+      width: 100%;
+    }
+    .date-popover-trigger {
+      min-width: 0;
+      width: 100%;
+    }
+    #leave-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="teacher-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section section-narrow">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/summer-holidays.png" alt=""><h2>新增休假</h2></div>
+    <div class="leave-datepicker-row">
+      <div class="date-popover" id="leave-date-popover">
+        <button type="button" class="date-popover-trigger" id="leave-date-trigger">
+          <span id="leave-date-label">請選擇日期</span>
+          <i class="fa-solid fa-fw fa-calendar-days"></i>
+        </button>
+        <div class="date-popover-panel">
+          <div class="datepicker" data-datepicker>
+            <div class="datepicker-header">
+              <button type="button" data-prev><i class="fa-solid fa-fw fa-chevron-left"></i></button>
+              <span data-month-label>2026 年 08 月</span>
+              <button type="button" data-next><i class="fa-solid fa-fw fa-chevron-right"></i></button>
+            </div>
+            <div class="datepicker-weekdays">
+              <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+            </div>
+            <div class="datepicker-grid-wrap"><div class="datepicker-grid" data-grid></div></div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn butter" id="leave-add-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增休假</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <img class="title-icon" src="../assets/icons/invoice.png" alt="">
+      <h2>休假紀錄</h2>
+      <button type="button" class="info-btn" id="leave-record-info-btn" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button>
+    </div>
+    <div class="booking-cards" id="leave-cards"></div>
+  </section>
+
+  <div class="page-nav">
+    <div class="pagination" id="leave-pagination"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="leaveInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-calendar-days"></i></div>
+    <h3 id="leaveInfoModalTitle">請先選擇日期</h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveRecordInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-clock-rotate-left"></i></div>
+    <h3>休假紀錄只顯示 60 天內</h3>
+    <p class="text-small">從今天往回算 60 天，超過的休假紀錄就不會再顯示囉。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveAddConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-umbrella-beach"></i></div>
+    <h3>確定要新增這天休假嗎？</h3>
+    <p class="text-small" id="leaveAddConfirmDate"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn green" id="leave-add-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveDeleteConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
+    <h3>確定要刪除這天休假嗎？</h3>
+    <p class="text-small" id="leaveDeleteConfirmDate"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="leave-delete-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teacher_leave(teacher_id, date)
+
+  let leaveDays = [
+    { id: 1, date: '2026-08-05' },
+    { id: 2, date: '2026-08-14' },
+    { id: 3, date: '2026-08-21' },
+    { id: 4, date: '2026-09-01' },
+    { id: 5, date: '2026-09-20' },
+    { id: 6, date: '2026-09-27' },
+    { id: 7, date: '2026-10-05' },
+    { id: 8, date: '2026-10-12' },
+  ];
+  let nextLeaveId = 9;
+
+  function paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender) {
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    pageState.page = Math.min(pageState.page, totalPages);
+    const start = (pageState.page - 1) * pageSize;
+    const pageItems = items.slice(start, start + pageSize);
+
+    tbodyEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
+    if (onRender) onRender(tbodyEl);
+
+    paginationEl.innerHTML = '';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.setAttribute('aria-label', '上一頁');
+    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    prevBtn.disabled = pageState.page === 1;
+    prevBtn.addEventListener('click', () => {
+      pageState.page--;
+      paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(prevBtn);
+
+    for (let p = 1; p <= totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p;
+      if (p === pageState.page) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        pageState.page = p;
+        paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender);
+      });
+      paginationEl.appendChild(btn);
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.setAttribute('aria-label', '下一頁');
+    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    nextBtn.disabled = pageState.page === totalPages;
+    nextBtn.addEventListener('click', () => {
+      pageState.page++;
+      paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(nextBtn);
+  }
+
+  const leavePageState = { page: 1 };
+
+  // 休假紀錄只保留 60 天內的（從今天往回算），太久以前的不再顯示
+  const RECORD_WINDOW_DAYS = 60;
+  const leaveCutoffDate = new Date();
+  leaveCutoffDate.setHours(0, 0, 0, 0);
+  leaveCutoffDate.setDate(leaveCutoffDate.getDate() - RECORD_WINDOW_DAYS);
+
+  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+  function formatLeaveDate(dateISO) {
+    const [y, m, d] = dateISO.split('-');
+    const weekday = WEEKDAY_NAMES[new Date(dateISO).getDay()];
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    if (isMobile) return `${y}/${m}/${d} ${weekday}`;
+    return `${y} 年 ${m} 月 ${d} 日 星期${weekday}`;
+  }
+
+  function applyTiltEffect(card, intensity = 6) {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const rotateX = (-y * intensity).toFixed(2);
+      const rotateY = (x * intensity).toFixed(2);
+      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow = '';
+    });
+  }
+
+  function isPastDate(dateISO) {
+    const d = new Date(dateISO);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d < today;
+  }
+
+  function renderLeaveTable() {
+    const cardsEl = document.getElementById('leave-cards');
+    const sortedLeaveDays = leaveDays
+      .filter((l) => new Date(l.date) >= leaveCutoffDate)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    paginate(sortedLeaveDays, 10, (l) => `<div class="leave-card">
+        <span class="leave-card-date">${formatLeaveDate(l.date)}</span>
+        ${isPastDate(l.date) ? '' : `<button type="button" class="btn sm red" data-id="${l.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>`}
+      </div>`, cardsEl, document.getElementById('leave-pagination'), leavePageState,
+      `<p style="text-align:center;color:var(--text-muted);">尚無休假</p>`,
+      (el) => {
+        el.querySelectorAll('.leave-card').forEach((card) => applyTiltEffect(card));
+        el.querySelectorAll('button[data-id]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            pendingDeleteId = Number(btn.dataset.id);
+            const lesson = leaveDays.find((l) => l.id === pendingDeleteId);
+            document.getElementById('leaveDeleteConfirmDate').textContent = lesson ? formatLeaveDate(lesson.date) : '';
+            document.getElementById('leaveDeleteConfirmModal').classList.add('open');
+          });
+        });
+      });
+  }
+
+  renderLeaveTable();
+
+  function getSelectedDateISO() {
+    const monthLabel = document.querySelector('[data-month-label]');
+    const selectedDay = document.querySelector('.datepicker-grid button.selected');
+    if (!monthLabel || !selectedDay) return null;
+    const match = monthLabel.textContent.match(/(\d+)\s*年\s*(\d+)\s*月/);
+    if (!match) return null;
+    const year = match[1];
+    const month = match[2].padStart(2, '0');
+    const day = selectedDay.textContent.trim().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function resetDateLabel() {
+    document.getElementById('leave-date-label').textContent = '請選擇日期';
+  }
+
+  let pendingAddDate = null;
+  let pendingDeleteId = null;
+
+  function showInfoModal(title) {
+    document.getElementById('leaveInfoModalTitle').textContent = title;
+    document.getElementById('leaveInfoModal').classList.add('open');
+  }
+
+  document.getElementById('leave-add-btn').addEventListener('click', () => {
+    const dateISO = getSelectedDateISO();
+    if (!dateISO) {
+      showInfoModal('請先選擇日期');
+      return;
+    }
+    if (leaveDays.some((l) => l.date === dateISO)) {
+      showInfoModal('這一天已經在休假清單中');
+      return;
+    }
+    pendingAddDate = dateISO;
+    document.getElementById('leaveAddConfirmDate').textContent = formatLeaveDate(dateISO);
+    document.getElementById('leaveAddConfirmModal').classList.add('open');
+  });
+
+  document.getElementById('leave-add-confirm-btn').addEventListener('click', () => {
+    if (!pendingAddDate) return;
+    leaveDays.push({ id: nextLeaveId++, date: pendingAddDate });
+    pendingAddDate = null;
+    document.querySelectorAll('.datepicker-grid button.selected').forEach((b) => b.classList.remove('selected'));
+    resetDateLabel();
+    document.getElementById('leaveAddConfirmModal').classList.remove('open');
+    renderLeaveTable();
+  });
+
+  document.getElementById('leave-delete-confirm-btn').addEventListener('click', () => {
+    if (pendingDeleteId === null) return;
+    leaveDays = leaveDays.filter((l) => l.id !== pendingDeleteId);
+    pendingDeleteId = null;
+    document.getElementById('leaveDeleteConfirmModal').classList.remove('open');
+    renderLeaveTable();
+  });
+
+  // ==========================================================================
+  // 日期選擇彈出框
+  // ==========================================================================
+  const datePopover = document.getElementById('leave-date-popover');
+  const dateTrigger = document.getElementById('leave-date-trigger');
+  const dateLabel = document.getElementById('leave-date-label');
+
+  dateTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    datePopover.classList.toggle('open');
+  });
+
+  document.querySelector('[data-datepicker]').addEventListener('datepicker:change', () => {
+    const dateISO = getSelectedDateISO();
+    if (dateISO) dateLabel.textContent = formatLeaveDate(dateISO);
+    datePopover.classList.remove('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!datePopover.contains(e.target)) {
+      datePopover.classList.remove('open');
+    }
+  });
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('leave-record-info-btn').addEventListener('click', () => {
+    document.getElementById('leaveRecordInfoModal').classList.add('open');
+  });
+</script>
+
+</body>
+</html>

@@ -9,43 +9,175 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="../style.css">
 <style>
-  body.placeholder-page {
+  body.dashboard {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  body.placeholder-page .page {
+  body.dashboard .page {
     width: 100%;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-  .placeholder-card {
-    max-width: 480px;
+    max-width: 550px;
     margin: 0 auto;
-    text-align: center;
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: var(--space-7) var(--space-6);
-    box-shadow: var(--shadow-sm);
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-6);
   }
-  .placeholder-card img { width: 72px; height: 72px; margin: 0 auto var(--space-4); display: block; }
-  .placeholder-card h1 { margin: 0 0 var(--space-2); font-size: 1.5rem; }
-  .placeholder-card p { margin: 0 0 var(--space-6); color: var(--text-muted); }
-  .placeholder-card .back-link { display: inline-block; color: var(--color-primary); font-weight: 600; text-decoration: none; }
-  .placeholder-card .back-link:hover { text-decoration: underline; }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.danger { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.dashboard {
+      align-items: flex-start;
+    }
+    body.dashboard .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+  }
+
+  .dash-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .dash-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    width: 550px;
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    padding: var(--space-5) 40px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .dash-card:hover {
+    border-color: var(--color-blue);
+    box-shadow: var(--shadow-md);
+  }
+  .dash-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 64px;
+    height: 64px;
+  }
+  .dash-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .dash-card h3 { margin: 0 0 4px; font-size: 1.375rem; }
+  .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
+
+  @media (max-width: 640px) {
+    .dash-card {
+      padding: var(--space-4) var(--space-4);
+      gap: var(--space-3);
+    }
+  }
 </style>
 </head>
-<body class="placeholder-page">
+<body class="dashboard">
 
-<div class="page">
-  <div class="placeholder-card">
-    <img src="../assets/icons/admin.png" alt="">
-    <h1>管理者主頁</h1>
-    <p>登入成功，歡迎回來！這裡之後會是老師、課程與系統設定的管理畫面。</p>
-    <a class="back-link" href="../">‹ 回首頁</a>
+<div class="back-header">
+  <button type="button" class="back-btn" id="logout-btn" data-modal-open="logoutConfirmModal"><i class="fa-solid fa-fw fa-arrow-right-from-bracket"></i></button>
+</div>
+
+<div class="modal-overlay" id="logoutConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3>確定要登出嗎？</h3>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 登出</button>
+    </div>
   </div>
 </div>
+
+<div class="page">
+
+  <div class="dash-cards">
+    <button type="button" class="dash-card" data-action="students">
+      <span class="dash-card-icon"><img src="../assets/icons/write-student.png" alt=""></span>
+      <span>
+        <h3>學生管理</h3>
+        <p>查看與管理學生帳號資料</p>
+      </span>
+    </button>
+    <button type="button" class="dash-card" data-action="teachers">
+      <span class="dash-card-icon"><img src="../assets/icons/write-teacher.png" alt=""></span>
+      <span>
+        <h3>老師管理</h3>
+        <p>查看與管理老師帳號資料</p>
+      </span>
+    </button>
+    <button type="button" class="dash-card" data-action="courses">
+      <span class="dash-card-icon"><img src="../assets/icons/blackboard.png" alt=""></span>
+      <span>
+        <h3>課程管理</h3>
+        <p>設定課程項目與預約規則</p>
+      </span>
+    </button>
+  </div>
+
+</div>
+
+<script src="../script.js"></script>
+<script>
+  document.querySelector('[data-action="students"]').addEventListener('click', () => {
+    window.location.href = 'students.html';
+  });
+  document.querySelector('[data-action="teachers"]').addEventListener('click', () => {
+    window.location.href = 'teachers.html';
+  });
+  document.querySelector('[data-action="courses"]').addEventListener('click', () => {
+    window.location.href = 'courses.html';
+  });
+
+  function applyTiltEffect(card, intensity = 6) {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const rotateX = (-y * intensity).toFixed(2);
+      const rotateY = (x * intensity).toFixed(2);
+      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow = '';
+    });
+  }
+
+  document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));
+
+  document.getElementById('logout-confirm-btn').addEventListener('click', () => {
+    window.location.href = '../';
+  });
+</script>
 
 </body>
 </html>

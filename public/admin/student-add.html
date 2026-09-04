@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 新增學生</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .section {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .avatar-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .avatar-picker-preview {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--line);
+    background: var(--bg-card-alt);
+  }
+  .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+  .form-field { margin-bottom: var(--space-4); }
+  .form-field label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 700;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+  }
+  .text-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-cn);
+    font-size: var(--fs-body);
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 3px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .text-input:focus {
+    outline: none;
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  }
+
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+  .wizard-nav .btn { min-width: 160px; }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
+  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .wizard-nav {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .wizard-nav .btn { min-width: 0; flex: 1 1 0; }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/write-student.png" alt=""><h2>新增學生</h2></div>
+
+    <div class="avatar-picker">
+      <span class="avatar-picker-preview"><img id="add-avatar-preview" src="" alt=""></span>
+      <button type="button" class="btn outline sm" id="add-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+    </div>
+
+    <div class="form-field">
+      <label for="add-name">姓名</label>
+      <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名">
+    </div>
+    <div class="form-field">
+      <label for="add-phone">手機</label>
+      <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼">
+    </div>
+    <div class="form-field">
+      <label for="add-email">Email</label>
+      <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email">
+    </div>
+    <div class="form-field">
+      <label for="add-teams-link">Teams 會議室連結</label>
+      <input type="url" id="add-teams-link" class="text-input" placeholder="請輸入 Teams 會議室連結">
+    </div>
+  </section>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增</button>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="studentAddAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="studentAddAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="studentAddSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <h3>已新增學生</h3>
+    <div class="modal-actions">
+      <button class="btn blue" id="student-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3>確定要離開嗎？</h3>
+    <p class="text-small">目前輸入的資料將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students(id, name, phone, email, teams_link)
+  const STUDENTS_KEY = 'admin-students';
+
+  function loadStudents() { return JSON.parse(localStorage.getItem(STUDENTS_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
+  function saveStudents(list) { localStorage.setItem(STUDENTS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+
+  const AVATAR_LIST = [
+    '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
+    '006-panda.png', '007-hen.png', '008-llama.png', '009-elephant.png', '010-cat.png',
+    '011-penguin.png', '012-chicken.png', '013-frog.png', '014-hedgehog.png', '015-mouse.png',
+    '016-duck.png', '017-dog.png', '018-sloth.png', '019-ferret.png', '020-beaver.png',
+    '021-wild-boar.png', '022-chameleons.png', '023-koala.png', '024-squirrel.png', '025-turkey.png',
+    '026-deer.png', '027-fox.png', '028-bat.png', '029-lion.png', '030-parrot.png',
+    '031-ostrich.png', '032-snake.png', '033-camel.png', '034-horse.png', '035-skunk.png',
+    '036-hippopotamus.png', '037-crab.png', '038-rhino.png', '039-giraffe.png', '040-gorilla.png',
+    '041-zebra.png', '042-wolf.png', '043-goat.png', '044-turtle.png', '045-pig.png',
+    '046-walrus.png', '047-bee.png', '048-sheep.png', '049-monkey.png', '050-octopus.png',
+    '051-bear-1.png', '052-sea-lion.png', '053-polar-bear.png',
+  ];
+  function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
+
+  let currentAvatar = randomAvatar();
+  document.getElementById('add-avatar-preview').src = `../assets/avatars/${currentAvatar}`;
+  document.getElementById('add-avatar-random-btn').addEventListener('click', () => {
+    currentAvatar = randomAvatar();
+    document.getElementById('add-avatar-preview').src = `../assets/avatars/${currentAvatar}`;
+  });
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function showAddAlert(message) {
+    document.getElementById('studentAddAlertText').textContent = message;
+    document.getElementById('studentAddAlertModal').classList.add('open');
+  }
+
+  document.getElementById('add-submit-btn').addEventListener('click', () => {
+    const name = document.getElementById('add-name').value.trim();
+    const phone = document.getElementById('add-phone').value.trim();
+    const email = document.getElementById('add-email').value.trim();
+    const teamsLink = document.getElementById('add-teams-link').value.trim();
+
+    if (!name || !phone || !email) {
+      showAddAlert('請填寫完整資料');
+      return;
+    }
+    if (!EMAIL_RE.test(email)) {
+      showAddAlert('Email 格式不對');
+      return;
+    }
+
+    const students = loadStudents();
+    students.push({
+      id: Date.now(),
+      name, phone, email, teamsLink,
+      avatar: currentAvatar,
+      lastViewedAt: Date.now(),
+      courses: [],
+      bookings: [],
+    });
+    saveStudents(students);
+    document.getElementById('studentAddSuccessModal').classList.add('open');
+  });
+
+  document.getElementById('student-add-success-ok-btn').addEventListener('click', () => {
+    window.location.href = 'students.html';
+  });
+
+  function hasUnsavedInput() {
+    return ['add-name', 'add-phone', 'add-email', 'add-teams-link']
+      .some((id) => document.getElementById(id).value.trim() !== '');
+  }
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (hasUnsavedInput()) {
+      document.getElementById('leaveConfirmModal').classList.add('open');
+      return;
+    }
+    window.location.href = 'students.html';
+  });
+
+  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+    window.location.href = 'students.html';
+  });
+</script>
+
+</body>
+</html>

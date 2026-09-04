@@ -11,7 +11,7 @@
 <style>
   .entry-view {
     width: 100%;
-    max-width: 540px;
+    max-width: 550px;
     margin-left: auto;
     margin-right: auto;
   }
@@ -144,26 +144,22 @@
     width: 40px;
   }
   .back-link {
-    position: absolute;
-    top: var(--space-4);
-    left: var(--space-4);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
+    position: fixed;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .modal-icon {
+    width: 76px; height: 76px;
     border-radius: 50%;
-    border: 3px solid transparent;
-    background: none;
-    color: var(--text-muted);
-    font-size: var(--fs-small);
-    cursor: pointer;
-    transition: border-color .2s ease, color .2s ease;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
   }
-  .back-link:hover {
-    border-color: var(--color-blue);
-    color: var(--color-blue);
-  }
+  .modal-icon.success { background: rgba(168, 212, 141, .3); color: var(--color-green); }
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.danger  { background: rgba(255, 143, 163, .25); color: var(--color-red); }
 
   /* Dev-only quick-fill: pick a test account's avatar to fill the Email
      field instead of typing it out every time. Sits below the login card
@@ -231,6 +227,20 @@
     height: 100%;
     object-fit: cover;
   }
+
+  @media (max-width: 640px) {
+    .entry-card-primary {
+      padding: var(--space-4);
+      gap: var(--space-3);
+    }
+    .login-form-area .login-card {
+      padding: var(--space-4);
+    }
+    .back-link {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+  }
 </style>
 </head>
 <body class="home">
@@ -243,7 +253,7 @@
         <span class="entry-card-icon"><img src="assets/icons/student.png" alt=""></span>
         <span>
           <h3>學生登入</h3>
-          <p>立即預約課程，開始你的學習之旅</p>
+          <p>立即預約課程，開始學習之旅</p>
         </span>
       </button>
       <button type="button" class="entry-card entry-card-primary" data-role="teacher">
@@ -266,7 +276,7 @@
 
       <div class="login-card" data-login data-role="">
 
-        <button type="button" class="back-link" data-login-back aria-label="返回"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+        <button type="button" class="back-link back-btn" data-login-back aria-label="返回"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
 
         <div class="login-card-body">
           <div class="row" style="align-items:flex-start;">
@@ -276,7 +286,7 @@
               </div>
             </div>
           </div>
-          <button type="button" class="btn blue" data-login-send>取得驗證碼</button>
+          <button type="button" class="btn blue" data-login-send><i class="fa-solid fa-fw fa-paper-plane"></i> 取得驗證碼</button>
 
           <div class="login-step-2">
 
@@ -289,7 +299,7 @@
               <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼" disabled>
             </div>
 
-            <button type="button" class="btn green" data-login-submit disabled>登入</button>
+            <button type="button" class="btn green" data-login-submit disabled><i class="fa-solid fa-fw fa-right-to-bracket"></i> 登入</button>
           </div>
         </div>
 
@@ -300,6 +310,17 @@
     </div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="loginAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon" id="login-alert-icon"><i class="fa-solid fa-fw" id="login-alert-icon-inner"></i></div>
+    <h3 id="login-alert-text"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
 </div>
 
 <script src="script.js"></script>

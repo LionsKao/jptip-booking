@@ -277,6 +277,23 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
   const submitBtn = card.querySelector('[data-login-submit]');
   const otpBoxes = [...card.querySelectorAll('.otp-box')];
 
+  const alertModal = document.getElementById('loginAlertModal');
+  const alertIcon = document.getElementById('login-alert-icon');
+  const alertIconInner = document.getElementById('login-alert-icon-inner');
+  const alertText = document.getElementById('login-alert-text');
+  const ALERT_ICON_MAP = {
+    success: { tone: 'success', icon: 'fa-check' },
+    warning: { tone: 'warning', icon: 'fa-triangle-exclamation' },
+    error: { tone: 'danger', icon: 'fa-xmark' },
+  };
+  function showLoginAlert(message, type = 'warning') {
+    const cfg = ALERT_ICON_MAP[type] || ALERT_ICON_MAP.warning;
+    alertIcon.className = `modal-icon ${cfg.tone}`;
+    alertIconInner.className = `fa-solid fa-fw ${cfg.icon}`;
+    alertText.textContent = message;
+    alertModal.classList.add('open');
+  }
+
   let countdownId = null;
   let cooldownRemaining = 0;
   let isRequesting = false;
@@ -310,20 +327,20 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || '發送失敗，請稍後再試', 'error');
+        showLoginAlert(data.error || '發送失敗，請稍後再試', 'error');
         return;
       }
       otpBoxes.forEach((b) => { b.disabled = false; b.value = ''; b.classList.remove('filled', 'error'); });
       submitBtn.disabled = false;
       card.dataset.step = '2';
-      sendBtn.textContent = '重新取得驗證碼';
+      sendBtn.innerHTML = '<i class="fa-solid fa-fw fa-rotate-right"></i> 重新取得驗證碼';
       sendBtn.classList.remove('blue');
       sendBtn.classList.add('outline');
       startCountdown();
       otpBoxes[0].focus();
-      showToast('已寄出驗證碼，請查看信箱', 'success');
+      showLoginAlert('已寄出驗證碼，請查看信箱', 'success');
     } catch {
-      showToast('網路錯誤，請稍後再試', 'error');
+      showLoginAlert('網路錯誤，請稍後再試', 'error');
     } finally {
       isRequesting = false;
     }
@@ -332,13 +349,13 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
   sendBtn.addEventListener('click', () => {
     if (isRequesting) return;
     if (cooldownRemaining > 0) {
-      showToast(`還可在 ${cooldownRemaining} 秒後重新取得驗證碼`, 'warning');
+      showLoginAlert(`還可在 ${cooldownRemaining} 秒後重新取得驗證碼`, 'warning');
       return;
     }
     const email = emailInput.value.trim();
     if (!isValidEmail(email)) {
       emailField.classList.add('error');
-      showToast('請輸入有效的 Email 格式', 'error');
+      showLoginAlert('請輸入有效的 Email 格式', 'error');
       return;
     }
     emailField.classList.remove('error');
@@ -360,7 +377,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
     const code = otpBoxes.map((b) => b.value).join('');
     if (code.length < 6) {
       otpBoxes.forEach((b) => { if (!b.value) b.classList.add('error'); });
-      showToast('請輸入完整 6 碼驗證碼', 'warning');
+      showLoginAlert('請輸入完整 6 碼驗證碼', 'warning');
       return;
     }
     otpBoxes.forEach((b) => b.classList.remove('error'));
@@ -373,14 +390,13 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || '驗證碼錯誤或已過期', 'error');
+        showLoginAlert(data.error || '驗證碼錯誤或已過期', 'error');
         submitBtn.disabled = false;
         return;
       }
-      showToast('登入成功，歡迎回來！', 'success');
-      setTimeout(() => { window.location.href = `${card.dataset.role}/`; }, 900);
+      window.location.href = `${card.dataset.role}/`;
     } catch {
-      showToast('網路錯誤，請稍後再試', 'error');
+      showLoginAlert('網路錯誤，請稍後再試', 'error');
       submitBtn.disabled = false;
     }
   });
@@ -458,7 +474,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       emailField.classList.remove('error');
       otpBoxes.forEach((b) => { b.disabled = true; b.value = ''; b.classList.remove('filled', 'error'); });
       submitBtn.disabled = true;
-      sendBtn.textContent = '取得驗證碼';
+      sendBtn.innerHTML = '<i class="fa-solid fa-fw fa-paper-plane"></i> 取得驗證碼';
       sendBtn.classList.remove('outline');
       sendBtn.classList.add('blue');
     }

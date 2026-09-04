@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 教課可能時間</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.teacher-page .page {
+    max-width: 860px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.danger { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
+
+  .section-narrow {
+    max-width: 800px;
+  }
+
+  .section-title {
+    margin-bottom: var(--space-5);
+  }
+
+  .hours-add-row {
+    margin-bottom: var(--space-3);
+    align-items: stretch;
+  }
+  .hours-add-row:last-child {
+    margin-bottom: 0;
+  }
+  .hours-add-row .dropdown {
+    min-width: 140px;
+  }
+  .hours-add-row .dropdown-trigger {
+    border-radius: var(--radius-lg);
+  }
+
+  #hours-day-dropdown { width: 280px; }
+  #hours-start-dropdown, #hours-end-dropdown { width: 280px; }
+
+  #hours-day-dropdown .dropdown-menu {
+    right: auto;
+    width: 320px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  #hours-day-dropdown.open .dropdown-menu {
+    overflow-y: hidden;
+  }
+  #hours-start-dropdown .dropdown-menu,
+  #hours-end-dropdown .dropdown-menu {
+    right: auto;
+    width: 420px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+  #hours-start-dropdown.open .dropdown-menu,
+  #hours-end-dropdown.open .dropdown-menu {
+    overflow-y: hidden;
+  }
+  #hours-day-dropdown .dropdown-menu li,
+  #hours-start-dropdown .dropdown-menu li,
+  #hours-end-dropdown .dropdown-menu li {
+    position: relative;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 6px;
+  }
+  #hours-day-dropdown .dropdown-menu li .select-badge,
+  #hours-start-dropdown .dropdown-menu li .select-badge,
+  #hours-end-dropdown .dropdown-menu li .select-badge {
+    display: none;
+  }
+
+  .btn.butter {
+    background: var(--color-butter);
+    color: #6b4f12;
+    padding: 15px 28px;
+  }
+  .btn.butter:hover {
+    filter: brightness(0.97);
+  }
+
+  .hours-day-slots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+  .hours-slot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 80px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    font-variant-numeric: tabular-nums;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .hours-slot-row:hover {
+    border-color: var(--color-blue);
+  }
+  .hours-day-empty {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 80px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .hours-day-empty:hover {
+    border-color: var(--color-blue);
+  }
+
+  @media (max-width: 1048px) {
+    body.teacher-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.teacher-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .hours-add-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .hours-add-row-day {
+      margin-bottom: var(--space-3);
+    }
+    .hours-add-row .dropdown {
+      min-width: 0;
+      width: 100%;
+    }
+    #hours-day-dropdown, #hours-start-dropdown, #hours-end-dropdown {
+      width: 100%;
+    }
+    #hours-day-dropdown .dropdown-menu,
+    #hours-start-dropdown .dropdown-menu,
+    #hours-end-dropdown .dropdown-menu {
+      right: 0;
+      width: 100%;
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .hours-day-slots {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="teacher-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section section-narrow">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2>新增時段</h2></div>
+    <div class="row hours-add-row hours-add-row-day">
+      <div class="dropdown" id="hours-day-dropdown" data-placeholder="星期">
+        <button type="button" class="dropdown-trigger"><span class="label">星期</span><span class="arrow"></span></button>
+        <ul class="dropdown-menu">
+          <li data-value="星期一">星期一<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期二">星期二<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期三">星期三<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期四">星期四<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期五">星期五<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期六">星期六<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期日">星期日<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="row hours-add-row">
+      <div class="dropdown" id="hours-start-dropdown" data-placeholder="開始時間">
+        <button type="button" class="dropdown-trigger"><span class="label">開始時間</span><span class="arrow"></span></button>
+        <ul class="dropdown-menu" id="hours-start-menu">
+          <li data-value="08:00">08:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="08:30">08:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="09:00">09:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="09:30">09:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="10:00">10:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="10:30">10:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="11:00">11:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="11:30">11:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="12:00">12:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="12:30">12:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="13:00">13:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="13:30">13:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="14:00">14:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="14:30">14:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="15:00">15:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="15:30">15:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="16:00">16:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="16:30">16:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="17:00">17:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="17:30">17:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="18:00">18:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="18:30">18:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="19:00">19:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="19:30">19:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="20:00">20:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="20:30">20:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="21:00">21:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+        </ul>
+      </div>
+      <div class="dropdown" id="hours-end-dropdown" data-placeholder="結束時間">
+        <button type="button" class="dropdown-trigger"><span class="label">結束時間</span><span class="arrow"></span></button>
+        <ul class="dropdown-menu" id="hours-end-menu">
+          <li data-value="08:00">08:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="08:30">08:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="09:00">09:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="09:30">09:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="10:00">10:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="10:30">10:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="11:00">11:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="11:30">11:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="12:00">12:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="12:30">12:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="13:00">13:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="13:30">13:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="14:00">14:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="14:30">14:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="15:00">15:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="15:30">15:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="16:00">16:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="16:30">16:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="17:00">17:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="17:30">17:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="18:00">18:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="18:30">18:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="19:00">19:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="19:30">19:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="20:00">20:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="20:30">20:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="21:00">21:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+        </ul>
+      </div>
+      <button type="button" class="btn butter" id="hours-add-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增時段</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/monday.png" alt=""><h2>星期一</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期一"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/tuesday.png" alt=""><h2>星期二</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期二"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/wednesday.png" alt=""><h2>星期三</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期三"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/thursday.png" alt=""><h2>星期四</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期四"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/friday.png" alt=""><h2>星期五</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期五"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/saturday.png" alt=""><h2>星期六</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期六"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/sunday.png" alt=""><h2>星期日</h2></div>
+    <div class="hours-day-slots" id="hours-day-星期日"></div>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="hoursAddSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <h3>新增成功</h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="hoursAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="hoursAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="hoursDeleteConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
+    <h3>確定要刪除這個時段嗎？</h3>
+    <p class="text-small" id="hoursDeleteConfirmText"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="hours-delete-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teacher_availability(teacher_id, day_of_week, start_time, end_time)
+
+  let availability = [
+    { id: 1, day: '星期一', start: '09:00', end: '12:00' },
+    { id: 2, day: '星期三', start: '14:00', end: '18:00' },
+    { id: 3, day: '星期五', start: '09:00', end: '11:30' },
+    { id: 4, day: '星期一', start: '08:00', end: '09:00' },
+    { id: 5, day: '星期一', start: '10:00', end: '11:00' },
+    { id: 6, day: '星期一', start: '13:00', end: '14:00' },
+  ];
+  let nextHoursId = 7;
+
+  const WEEKDAYS = [
+    { key: '星期一', icon: 'monday.png' },
+    { key: '星期二', icon: 'tuesday.png' },
+    { key: '星期三', icon: 'wednesday.png' },
+    { key: '星期四', icon: 'thursday.png' },
+    { key: '星期五', icon: 'friday.png' },
+    { key: '星期六', icon: 'saturday.png' },
+    { key: '星期日', icon: 'sunday.png' },
+  ];
+
+  function applyTiltEffect(card, intensity = 6) {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const rotateX = (-y * intensity).toFixed(2);
+      const rotateY = (x * intensity).toFixed(2);
+      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow = '';
+    });
+  }
+
+  let pendingDeleteId = null;
+
+  function renderHoursTable() {
+    WEEKDAYS.forEach((wd) => {
+      const container = document.getElementById(`hours-day-${wd.key}`);
+      const slots = availability.filter((h) => h.day === wd.key).sort((a, b) => a.start.localeCompare(b.start));
+      container.innerHTML = slots.length
+        ? slots.map((h) => `<div class="hours-slot-row"><span>${h.start} - ${h.end}</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button></div>`).join('')
+        : `<p class="hours-day-empty">無設定</p>`;
+      container.querySelectorAll('.hours-slot-row, .hours-day-empty').forEach((card) => applyTiltEffect(card));
+      container.querySelectorAll('button[data-id]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          pendingDeleteId = Number(btn.dataset.id);
+          const slot = availability.find((h) => h.id === pendingDeleteId);
+          document.getElementById('hoursDeleteConfirmText').textContent = slot ? `${slot.day} ${slot.start} - ${slot.end}` : '';
+          document.getElementById('hoursDeleteConfirmModal').classList.add('open');
+        });
+      });
+    });
+  }
+
+  renderHoursTable();
+
+  document.getElementById('hours-delete-confirm-btn').addEventListener('click', () => {
+    availability = availability.filter((h) => h.id !== pendingDeleteId);
+    pendingDeleteId = null;
+    document.getElementById('hoursDeleteConfirmModal').classList.remove('open');
+    renderHoursTable();
+  });
+
+  function getDropdownValue(id) {
+    const selected = document.querySelector(`#${id} .dropdown-menu li.selected`);
+    return selected ? selected.dataset.value : null;
+  }
+
+  document.getElementById('hours-add-btn').addEventListener('click', () => {
+    const day = getDropdownValue('hours-day-dropdown');
+    const start = getDropdownValue('hours-start-dropdown');
+    const end = getDropdownValue('hours-end-dropdown');
+
+    if (!day || !start || !end || start >= end) {
+      document.getElementById('hoursAlertText').textContent = '選擇的時間不對';
+      document.getElementById('hoursAlertModal').classList.add('open');
+      return;
+    }
+    const overlaps = availability.some((h) => h.day === day && start < h.end && end > h.start);
+    if (overlaps) {
+      document.getElementById('hoursAlertText').textContent = '時間有重疊到';
+      document.getElementById('hoursAlertModal').classList.add('open');
+      return;
+    }
+    availability.push({ id: nextHoursId++, day, start, end });
+    availability.sort((a, b) => a.day.localeCompare(b.day) || a.start.localeCompare(b.start));
+    document.getElementById('hoursAddSuccessModal').classList.add('open');
+    renderHoursTable();
+  });
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+</script>
+
+</body>
+</html>
