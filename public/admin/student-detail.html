@@ -7,12 +7,14 @@
 <link rel="icon" type="image/png" href="../assets/icons/favicon.png">
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 <link rel="stylesheet" href="../style.css">
 <style>
   body.admin-page .page {
-    max-width: 1000px;
+    max-width: 500px;
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
   }
 
   .back-header {
@@ -22,68 +24,12 @@
     z-index: 10;
   }
 
-  .section-title { margin-bottom: var(--space-5); }
-
-  #card-basic {
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .search-box {
+  .student-header {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
-    padding: 12px 16px;
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    margin-bottom: var(--space-3);
-    transition: border-color .2s ease, box-shadow .2s ease;
+    gap: var(--space-4);
   }
-  .search-box:focus-within {
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
-  .search-box i { color: var(--text-muted); }
-  .search-clear-btn {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: content-box;
-    width: 24px;
-    height: 24px;
-    padding: 6px;
-    margin: -6px;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background-color .15s ease, color .15s ease;
-  }
-  .search-clear-btn:hover {
-    background: var(--bg-card-alt);
-    color: var(--text-main);
-  }
-  .search-box input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: none;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-  }
-
-  .avatar-picker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-5);
-  }
-  .avatar-picker-preview {
+  .student-header-avatar {
     flex: none;
     width: 72px;
     height: 72px;
@@ -92,197 +38,44 @@
     border: 3px solid var(--line);
     background: var(--bg-card-alt);
   }
-  .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
-  @keyframes avatarSwap {
-    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-    40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
-    100% { transform: scale(1) rotate(360deg); opacity: 1; }
-  }
-  .avatar-picker-preview img.avatar-swap { animation: avatarSwap .4s ease; }
+  .student-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .student-header h2 { margin: 0; }
+  .student-header-name { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .pill.tone-muted { background: var(--bg-card-alt); color: var(--text-muted); }
 
-  .form-field { margin-bottom: var(--space-4); }
-  .form-field label {
-    display: block;
-    margin-bottom: var(--space-2);
-    font-weight: 700;
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-  }
-  .form-field label i { color: var(--text-muted); margin-right: 4px; }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
-  #edit-status-dropdown,
-  #edit-timezone-dropdown { width: 100%; }
-  @media (max-width: 480px) {
-    .field-row { grid-template-columns: 1fr; }
-  }
-  .field-info-btn {
-    display: inline-flex;
+  .dash-card {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 15px;
-    cursor: pointer;
-    vertical-align: middle;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .field-info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
-  .text-input {
+    gap: var(--space-5);
     width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 12px 16px;
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .text-input:focus {
-    outline: none;
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
-
-  .course-row {
-    position: relative;
-    overflow: hidden;
-    border: 3px solid var(--line);
-    border-radius: var(--radius-lg);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    padding: var(--space-4) var(--space-5);
-    will-change: transform;
-    transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
-  }
-  .course-row:hover { border-color: var(--color-blue); }
-  .course-row h4 { margin: 0; padding-right: 90px; }
-  .course-count { margin: 2px 0 0; color: var(--text-muted); font-size: var(--fs-small); }
-  .course-count-value { font-variant-numeric: tabular-nums; }
-
-  #course-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-
-  .course-add-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
-    flex-wrap: wrap;
-  }
-  #add-course-dropdown .dropdown-trigger {
-    border-radius: var(--radius-lg);
-  }
-  #add-course-dropdown .select-badge {
-    display: none;
-  }
-  @media (min-width: 641px) {
-    #add-course-dropdown .dropdown-menu {
-      right: auto;
-      width: 480px;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2px;
-    }
-    #add-course-dropdown.open .dropdown-menu {
-      max-height: 500px;
-      overflow-y: hidden;
-    }
-  }
-
-  .booking-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 122px;
-    padding: var(--space-4) var(--space-5);
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
     background: var(--bg-card);
     box-shadow: var(--shadow-sm);
-    font-weight: 700;
-    font-size: 1.0625rem;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    padding: var(--space-5);
+    transition: border-color .2s ease, box-shadow .2s ease, transform .35s ease;
     will-change: transform;
     transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
   }
-  .booking-card-empty:hover {
+  .dash-card:hover {
     border-color: var(--color-blue);
+    box-shadow: var(--shadow-md);
   }
-
-  #student-bookings-cards {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-  @keyframes bookingCardIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  #student-bookings-cards .booking-card,
-  #student-bookings-cards .booking-card-empty {
-    animation: bookingCardIn .3s ease backwards;
-  }
-  #student-bookings-cards .booking-card:nth-child(2n) {
-    animation-delay: .04s;
-  }
-  #card-bookings .booking-card:has(.pill.info) { cursor: default; }
-  #card-bookings .booking-card:hover { border-color: var(--color-blue); }
-
-  .page-nav {
-    display: flex;
-    justify-content: center;
-    margin-top: var(--space-6);
-  }
-
-  .wizard-nav {
+  .dash-card-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-4);
-    margin-top: var(--space-5);
+    flex: none;
+    width: 56px;
+    height: 56px;
   }
-  .wizard-nav .btn { min-width: 160px; }
+  .dash-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .dash-card h3 { margin: 0 0 4px; font-size: 1.25rem; }
+  .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-
-  .crop-container {
-    width: 320px;
-    height: 320px;
-    max-width: 100%;
-    margin: var(--space-4) auto;
-    background: #1a1a1a;
-    overflow: hidden;
-  }
-  .crop-container img { display: block; max-width: 100%; }
-
-  @media (max-width: 1048px) {
-    body.admin-page .page {
-      max-width: 100%;
-      padding-left: var(--space-4);
-      padding-right: var(--space-4);
-    }
-  }
   @media (max-width: 640px) {
     .back-header {
       top: var(--space-3);
@@ -290,19 +83,6 @@
     }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
-    }
-    #student-bookings-cards {
-      grid-template-columns: 1fr;
-    }
-    #course-list {
-      grid-template-columns: 1fr;
-    }
-    .course-add-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .course-add-row .dropdown {
-      width: 100%;
     }
   }
 </style>
@@ -315,211 +95,44 @@
 
 <div class="page">
 
-  <section class="section" id="card-basic">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>基本資料</h2></div>
-
-    <div class="avatar-picker">
-      <span class="avatar-picker-preview"><img id="edit-avatar-preview" src="" alt=""></span>
-      <button type="button" class="btn outline sm" id="edit-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
-      <button type="button" class="btn outline sm" id="edit-avatar-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
-      <input type="file" id="edit-avatar-file-input" accept="image/*" hidden>
+  <div class="student-header">
+    <span class="student-header-avatar"><img id="student-header-avatar-img" src="" alt=""></span>
+    <div class="student-header-name">
+      <h2 id="student-header-name"></h2>
+      <span class="pill tone-muted" id="student-header-status" hidden>停用</span>
     </div>
-
-    <div class="field-row">
-      <div class="form-field">
-        <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
-        <input type="text" id="edit-name" class="text-input">
-      </div>
-      <div class="form-field">
-        <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
-        <input type="tel" id="edit-phone" class="text-input">
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="form-field">
-        <label for="edit-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
-        <input type="email" id="edit-email" class="text-input">
-      </div>
-      <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-power-off"></i> 狀態 <button type="button" class="field-info-btn" id="status-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
-        <div class="dropdown" id="edit-status-dropdown" data-placeholder="選擇狀態">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇狀態</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
-          <ul class="dropdown-menu">
-            <li data-value="啟用">啟用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="停用">停用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="form-field">
-        <label for="edit-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
-        <input type="url" id="edit-teams-link" class="text-input">
-      </div>
-      <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
-        <div class="dropdown" id="edit-timezone-dropdown" data-placeholder="選擇時區">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
-          <ul class="dropdown-menu">
-            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <div class="wizard-nav">
-      <button type="button" class="btn blue" id="edit-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
-    </div>
-  </section>
-
-  <section class="section" id="card-courses">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2>購買課程</h2></div>
-
-    <div class="course-add-row">
-      <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
-        <button type="button" class="dropdown-trigger"><span class="label">選擇課程</span><span class="arrow"></span></button>
-        <ul class="dropdown-menu" id="add-course-menu">
-          <li data-value="N5 綜合日本語 J1">N5 綜合日本語 J1<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N5 綜合日本語 J2">N5 綜合日本語 J2<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N5 綜合日本語 J3">N5 綜合日本語 J3<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J4">N4 綜合日本語 J4<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J5">N4 綜合日本語 J5<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J6">N4 綜合日本語 J6<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J7">N3 綜合日本語 J7<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J8">N3 綜合日本語 J8<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J9">N3 綜合日本語 J9<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J10">N2 綜合日本語 J10<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J11">N2 綜合日本語 J11<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J12">N2 綜合日本語 J12<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J13">N2 綜合日本語 J13<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="商務日文 基礎會話篇">商務日文 基礎會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="商務日文 應用會話篇">商務日文 應用會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-        </ul>
-      </div>
-      <button type="button" class="btn blue" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增</button>
-    </div>
-
-    <div id="course-list"></div>
-  </section>
-
-  <section class="section" id="card-bookings">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2>預約紀錄</h2></div>
-    <div class="search-box">
-      <i class="fa-solid fa-fw fa-magnifying-glass"></i>
-      <input type="text" id="bookings-search" placeholder="搜尋課程／老師">
-      <button type="button" class="search-clear-btn" id="bookings-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
-    </div>
-    <div id="student-bookings-cards"></div>
-  </section>
-
-  <div class="page-nav">
-    <div class="pagination" id="student-bookings-pagination"></div>
   </div>
+
+  <button type="button" class="dash-card" id="basic-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/clipboard.png" alt=""></span>
+    <span>
+      <h3>基本資料</h3>
+      <p>查看與編輯姓名、聯絡方式、狀態與時區</p>
+    </span>
+  </button>
+
+  <button type="button" class="dash-card" id="courses-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/invoice.png" alt=""></span>
+    <span>
+      <h3>購買課程</h3>
+      <p>查看與新增學生購買的課程</p>
+    </span>
+  </button>
+
+  <button type="button" class="dash-card" id="bookings-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/flash-card.png" alt=""></span>
+    <span>
+      <h3>預約紀錄</h3>
+      <p>查看學生的課程預約與上課紀錄</p>
+    </span>
+  </button>
 
 </div>
 
-<div class="modal-overlay" id="basicInfoSuccessModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
-    <h3>已更新學生資料</h3>
-    <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
-    <h3 id="basicInfoAlertText"></h3>
-    <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="addCourseConfirmModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-graduation-cap"></i></div>
-    <h3>確定新增這門課程嗎？</h3>
-    <p class="text-small" id="addCourseConfirmName"></p>
-    <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn green" id="add-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定新增</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">目前修改的基本資料將不會保留。</p>
-    <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="avatarCropModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" id="avatar-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <h3>裁切頭像</h3>
-    <p class="text-small">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
-    <div class="crop-container">
-      <img id="avatar-crop-image" alt="">
-    </div>
-    <div class="modal-actions">
-      <button class="btn outline" id="avatar-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn blue" id="avatar-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確認裁切</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="statusInfoModal">
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
-    <h3>狀態</h3>
-    <p class="text-small">學生停用後，無法再登入預約系統。</p>
-    <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students, student_courses, student_bookings
-  const STUDENTS_KEY = 'admin-students';
-
-  const COURSE_NAME_FIX = { 'N4 綜合日本語 J1': 'N4 綜合日本語 J4', 'N4 綜合日本語 J2': 'N4 綜合日本語 J5' };
-
-  function loadStudents() { // TODO: 之後改接真正的 D1/API
-    const list = JSON.parse(localStorage.getItem(STUDENTS_KEY) || '[]');
-    let patched = false;
-    list.forEach((s) => {
-      (s.courses || []).forEach((c) => {
-        if (COURSE_NAME_FIX[c.name]) { c.name = COURSE_NAME_FIX[c.name]; patched = true; }
-      });
-      (s.bookings || []).forEach((b) => {
-        if (COURSE_NAME_FIX[b.course]) { b.course = COURSE_NAME_FIX[b.course]; patched = true; }
-      });
-    });
-    if (patched) saveStudents(list);
-    return list;
-  }
-  function saveStudents(list) { localStorage.setItem(STUDENTS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
-
-  const params = new URLSearchParams(window.location.search);
-  const studentId = Number(params.get('id'));
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students(id, name, phone, email, avatar, status, courses, bookings)
+  const studentId = Number(new URLSearchParams(window.location.search).get('id'));
   const students = loadStudents();
   const student = students.find((s) => s.id === studentId);
 
@@ -528,382 +141,25 @@
   } else {
     student.lastViewedAt = Date.now();
     saveStudents(students);
-  }
 
-  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    document.getElementById('student-header-avatar-img').src = avatarSrc(student.avatar);
+    document.getElementById('student-header-name').textContent = student.name;
+    document.getElementById('student-header-status').hidden = student.status !== 'inactive';
 
-  const AVATAR_LIST = [
-    '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
-    '006-panda.png', '007-hen.png', '008-llama.png', '009-elephant.png', '010-cat.png',
-    '011-penguin.png', '012-chicken.png', '013-frog.png', '014-hedgehog.png', '015-mouse.png',
-    '016-duck.png', '017-dog.png', '018-sloth.png', '019-ferret.png', '020-beaver.png',
-    '021-wild-boar.png', '022-chameleons.png', '023-koala.png', '024-squirrel.png', '025-turkey.png',
-    '026-deer.png', '027-fox.png', '028-bat.png', '029-lion.png', '030-parrot.png',
-    '031-ostrich.png', '032-snake.png', '033-camel.png', '034-horse.png', '035-skunk.png',
-    '036-hippopotamus.png', '037-crab.png', '038-rhino.png', '039-giraffe.png', '040-gorilla.png',
-    '041-zebra.png', '042-wolf.png', '043-goat.png', '044-turtle.png', '045-pig.png',
-    '046-walrus.png', '047-bee.png', '048-sheep.png', '049-monkey.png', '050-octopus.png',
-    '051-bear-1.png', '052-sea-lion.png', '053-polar-bear.png',
-  ];
-  function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
-  function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
-
-  // ==========================================================================
-  // 卡片 1：基本資料
-  // ==========================================================================
-  let currentAvatar = student ? (student.avatar || randomAvatar()) : randomAvatar();
-
-  function formatPhoneDisplay(digits) {
-    const clean = (digits || '').replace(/\D/g, '');
-    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : digits;
-  }
-
-  function renderBasicInfo() {
-    document.getElementById('edit-name').value = student.name;
-    document.getElementById('edit-phone').value = formatPhoneDisplay(student.phone);
-    document.getElementById('edit-email').value = student.email;
-    document.getElementById('edit-teams-link').value = student.teamsLink || '';
-    document.getElementById('edit-avatar-preview').src = avatarSrc(currentAvatar);
-    setDropdownValue('edit-status-dropdown', student.status === 'inactive' ? '停用' : '啟用');
-    setDropdownValue('edit-timezone-dropdown', student.timezone || '(UTC+8) 台北');
-  }
-
-  document.getElementById('status-info-btn').addEventListener('click', () => {
-    document.getElementById('statusInfoModal').classList.add('open');
-  });
-
-  function setAvatar(newAvatar) {
-    currentAvatar = newAvatar;
-    const avatarImg = document.getElementById('edit-avatar-preview');
-    avatarImg.src = avatarSrc(currentAvatar);
-    avatarImg.classList.remove('avatar-swap');
-    void avatarImg.offsetWidth;
-    avatarImg.classList.add('avatar-swap');
-  }
-
-  document.getElementById('edit-avatar-random-btn').addEventListener('click', () => {
-    setAvatar(randomAvatar());
-  });
-
-  // ---- 上傳圖片並裁切成正方形頭像 ----
-  const CROP_OUTPUT_SIZE = 400; // 輸出固定 400x400，避免存進 localStorage/未來 D1 的圖片太大
-  let cropper = null;
-
-  function closeCropModal() {
-    if (cropper) { cropper.destroy(); cropper = null; }
-    document.getElementById('avatarCropModal').classList.remove('open');
-    document.getElementById('edit-avatar-file-input').value = '';
-  }
-
-  document.getElementById('edit-avatar-upload-btn').addEventListener('click', () => {
-    document.getElementById('edit-avatar-file-input').click();
-  });
-
-  document.getElementById('edit-avatar-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = document.getElementById('avatar-crop-image');
-      img.src = reader.result;
-      document.getElementById('avatarCropModal').classList.add('open');
-      img.onload = () => {
-        if (cropper) cropper.destroy();
-        cropper = new Cropper(img, {
-          aspectRatio: 1,
-          viewMode: 1,
-          dragMode: 'move',
-          guides: true,
-          autoCropArea: 1,
-          background: false,
-        });
-      };
-    };
-    reader.readAsDataURL(file);
-  });
-
-  document.getElementById('avatar-crop-confirm-btn').addEventListener('click', () => {
-    if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: CROP_OUTPUT_SIZE, height: CROP_OUTPUT_SIZE });
-    setAvatar(canvas.toDataURL('image/jpeg', 0.8));
-    closeCropModal();
-  });
-
-  document.getElementById('avatar-crop-cancel-btn').addEventListener('click', closeCropModal);
-  document.getElementById('avatar-crop-close-btn').addEventListener('click', closeCropModal);
-
-  document.getElementById('edit-submit-btn').addEventListener('click', () => {
-    const name = document.getElementById('edit-name').value.trim();
-    const phone = document.getElementById('edit-phone').value.trim();
-    const email = document.getElementById('edit-email').value.trim();
-    const teamsLink = document.getElementById('edit-teams-link').value.trim();
-
-    if (!name || !phone || !email || !teamsLink) {
-      document.getElementById('basicInfoAlertText').textContent = '請填寫完整資料';
-      document.getElementById('basicInfoAlertModal').classList.add('open');
-      return;
-    }
-    if (!EMAIL_RE.test(email)) {
-      document.getElementById('basicInfoAlertText').textContent = 'Email 格式不對';
-      document.getElementById('basicInfoAlertModal').classList.add('open');
-      return;
-    }
-
-    student.name = name;
-    student.phone = phone.replace(/\D/g, '');
-    student.email = email;
-    student.teamsLink = teamsLink;
-    student.avatar = currentAvatar;
-    student.status = getDropdownValue('edit-status-dropdown') === '停用' ? 'inactive' : 'active';
-    student.timezone = getDropdownValue('edit-timezone-dropdown');
-    saveStudents(students);
-    document.getElementById('edit-phone').value = formatPhoneDisplay(student.phone);
-    document.getElementById('basicInfoSuccessModal').classList.add('open');
-  });
-
-  // ==========================================================================
-  // 卡片 2：購買課程
-  // ==========================================================================
-  function getDropdownValue(id) {
-    const selected = document.querySelector(`#${id} .dropdown-menu li.selected`);
-    return selected ? selected.dataset.value : null;
-  }
-  function setDropdownValue(id, value) {
-    const dropdown = document.getElementById(id);
-    const li = value && dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
-    if (!li) return;
-    dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
-    li.classList.add('selected');
-    dropdown.querySelector('.dropdown-trigger .label').textContent = li.textContent.trim();
-  }
-
-  function resetCourseDropdown() {
-    const dropdown = document.getElementById('add-course-dropdown');
-    dropdown.querySelectorAll('.dropdown-menu li.selected').forEach((li) => li.classList.remove('selected'));
-    dropdown.querySelector('.dropdown-trigger .label').textContent = '選擇課程';
-  }
-
-  function updateCourseDropdownOptions() {
-    const purchasedNames = new Set(student.courses.map((c) => c.name));
-    document.querySelectorAll('#add-course-menu li').forEach((li) => {
-      li.hidden = purchasedNames.has(li.dataset.value);
+    document.getElementById('basic-entry-card').addEventListener('click', () => {
+      window.location.href = `student-basic.html?id=${student.id}`;
     });
-  }
-
-  function renderCourses() {
-    const listEl = document.getElementById('course-list');
-    listEl.innerHTML = student.courses.length
-      ? student.courses.map((c) => {
-          const tone = c.status === 'ongoing' ? 'tone-blue' : 'tone-green';
-          const label = c.status === 'ongoing' ? '進行中' : '完成';
-          const attended = c.attended || '16/16';
-          const booked = c.booked || '16/16';
-          const counts = `<p class="course-count">已上課：<b class="course-count-value">${attended}</b></p><p class="course-count">已預約：<b class="course-count-value">${booked}</b></p>`;
-          return `<div class="course-row">
-            <span class="ribbon-clip"><span class="course-ribbon ${tone}">${label}</span></span>
-            <h4>${c.name}</h4>
-            ${counts}
-          </div>`;
-        }).join('')
-      : '<div class="booking-card-empty">沒有購買課程</div>';
-    listEl.querySelectorAll('.course-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
-    updateCourseDropdownOptions();
-  }
-
-  let pendingCourseName = null;
-
-  document.getElementById('add-course-btn').addEventListener('click', () => {
-    const value = getDropdownValue('add-course-dropdown');
-    if (!value) {
-      document.getElementById('basicInfoAlertText').textContent = '請先選擇課程';
-      document.getElementById('basicInfoAlertModal').classList.add('open');
-      return;
-    }
-    pendingCourseName = value;
-    document.getElementById('addCourseConfirmName').textContent = value;
-    document.getElementById('addCourseConfirmModal').classList.add('open');
-  });
-
-  document.getElementById('add-course-confirm-btn').addEventListener('click', () => {
-    if (!pendingCourseName) return;
-    student.courses.push({ id: Date.now(), name: pendingCourseName, status: 'ongoing', attended: '0/16', booked: '0/16' });
-    saveStudents(students);
-    pendingCourseName = null;
-    document.getElementById('addCourseConfirmModal').classList.remove('open');
-    resetCourseDropdown();
-    renderCourses();
-  });
-
-  // ==========================================================================
-  // 卡片 3：預約紀錄
-  // ==========================================================================
-  const STATUS_MAP = {
-    pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
-    absent:    { cls: 'tone-navy', icon: 'question.png',       label: '缺席' },
-    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', label: '預約' },
-    cancelled: { cls: 'cancelled', icon: 'close.png',          label: '取消' },
-    attended:  { cls: 'confirmed', icon: 'check.png',          label: '完成' },
-  };
-
-  function generateFakeBookings(seedId, courseName) {
-    const TEACHERS = ['田中老師', '佐藤老師', '山本老師', '鈴木老師', '渡辺老師'];
-    const count = 3 + (seedId % 3);
-    const bookings = [];
-    for (let b = 0; b < count; b++) {
-      const day = 1 + ((seedId * 3 + b * 5) % 27);
-      bookings.push({
-        id: seedId * 1000 + b,
-        course: courseName,
-        teacher: TEACHERS[(seedId + b) % TEACHERS.length],
-        date: `2026-09-${String(day).padStart(2, '0')}`,
-        time: `${10 + ((seedId + b) % 8)}:00`,
-        status: b === 0 ? 'upcoming' : (b % 2 === 0 ? 'attended' : 'cancelled'),
-      });
-    }
-    return bookings;
-  }
-
-  if (student && (!student.bookings || student.bookings.length === 0)) {
-    const courseName = (student.courses && student.courses[0]) ? student.courses[0].name : 'N5 綜合日本語 J1';
-    student.bookings = generateFakeBookings(student.id, courseName);
-    saveStudents(students);
-  }
-
-  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-  // 管理者一律看 UTC+8（台灣時間），不依老師/學生個人時區換算顯示
-  function formatBookingDateTime(dateISO, timeStr) {
-    const [y, m, d] = dateISO.split('-');
-    const weekday = WEEKDAY_NAMES[new Date(dateISO).getDay()];
-    const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    if (isMobile) return `${y}/${m}/${d} ${weekday} ${timeStr} (UTC+8)`;
-    return `${y} 年 ${m} 月 ${d} 日 星期${weekday} ${timeStr} (UTC+8)`;
-  }
-
-  function renderBookingCard(b) {
-    const s = STATUS_MAP[b.status];
-    return `<div class="booking-card">
-      <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
-      <div class="booking-card-info">
-        <p class="booking-card-course">${b.course}</p>
-        <h4>${b.teacher}</h4>
-        <p class="booking-card-datetime">${formatBookingDateTime(b.date, b.time)}</p>
-      </div>
-    </div>`;
-  }
-
-  function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    pageState.page = Math.min(pageState.page, totalPages);
-    const start = (pageState.page - 1) * pageSize;
-    const pageItems = items.slice(start, start + pageSize);
-
-    containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
-    if (onRender) onRender(containerEl);
-
-    paginationEl.innerHTML = '';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.setAttribute('aria-label', '上一頁');
-    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-    prevBtn.disabled = pageState.page === 1;
-    prevBtn.addEventListener('click', () => {
-      pageState.page--;
-      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    document.getElementById('courses-entry-card').addEventListener('click', () => {
+      window.location.href = `student-courses.html?id=${student.id}`;
     });
-    paginationEl.appendChild(prevBtn);
-
-    for (let p = 1; p <= totalPages; p++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = p;
-      if (p === pageState.page) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        pageState.page = p;
-        paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-      });
-      paginationEl.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.setAttribute('aria-label', '下一頁');
-    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-    nextBtn.disabled = pageState.page === totalPages;
-    nextBtn.addEventListener('click', () => {
-      pageState.page++;
-      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    document.getElementById('bookings-entry-card').addEventListener('click', () => {
+      window.location.href = `student-bookings.html?id=${student.id}`;
     });
-    paginationEl.appendChild(nextBtn);
+
+    document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));
   }
-
-  const bookingsPageState = { page: 1 };
-  const bookingsSearchInput = document.getElementById('bookings-search');
-  const bookingsSearchClearBtn = document.getElementById('bookings-search-clear');
-
-  function renderBookings() {
-    const query = bookingsSearchInput.value.trim().toLowerCase();
-    const filtered = query
-      ? student.bookings.filter((b) => [b.course, b.teacher].some((f) => f.toLowerCase().includes(query)))
-      : student.bookings;
-    const sorted = filtered.slice().sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-    paginate(sorted, 10, renderBookingCard,
-      document.getElementById('student-bookings-cards'),
-      document.getElementById('student-bookings-pagination'),
-      bookingsPageState,
-      `<div class="booking-card-empty">${query ? '找不到符合的預約紀錄' : '沒有預約紀錄'}</div>`,
-      (containerEl) => {
-        containerEl.querySelectorAll('.booking-card, .booking-card-empty').forEach((card) => applyTiltEffect(card));
-      });
-  }
-
-  let bookingsSearchDebounce = null;
-  bookingsSearchInput.addEventListener('input', () => {
-    bookingsSearchClearBtn.hidden = bookingsSearchInput.value === '';
-    clearTimeout(bookingsSearchDebounce);
-    bookingsSearchDebounce = setTimeout(() => {
-      bookingsPageState.page = 1;
-      renderBookings();
-    }, 500);
-  });
-
-  bookingsSearchClearBtn.addEventListener('click', () => {
-    clearTimeout(bookingsSearchDebounce);
-    bookingsSearchInput.value = '';
-    bookingsSearchClearBtn.hidden = true;
-    bookingsSearchInput.focus();
-    bookingsPageState.page = 1;
-    renderBookings();
-  });
-
-  if (student) {
-    renderBasicInfo();
-    renderCourses();
-    renderBookings();
-  }
-
-  function getBasicInfoSnapshot() {
-    return JSON.stringify({
-      avatar: currentAvatar,
-      name: document.getElementById('edit-name').value,
-      phone: document.getElementById('edit-phone').value,
-      email: document.getElementById('edit-email').value,
-      teamsLink: document.getElementById('edit-teams-link').value,
-      status: getDropdownValue('edit-status-dropdown'),
-      timezone: getDropdownValue('edit-timezone-dropdown'),
-    });
-  }
-  const initialBasicInfoSnapshot = student ? getBasicInfoSnapshot() : null;
 
   document.getElementById('back-btn').addEventListener('click', () => {
-    if (initialBasicInfoSnapshot !== null && getBasicInfoSnapshot() !== initialBasicInfoSnapshot) {
-      document.getElementById('leaveConfirmModal').classList.add('open');
-      return;
-    }
-    window.location.href = 'students.html';
-  });
-
-  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
     window.location.href = 'students.html';
   });
 </script>

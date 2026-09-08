@@ -43,6 +43,24 @@
   #today-cards {
     grid-template-columns: repeat(2, 1fr);
   }
+  .booking-card-info {
+    gap: 3px;
+  }
+  .booking-card-code {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .booking-card-info h4,
+  .booking-card-info .booking-card-course {
+    margin: 0;
+    line-height: 1.6;
+  }
+  .booking-card-info .booking-card-datetime {
+    margin: 0;
+    font-size: 1.125rem;
+  }
 
   #today-group,
   #lessons-group {
@@ -54,6 +72,21 @@
 
   .confirm-highlight:hover {
     border-color: var(--color-blue);
+  }
+  #lesson-detail-view .confirm-highlight {
+    padding: 14px 20px;
+    gap: var(--space-4);
+  }
+  #lesson-detail-view .confirm-highlight-icon {
+    width: 44px;
+    height: 44px;
+  }
+  #lesson-detail-view .confirm-highlight h3 {
+    margin: 0 0 2px;
+    font-size: 1.0625rem;
+  }
+  #lesson-detail-view .confirm-highlight p {
+    font-size: 0.8125rem;
   }
   .tz-tag {
     font-size: var(--fs-small);
@@ -81,7 +114,7 @@
 
   #lesson-detail-view .section {
     position: relative;
-    max-width: 600px;
+    max-width: 550px;
     margin-left: auto;
     margin-right: auto;
   }
@@ -97,7 +130,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 122px;
+    min-height: 160px;
     padding: var(--space-4) var(--space-5);
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
@@ -186,16 +219,30 @@
       <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>課程詳情</h2></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
+          <span><p>預約編號</p><h3 id="detail-booking-code">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
           <span><p>課程</p><h3 id="detail-course">—</h3></span>
         </div>
-        <div class="confirm-highlight">
-          <span class="confirm-highlight-icon"><img src="../assets/icons/student.png" alt=""></span>
-          <span><p>學生</p><h3 id="detail-student">—</h3></span>
+        <div class="confirm-highlight-row">
+          <div class="confirm-highlight">
+            <span class="confirm-highlight-icon"><img src="../assets/icons/student.png" alt=""></span>
+            <span><p>學生</p><h3 id="detail-student">—</h3></span>
+          </div>
+          <div class="confirm-highlight">
+            <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
+            <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+          </div>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
           <span><p>日期</p><h3 id="detail-datetime">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
+          <span><p>時間</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
@@ -259,7 +306,6 @@
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：lessons(course, date, time, student_name, status)
   // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
-  function loadTeachers() { return JSON.parse(localStorage.getItem('admin-teachers') || '[]'); } // TODO: 之後改接真正的 D1/API
   const adminTeacherId = new URLSearchParams(window.location.search).get('teacherId');
   const DEMO_SELF_TEACHER_ID = '1'; // TODO: 之後改接真正的教師登入 session
   const currentTeacherId = Number(adminTeacherId || DEMO_SELF_TEACHER_ID);
@@ -278,15 +324,22 @@
     return { date: `${y}/${m}/${day}`, time: `${hh}:${mm}` };
   }
 
-  const lessons = [
-    { id: 1, course: 'N5 綜合日本語 J2', date: '2026/09/03', time: '20:00', student: '李美芳', status: 'upcoming' },
-    { id: 2, course: 'N5 綜合日本語 J2', date: '2026/09/02', time: '11:00', student: '王大明', status: 'upcoming' },
-    { id: 3, course: 'N5 綜合日本語 J2', date: '2026/08/29', time: '16:00', student: '陳靜怡', status: 'cancelled' },
-    { id: 4, course: 'N5 綜合日本語 J2', date: '2026/08/26', time: '11:00', student: '李美芳', status: 'attended' },
-    { id: 5, course: 'N5 綜合日本語 J2', date: '2026/08/20', time: '20:00', student: '張凱文', status: 'attended' },
-    { id: 6, course: '商用日文會話',     date: '2026/08/15', time: '16:00', student: '王大明', status: 'attended' },
-    { id: 7, course: 'N5 綜合日本語 J2', date: '2026/08/10', time: '20:00', student: '陳靜怡', status: 'attended' },
-  ];
+  function loadTeacherLessons(teacherId) {
+    return loadStudents().flatMap((s) => (s.bookings || [])
+      .filter((b) => b.teacherId === teacherId)
+      .map((b) => ({
+        id: b.id,
+        course: b.course,
+        courseId: b.courseId,
+        date: b.date.replace(/-/g, '/'),
+        time: b.time,
+        student: s.name,
+        studentEmail: s.email,
+        status: b.status,
+        bookingCode: b.bookingCode,
+      })));
+  }
+  const lessons = loadTeacherLessons(currentTeacherId);
   const LESSON_DURATION_MINUTES = 100;
   const STATUS_MAP = {
     upcoming:  { cls: 'pill info has-icon',      icon: 'icon-hourglass.png', label: '預約' },
@@ -306,71 +359,43 @@
   cutoffDate.setDate(cutoffDate.getDate() - RECORD_WINDOW_DAYS);
   const visibleLessons = lessons.filter((l) => new Date(l.date.replace(/\//g, '-')) >= cutoffDate);
 
-  function paginate(items, pageSize, renderItemFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    pageState.page = Math.min(pageState.page, totalPages);
-    const start = (pageState.page - 1) * pageSize;
-    const pageItems = items.slice(start, start + pageSize);
-
-    containerEl.innerHTML = pageItems.map(renderItemFn).join('') || emptyHtml;
-    if (onRender) onRender(containerEl);
-
-    paginationEl.innerHTML = '';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.setAttribute('aria-label', '上一頁');
-    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-    prevBtn.disabled = pageState.page === 1;
-    prevBtn.addEventListener('click', () => {
-      pageState.page--;
-      paginate(items, pageSize, renderItemFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(prevBtn);
-
-    for (let p = 1; p <= totalPages; p++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = p;
-      if (p === pageState.page) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        pageState.page = p;
-        paginate(items, pageSize, renderItemFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-      });
-      paginationEl.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.setAttribute('aria-label', '下一頁');
-    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-    nextBtn.disabled = pageState.page === totalPages;
-    nextBtn.addEventListener('click', () => {
-      pageState.page++;
-      paginate(items, pageSize, renderItemFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(nextBtn);
-  }
-
-  function applyTiltEffect(card, intensity = 6) {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      const rotateX = (-y * intensity).toFixed(2);
-      const rotateY = (x * intensity).toFixed(2);
-      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
-      card.style.boxShadow = '';
-    });
-  }
   document.querySelectorAll('#lesson-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card));
 
+  function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
+
+  function endTimeStr(timeStr, durationMinutes) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const totalMinutes = h * 60 + m + durationMinutes;
+    const endH = Math.floor(totalMinutes / 60) % 24;
+    const endM = totalMinutes % 60;
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  }
+
+  function durationLabelStr(durationMinutes) {
+    const h = Math.floor(durationMinutes / 60);
+    const m = durationMinutes % 60;
+    if (h && m) return `${h} 時 ${m} 分`;
+    if (h) return `${h} 時`;
+    return `${m} 分`;
+  }
+
   const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+  function computeDisplayParts(l) {
+    const shifted = shiftToTeacherTz(l.date, l.time);
+    const course = loadCourses().find((c) => (l.courseId != null && c.id === l.courseId) || c.name === l.course);
+    const durationMinutes = (course && course.durationMinutes) || LESSON_DURATION_MINUTES;
+    const timeLabel = `${shifted.time} - ${endTimeStr(shifted.time, durationMinutes)}`;
+    const d = new Date(shifted.date.replace(/\//g, '-'));
+    const weekday = WEEKDAY_NAMES[d.getDay()];
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    const dateLabel = isMobile
+      ? `${shifted.date} ${weekday}`
+      : (() => { const [y, m, day] = shifted.date.split('/'); return `${y} 年 ${m} 月 ${day} 日 星期${weekday}`; })();
+    const durationLabel = durationLabelStr(durationMinutes);
+    return { dateLabel, timeLabel, durationLabel };
+  }
+
   function formatDateTime(dateStr, timeStr, showTz = true) {
     const shifted = shiftToTeacherTz(dateStr, timeStr);
     const d = new Date(shifted.date.replace(/\//g, '-'));
@@ -398,12 +423,14 @@
 
   function renderLessonCard(l) {
     const s = STATUS_MAP[l.status];
+    const parts = computeDisplayParts(l);
     return `<div class="booking-card is-clickable" data-id="${l.id}">
       <span class="${s.cls} booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
       <div class="booking-card-info">
+        ${l.bookingCode ? `<p class="booking-card-code">${l.bookingCode}</p>` : ''}
         <p class="booking-card-course">${l.course}</p>
-        <h4>${l.student}</h4>
-        <p class="booking-card-datetime">${formatDateTime(l.date, l.time, false)}</p>
+        <h4>${l.student} ／ ${currentTeacher.name}</h4>
+        <p class="booking-card-datetime">${parts.dateLabel} ${parts.timeLabel}</p>
       </div>
     </div>`;
   }
@@ -456,7 +483,11 @@
     activeLessonId = id;
     document.getElementById('detail-course').textContent = lesson.course;
     document.getElementById('detail-student').textContent = lesson.student;
-    document.getElementById('detail-datetime').innerHTML = formatDateTime(lesson.date, lesson.time, false);
+    document.getElementById('detail-teacher').textContent = currentTeacher.name;
+    const parts = computeDisplayParts(lesson);
+    document.getElementById('detail-datetime').textContent = parts.dateLabel;
+    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+${TEACHER_TZ_OFFSET}`;
+    document.getElementById('detail-booking-code').textContent = lesson.bookingCode || '—';
     document.getElementById('lessons-list-view').hidden = true;
     document.getElementById('lesson-detail-view').hidden = false;
     document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';
@@ -502,7 +533,16 @@
 
   document.getElementById('confirm-complete-btn').addEventListener('click', () => {
     const lesson = lessons.find((l) => l.id === activeLessonId);
-    if (lesson) lesson.status = 'attended';
+    if (lesson) {
+      lesson.status = 'attended';
+      const students = loadStudents();
+      const student = students.find((s) => s.email === lesson.studentEmail);
+      const booking = student && (student.bookings || []).find((b) => b.id === lesson.id);
+      if (booking) {
+        booking.status = 'attended';
+        saveStudents(students);
+      }
+    }
     document.getElementById('completeConfirmModal').classList.remove('open');
     hideLessonDetail();
     renderTodayGroup();

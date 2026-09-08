@@ -361,20 +361,6 @@
       document.getElementById('maxLeadInfoModal').classList.add('open');
     });
 
-    function setDropdownValue(dropdownId, value) {
-      if (!value) return;
-      const dropdown = document.getElementById(dropdownId);
-      const li = dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
-      if (!li) return;
-      dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
-      li.classList.add('selected');
-      dropdown.querySelector('.dropdown-trigger .label').textContent = value;
-    }
-    function getDropdownValue(dropdownId) {
-      const selected = document.querySelector(`#${dropdownId} .dropdown-menu li.selected`);
-      return selected ? selected.dataset.value : null;
-    }
-
     const durationMinutes = course.durationMinutes ?? 60;
     const bufferBeforeMinutes = course.bufferBeforeMinutes ?? 0;
     const bufferAfterMinutes = course.bufferAfterMinutes ?? 0;

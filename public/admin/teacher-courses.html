@@ -211,10 +211,6 @@
 <script src="../script.js"></script>
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
-  const TEACHERS_KEY = 'admin-teachers';
-
-  function loadTeachers() { const raw = localStorage.getItem(TEACHERS_KEY); return raw ? JSON.parse(raw) : []; } // TODO: 之後改接真正的 D1/API
-  function saveTeachers(list) { localStorage.setItem(TEACHERS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
 
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
   const teachers = loadTeachers();
@@ -224,11 +220,6 @@
     window.location.href = 'teachers.html';
   } else {
     teacher.courses = teacher.courses || [];
-
-    function getDropdownValue(id) {
-      const selected = document.querySelector(`#${id} .dropdown-menu li.selected`);
-      return selected ? selected.dataset.value : null;
-    }
 
     function resetCourseDropdown() {
       const dropdown = document.getElementById('add-course-dropdown');

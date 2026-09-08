@@ -478,6 +478,7 @@
   .btn.coral  { background: var(--color-coral); }
   .btn.teal   { background: var(--color-teal); }
   .btn.green  { background: var(--color-green); }
+  .btn.butter { background: var(--color-butter); color: var(--text-main); }
 
   .btn.outline {
     background: transparent;
@@ -924,6 +925,14 @@
     flex: none;
     width: 64px;
     height: 64px;
+  }
+  .confirm-highlight-row {
+    display: flex;
+    gap: var(--space-5);
+  }
+  .confirm-highlight-row .confirm-highlight {
+    flex: 1 1 0;
+    min-width: 0;
   }
   @media (max-width: 640px) {
     .confirm-highlight {

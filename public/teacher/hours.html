@@ -369,7 +369,6 @@
   const currentTeacherId = adminTeacherId || DEMO_SELF_TEACHER_ID;
 
   // 時段統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
-  function loadTeachers() { return JSON.parse(localStorage.getItem('admin-teachers') || '[]'); } // TODO: 之後改接真正的 D1/API
   const currentTeacherRecord = loadTeachers().find((t) => t.id === Number(currentTeacherId));
   const TEACHER_TZ_OFFSET = (currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone || '').includes('+9') ? 9 : 8;
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
@@ -412,23 +411,6 @@
     { key: '星期日', icon: 'sunday.png' },
   ];
 
-  function applyTiltEffect(card, intensity = 6) {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      const rotateX = (-y * intensity).toFixed(2);
-      const rotateY = (x * intensity).toFixed(2);
-      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
-      card.style.boxShadow = '';
-    });
-  }
-
   let pendingDeleteId = null;
 
   function renderHoursTable() {
@@ -459,11 +441,6 @@
     document.getElementById('hoursDeleteConfirmModal').classList.remove('open');
     renderHoursTable();
   });
-
-  function getDropdownValue(id) {
-    const selected = document.querySelector(`#${id} .dropdown-menu li.selected`);
-    return selected ? selected.dataset.value : null;
-  }
 
   document.getElementById('hours-add-btn').addEventListener('click', () => {
     const day = getDropdownValue('hours-day-dropdown');

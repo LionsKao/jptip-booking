@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 學生基本資料</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 800px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .avatar-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .avatar-picker-preview {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--line);
+    background: var(--bg-card-alt);
+  }
+  .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
+  @keyframes avatarSwap {
+    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+    40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
+    100% { transform: scale(1) rotate(360deg); opacity: 1; }
+  }
+  .avatar-picker-preview img.avatar-swap { animation: avatarSwap .4s ease; }
+
+  .form-field { margin-bottom: var(--space-4); }
+  .form-field label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 700;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+  }
+  .form-field label i { color: var(--text-muted); margin-right: 4px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  #edit-timezone-dropdown { width: 100%; }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+  .status-toggle-wrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .status-toggle-text {
+    font-weight: 700;
+    font-size: var(--fs-body);
+    color: var(--text-muted);
+  }
+  .status-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .status-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .status-toggle-track {
+    width: 74px;
+    height: 42px;
+    border-radius: var(--radius-pill);
+    background: var(--line);
+    position: relative;
+    flex: none;
+    transition: background-color .2s ease;
+  }
+  .status-toggle-thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    transition: transform .2s ease;
+  }
+  .status-toggle input:checked + .status-toggle-track {
+    background: var(--color-green);
+  }
+  .status-toggle input:checked + .status-toggle-track .status-toggle-thumb {
+    transform: translateX(32px);
+  }
+
+  .field-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 15px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: color .2s ease, opacity .2s ease;
+  }
+  .field-info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
+  .text-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-cn);
+    font-size: var(--fs-body);
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 3px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .text-input:focus {
+    outline: none;
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  }
+
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+  }
+  .wizard-nav .btn { min-width: 160px; }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+
+  .crop-container {
+    width: 320px;
+    height: 320px;
+    max-width: 100%;
+    margin: var(--space-4) auto;
+    background: #1a1a1a;
+    overflow: hidden;
+  }
+  .crop-container img { display: block; max-width: 100%; }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section" id="card-basic">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>基本資料</h2></div>
+
+    <div class="avatar-picker">
+      <span class="avatar-picker-preview"><img id="edit-avatar-preview" src="" alt=""></span>
+      <button type="button" class="btn outline sm" id="edit-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <button type="button" class="btn outline sm" id="edit-avatar-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
+      <input type="file" id="edit-avatar-file-input" accept="image/*" hidden>
+      <div class="status-toggle-wrap">
+        <span class="status-toggle-text" id="status-toggle-text">啟用</span>
+        <label class="status-toggle">
+          <input type="checkbox" id="edit-status-toggle">
+          <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
+        <input type="text" id="edit-name" class="text-input">
+      </div>
+      <div class="form-field">
+        <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
+        <input type="tel" id="edit-phone" class="text-input">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
+        <input type="email" id="edit-email" class="text-input">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
+        <div class="dropdown" id="edit-timezone-dropdown" data-placeholder="選擇時區">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field" style="grid-column: span 2;">
+        <label for="edit-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
+        <input type="url" id="edit-teams-link" class="text-input">
+      </div>
+    </div>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn blue" id="edit-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+    </div>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="basicInfoSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <h3>已更新學生資料</h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3>確定要離開嗎？</h3>
+    <p class="text-small">目前修改的基本資料將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="avatarCropModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" id="avatar-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <h3>裁切頭像</h3>
+    <p class="text-small">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
+    <div class="crop-container">
+      <img id="avatar-crop-image" alt="">
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" id="avatar-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn blue" id="avatar-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確認裁切</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students(id, name, phone, email, avatar, status, teams_link)
+  const studentId = Number(new URLSearchParams(window.location.search).get('id'));
+  const students = loadStudents();
+  const student = students.find((s) => s.id === studentId);
+
+  if (!student) {
+    window.location.href = 'students.html';
+  }
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  let currentAvatar = student ? (student.avatar || randomAvatar()) : randomAvatar();
+
+  function formatPhoneDisplay(digits) {
+    const clean = (digits || '').replace(/\D/g, '');
+    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : digits;
+  }
+
+  function setStatusToggle(isActive) {
+    document.getElementById('edit-status-toggle').checked = isActive;
+    document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+  }
+
+  function renderBasicInfo() {
+    document.getElementById('edit-name').value = student.name;
+    document.getElementById('edit-phone').value = formatPhoneDisplay(student.phone);
+    document.getElementById('edit-email').value = student.email;
+    document.getElementById('edit-teams-link').value = student.teamsLink || '';
+    document.getElementById('edit-avatar-preview').src = avatarSrc(currentAvatar);
+    setStatusToggle(student.status !== 'inactive');
+    setDropdownValue('edit-timezone-dropdown', student.timezone || '(UTC+8) 台北');
+  }
+
+  document.getElementById('edit-status-toggle').addEventListener('change', (e) => {
+    setStatusToggle(e.target.checked);
+  });
+
+  function setAvatar(newAvatar) {
+    currentAvatar = newAvatar;
+    const avatarImg = document.getElementById('edit-avatar-preview');
+    avatarImg.src = avatarSrc(currentAvatar);
+    avatarImg.classList.remove('avatar-swap');
+    void avatarImg.offsetWidth;
+    avatarImg.classList.add('avatar-swap');
+  }
+
+  document.getElementById('edit-avatar-random-btn').addEventListener('click', () => {
+    setAvatar(randomAvatar());
+  });
+
+  // ---- 上傳圖片並裁切成正方形頭像 ----
+  const CROP_OUTPUT_SIZE = 400; // 輸出固定 400x400，避免存進 localStorage/未來 D1 的圖片太大
+  let cropper = null;
+
+  function closeCropModal() {
+    if (cropper) { cropper.destroy(); cropper = null; }
+    document.getElementById('avatarCropModal').classList.remove('open');
+    document.getElementById('edit-avatar-file-input').value = '';
+  }
+
+  document.getElementById('edit-avatar-upload-btn').addEventListener('click', () => {
+    document.getElementById('edit-avatar-file-input').click();
+  });
+
+  document.getElementById('edit-avatar-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = document.getElementById('avatar-crop-image');
+      img.src = reader.result;
+      document.getElementById('avatarCropModal').classList.add('open');
+      img.onload = () => {
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(img, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          guides: true,
+          autoCropArea: 1,
+          background: false,
+        });
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('avatar-crop-confirm-btn').addEventListener('click', () => {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ width: CROP_OUTPUT_SIZE, height: CROP_OUTPUT_SIZE });
+    setAvatar(canvas.toDataURL('image/jpeg', 0.8));
+    closeCropModal();
+  });
+
+  document.getElementById('avatar-crop-cancel-btn').addEventListener('click', closeCropModal);
+  document.getElementById('avatar-crop-close-btn').addEventListener('click', closeCropModal);
+
+  document.getElementById('edit-submit-btn').addEventListener('click', () => {
+    const name = document.getElementById('edit-name').value.trim();
+    const phone = document.getElementById('edit-phone').value.trim();
+    const email = document.getElementById('edit-email').value.trim();
+    const teamsLink = document.getElementById('edit-teams-link').value.trim();
+
+    if (!name || !phone || !email || !teamsLink) {
+      document.getElementById('basicInfoAlertText').textContent = '請填寫完整資料';
+      document.getElementById('basicInfoAlertModal').classList.add('open');
+      return;
+    }
+    if (!EMAIL_RE.test(email)) {
+      document.getElementById('basicInfoAlertText').textContent = 'Email 格式不對';
+      document.getElementById('basicInfoAlertModal').classList.add('open');
+      return;
+    }
+
+    student.name = name;
+    student.phone = phone.replace(/\D/g, '');
+    student.email = email;
+    student.teamsLink = teamsLink;
+    student.avatar = currentAvatar;
+    student.status = document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive';
+    student.timezone = getDropdownValue('edit-timezone-dropdown');
+    saveStudents(students);
+    document.getElementById('edit-phone').value = formatPhoneDisplay(student.phone);
+    document.getElementById('basicInfoSuccessModal').classList.add('open');
+  });
+
+  if (student) renderBasicInfo();
+
+  function getBasicInfoSnapshot() {
+    return JSON.stringify({
+      avatar: currentAvatar,
+      name: document.getElementById('edit-name').value,
+      phone: document.getElementById('edit-phone').value,
+      email: document.getElementById('edit-email').value,
+      teamsLink: document.getElementById('edit-teams-link').value,
+      status: document.getElementById('edit-status-toggle').checked,
+      timezone: getDropdownValue('edit-timezone-dropdown'),
+    });
+  }
+  const initialBasicInfoSnapshot = student ? getBasicInfoSnapshot() : null;
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (initialBasicInfoSnapshot !== null && getBasicInfoSnapshot() !== initialBasicInfoSnapshot) {
+      document.getElementById('leaveConfirmModal').classList.add('open');
+      return;
+    }
+    window.location.href = `student-detail.html?id=${studentId}`;
+  });
+
+  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+    window.location.href = `student-detail.html?id=${studentId}`;
+  });
+</script>
+
+</body>
+</html>

@@ -48,7 +48,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 122px;
+    min-height: 160px;
     padding: var(--space-4) var(--space-5);
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
@@ -66,18 +66,52 @@
 
   #history-detail-view .section {
     position: relative;
-    max-width: 600px;
+    max-width: 550px;
     margin-left: auto;
     margin-right: auto;
   }
   .confirm-highlight:hover {
     border-color: var(--color-blue);
   }
+  #history-detail-view .confirm-highlight {
+    padding: 14px 20px;
+    gap: var(--space-4);
+  }
+  #history-detail-view .confirm-highlight-icon {
+    width: 44px;
+    height: 44px;
+  }
+  #history-detail-view .confirm-highlight h3 {
+    margin: 0 0 2px;
+    font-size: 1.0625rem;
+  }
+  #history-detail-view .confirm-highlight p {
+    font-size: 0.8125rem;
+  }
   .tz-tag {
     font-size: var(--fs-small);
     font-weight: 400;
     color: var(--text-muted);
     margin-left: 4px;
+  }
+
+  .booking-card-info {
+    gap: 3px;
+  }
+  .booking-card-code {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .booking-card-info h4,
+  .booking-card-info .booking-card-course {
+    margin: 0;
+    line-height: 1.6;
+  }
+  .booking-card-info .booking-card-datetime {
+    margin: 0;
+    font-size: 1.125rem;
   }
 
   .course-ribbon.tone-orange { background: var(--color-orange); }
@@ -180,16 +214,30 @@
       <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>課程詳情</h2></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
+          <span><p>預約編號</p><h3 id="detail-booking-code">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
           <span><p>課程</p><h3 id="detail-course">—</h3></span>
         </div>
-        <div class="confirm-highlight">
-          <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
-          <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+        <div class="confirm-highlight-row">
+          <div class="confirm-highlight">
+            <span class="confirm-highlight-icon"><img src="../assets/icons/student.png" alt=""></span>
+            <span><p>學生</p><h3 id="detail-student">—</h3></span>
+          </div>
+          <div class="confirm-highlight">
+            <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
+            <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+          </div>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
           <span><p>日期</p><h3 id="detail-datetime">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
+          <span><p>時間</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
@@ -208,6 +256,18 @@
     <div class="modal-actions">
       <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
       <button class="btn red" id="confirm-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cancelTooLateModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3>已無法取消此預約</h3>
+    <p class="text-small" id="cancel-too-late-note"></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
     </div>
   </div>
 </div>
@@ -254,10 +314,10 @@
   };
 
   // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給學生看時，依管理者在學生資料設定的時區（+8／+9）換算顯示
-  function loadStudents() { return JSON.parse(localStorage.getItem('admin-students') || '[]'); } // TODO: 之後改接真正的 D1/API
   function getSession() { try { return JSON.parse(sessionStorage.getItem('session')); } catch { return null; } }
   const session = getSession();
-  const currentStudent = session ? loadStudents().find((s) => s.email === session.email) : null;
+  const students = session ? loadStudents() : [];
+  const currentStudent = session ? students.find((s) => s.email === session.email) : null;
   const STUDENT_TIMEZONE_LABEL = (currentStudent && currentStudent.timezone) || '(UTC+8) 台北';
   const STUDENT_TZ_OFFSET = STUDENT_TIMEZONE_LABEL.includes('+9') ? 9 : 8;
   const STUDENT_TZ_DELTA_HOURS = STUDENT_TZ_OFFSET - 8;
@@ -272,30 +332,65 @@
     return { date: `${y}/${m}/${day}`, time: `${hh}:${mm}` };
   }
 
-  const records = [
-    { id: 1,  course: 'N5 綜合日本語 J2', teacher: '山本老師', date: '2026/09/18', time: '20:00', status: 'pending' },
-    { id: 2,  course: 'N5 綜合日本語 J2', teacher: '小林老師', date: '2026/09/12', time: '14:00', status: 'absent' },
-    { id: 3,  course: 'N5 綜合日本語 J2', teacher: '田中老師', date: '2026/09/10', time: '20:00', status: 'upcoming' },
-    { id: 4,  course: 'N5 綜合日本語 J2', teacher: '佐藤老師', date: '2026/09/05', time: '11:00', status: 'upcoming' },
-    { id: 5,  course: 'N5 綜合日本語 J2', teacher: '鈴木老師', date: '2026/08/29', time: '16:00', status: 'cancelled' },
-    { id: 6,  course: 'N5 綜合日本語 J2', teacher: '田中老師', date: '2026/08/26', time: '11:00', status: 'attended' },
-    { id: 7,  course: 'N5 綜合日本語 J2', teacher: '渡辺老師', date: '2026/08/20', time: '20:00', status: 'attended' },
-    { id: 8,  course: 'N5 綜合日本語 J2', teacher: '伊藤老師', date: '2026/08/15', time: '16:00', status: 'attended' },
-    { id: 9,  course: 'N5 綜合日本語 J2', teacher: '中村老師', date: '2026/08/12', time: '19:00', status: 'cancelled' },
-    { id: 10, course: 'N5 綜合日本語 J2', teacher: '加藤老師', date: '2026/08/08', time: '10:00', status: 'attended' },
-    { id: 11, course: 'N5 綜合日本語 J2', teacher: '小林老師', date: '2026/08/03', time: '11:00', status: 'attended' },
-  ];
+  // 只顯示 365 天內的紀錄，上課日期超過 365 天的舊紀錄不再顯示
+  const RECORD_WINDOW_DAYS = 365;
+  const cutoffDate = new Date();
+  cutoffDate.setHours(0, 0, 0, 0);
+  cutoffDate.setDate(cutoffDate.getDate() - RECORD_WINDOW_DAYS);
+
+  const records = ((currentStudent && currentStudent.bookings) || [])
+    .map((b) => ({
+      id: b.id,
+      course: b.course,
+      courseId: b.courseId,
+      teacher: b.teacher,
+      date: b.date.replace(/-/g, '/'),
+      time: b.time,
+      status: b.status,
+      bookingCode: b.bookingCode,
+    }))
+    .filter((r) => new Date(r.date.replace(/\//g, '-')) >= cutoffDate)
+    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
+
+  function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
+
+  function endTimeStr(timeStr, durationMinutes) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const totalMinutes = h * 60 + m + durationMinutes;
+    const endH = Math.floor(totalMinutes / 60) % 24;
+    const endM = totalMinutes % 60;
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  }
+
+  function durationLabelStr(durationMinutes) {
+    const h = Math.floor(durationMinutes / 60);
+    const m = durationMinutes % 60;
+    if (h && m) return `${h} 時 ${m} 分`;
+    if (h) return `${h} 時`;
+    return `${m} 分`;
+  }
 
   const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-  function formatDateTime(dateStr, timeStr, showTz = true) {
-    const shifted = shiftToStudentTz(dateStr, timeStr);
+
+  function computeDisplayParts(r) {
+    const shifted = shiftToStudentTz(r.date, r.time);
+    const course = loadCourses().find((c) => (r.courseId != null && c.id === r.courseId) || c.name === r.course);
+    const durationMinutes = (course && course.durationMinutes) || 60;
+    const timeLabel = `${shifted.time} - ${endTimeStr(shifted.time, durationMinutes)}`;
     const d = new Date(shifted.date.replace(/\//g, '-'));
     const weekday = WEEKDAY_NAMES[d.getDay()];
-    const tzTag = showTz ? `<span class="tz-tag">(UTC+${STUDENT_TZ_OFFSET})</span>` : '';
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    if (isMobile) return `${shifted.date} ${weekday} ${shifted.time} ${tzTag}`;
-    const [y, m, day] = shifted.date.split('/');
-    return `${y} 年 ${m} 月 ${day} 日 星期${weekday} ${shifted.time}${tzTag}`;
+    const dateLabel = isMobile
+      ? `${shifted.date} ${weekday}`
+      : (() => { const [y, m, day] = shifted.date.split('/'); return `${y} 年 ${m} 月 ${day} 日 星期${weekday}`; })();
+    const durationLabel = durationLabelStr(durationMinutes);
+    return { dateLabel, timeLabel, durationLabel };
+  }
+
+  function formatDateTime(r, showTz = true) {
+    const { dateLabel, timeLabel } = computeDisplayParts(r);
+    const tzTag = showTz ? `<span class="tz-tag">(UTC+${STUDENT_TZ_OFFSET})</span>` : '';
+    return `${dateLabel} ${timeLabel}${tzTag}`;
   }
 
   function renderHistoryCard(r) {
@@ -303,57 +398,12 @@
     return `<div class="booking-card is-clickable" data-id="${r.id}">
       <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
       <div class="booking-card-info">
+        ${r.bookingCode ? `<p class="booking-card-code">${r.bookingCode}</p>` : ''}
         <p class="booking-card-course">${r.course}</p>
-        <h4>${r.teacher}</h4>
-        <p class="booking-card-datetime">${formatDateTime(r.date, r.time, false)}</p>
+        <h4>${currentStudent.name} ／ ${r.teacher}</h4>
+        <p class="booking-card-datetime">${formatDateTime(r, false)}</p>
       </div>
     </div>`;
-  }
-
-  function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    pageState.page = Math.min(pageState.page, totalPages);
-    const start = (pageState.page - 1) * pageSize;
-    const pageItems = items.slice(start, start + pageSize);
-
-    containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
-    if (onRender) onRender(containerEl);
-
-    paginationEl.innerHTML = '';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.setAttribute('aria-label', '上一頁');
-    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-    prevBtn.disabled = pageState.page === 1;
-    prevBtn.addEventListener('click', () => {
-      pageState.page--;
-      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(prevBtn);
-
-    for (let p = 1; p <= totalPages; p++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = p;
-      if (p === pageState.page) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        pageState.page = p;
-        paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-      });
-      paginationEl.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.setAttribute('aria-label', '下一頁');
-    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-    nextBtn.disabled = pageState.page === totalPages;
-    nextBtn.addEventListener('click', () => {
-      pageState.page++;
-      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(nextBtn);
   }
 
   const historyPageState = { page: 1 };
@@ -363,6 +413,7 @@
       applyTiltEffect(card);
       card.addEventListener('click', () => showHistoryDetail(Number(card.dataset.id)));
     });
+    containerEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
   }
 
   function renderHistoryCards() {
@@ -370,7 +421,7 @@
       document.getElementById('history-cards'),
       document.getElementById('history-pagination'),
       historyPageState,
-      '<p style="text-align:center;color:var(--text-muted);">尚無課程紀錄</p>',
+      '<div class="booking-card-empty">尚無課程紀錄</div>',
       bindCardClicks);
   }
 
@@ -405,8 +456,12 @@
     if (!record) return;
     activeRecordId = id;
     document.getElementById('detail-course').textContent = record.course;
+    document.getElementById('detail-student').textContent = currentStudent.name;
     document.getElementById('detail-teacher').textContent = record.teacher;
-    document.getElementById('detail-datetime').innerHTML = formatDateTime(record.date, record.time, false);
+    const parts = computeDisplayParts(record);
+    document.getElementById('detail-datetime').textContent = parts.dateLabel;
+    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+${STUDENT_TZ_OFFSET}`;
+    document.getElementById('detail-booking-code').textContent = record.bookingCode || '—';
     document.getElementById('history-list-view').hidden = true;
     document.getElementById('history-detail-view').hidden = false;
     document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';
@@ -438,13 +493,38 @@
     window.location.href = 'index.html';
   });
 
+  // 課程時間統一以 UTC+8 為基準儲存，取消時限也依此時間比對，不受管理者/瀏覽器所在時區影響
+  function nowInUtc8() {
+    const now = new Date();
+    return new Date(now.getTime() + now.getTimezoneOffset() * 60000 + 8 * 60 * 60000);
+  }
+
+  function hoursUntilStart(record) {
+    const start = new Date(`${record.date.replace(/\//g, '-')}T${record.time}:00`);
+    return (start.getTime() - nowInUtc8().getTime()) / 3600000;
+  }
+
   document.getElementById('cancel-booking-btn').addEventListener('click', () => {
+    const record = records.find((r) => r.id === activeRecordId);
+    if (!record) return;
+    const course = loadCourses().find((c) => (record.courseId != null && c.id === record.courseId) || c.name === record.course);
+    const minLeadHours = course?.minLeadHours ?? 48;
+    if (hoursUntilStart(record) < minLeadHours) {
+      document.getElementById('cancel-too-late-note').textContent = `距離上課時間不足 ${minLeadHours} 小時，已無法取消預約，如有需要請聯絡管理者協助處理。`;
+      document.getElementById('cancelTooLateModal').classList.add('open');
+      return;
+    }
     document.getElementById('cancelConfirmModal').classList.add('open');
   });
 
   document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
     const record = records.find((r) => r.id === activeRecordId);
     if (record) record.status = 'cancelled';
+    const booking = currentStudent && (currentStudent.bookings || []).find((b) => b.id === activeRecordId);
+    if (booking) {
+      booking.status = 'cancelled';
+      saveStudents(students);
+    }
     document.getElementById('cancelConfirmModal').classList.remove('open');
     hideHistoryDetail();
     renderHistoryCards();

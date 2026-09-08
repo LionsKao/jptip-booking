@@ -339,52 +339,6 @@
     saveAllLeave(allLeave);
   }
 
-  function paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender) {
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    pageState.page = Math.min(pageState.page, totalPages);
-    const start = (pageState.page - 1) * pageSize;
-    const pageItems = items.slice(start, start + pageSize);
-
-    tbodyEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
-    if (onRender) onRender(tbodyEl);
-
-    paginationEl.innerHTML = '';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.setAttribute('aria-label', '上一頁');
-    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-    prevBtn.disabled = pageState.page === 1;
-    prevBtn.addEventListener('click', () => {
-      pageState.page--;
-      paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(prevBtn);
-
-    for (let p = 1; p <= totalPages; p++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = p;
-      if (p === pageState.page) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        pageState.page = p;
-        paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender);
-      });
-      paginationEl.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.setAttribute('aria-label', '下一頁');
-    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-    nextBtn.disabled = pageState.page === totalPages;
-    nextBtn.addEventListener('click', () => {
-      pageState.page++;
-      paginate(items, pageSize, renderRowFn, tbodyEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(nextBtn);
-  }
-
   const leavePageState = { page: 1 };
 
   // 休假紀錄只保留 60 天內的（從今天往回算），太久以前的不再顯示
@@ -400,23 +354,6 @@
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     if (isMobile) return `${y}/${m}/${d} ${weekday}`;
     return `${y} 年 ${m} 月 ${d} 日 星期${weekday}`;
-  }
-
-  function applyTiltEffect(card, intensity = 6) {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      const rotateX = (-y * intensity).toFixed(2);
-      const rotateY = (x * intensity).toFixed(2);
-      card.style.transform = `perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      card.style.boxShadow = `${-x * 20}px ${20 - y * 10}px 30px rgba(45,74,107,0.18)`;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg)';
-      card.style.boxShadow = '';
-    });
   }
 
   function isPastDate(dateISO) {

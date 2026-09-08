@@ -260,52 +260,6 @@
     return { label: '商', color: 'var(--color-steel)' };
   }
 
-  function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    pageState.page = Math.min(pageState.page, totalPages);
-    const start = (pageState.page - 1) * pageSize;
-    const pageItems = items.slice(start, start + pageSize);
-
-    containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
-    if (onRender) onRender(containerEl);
-
-    paginationEl.innerHTML = '';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.setAttribute('aria-label', '上一頁');
-    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-    prevBtn.disabled = pageState.page === 1;
-    prevBtn.addEventListener('click', () => {
-      pageState.page--;
-      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(prevBtn);
-
-    for (let p = 1; p <= totalPages; p++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = p;
-      if (p === pageState.page) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        pageState.page = p;
-        paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-      });
-      paginationEl.appendChild(btn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.setAttribute('aria-label', '下一頁');
-    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-    nextBtn.disabled = pageState.page === totalPages;
-    nextBtn.addEventListener('click', () => {
-      pageState.page++;
-      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
-    });
-    paginationEl.appendChild(nextBtn);
-  }
-
   const coursePageState = { page: 1 };
 
   function renderCourseCard(c) {

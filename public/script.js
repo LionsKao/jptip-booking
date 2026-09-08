@@ -24,6 +24,198 @@ function showToast(message, type = 'warning', duration = 3200) {
 }
 
 // ==========================================================================
+// 共用 mock 資料存取（admin-teachers / admin-students，localStorage）
+// TODO: 之後改接真正的 D1/API
+// ==========================================================================
+const AVATAR_LIST = [
+  '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
+  '006-panda.png', '007-hen.png', '008-llama.png', '009-elephant.png', '010-cat.png',
+  '011-penguin.png', '012-chicken.png', '013-frog.png', '014-hedgehog.png', '015-mouse.png',
+  '016-duck.png', '017-dog.png', '018-sloth.png', '019-ferret.png', '020-beaver.png',
+  '021-wild-boar.png', '022-chameleons.png', '023-koala.png', '024-squirrel.png', '025-turkey.png',
+  '026-deer.png', '027-fox.png', '028-bat.png', '029-lion.png', '030-parrot.png',
+  '031-ostrich.png', '032-snake.png', '033-camel.png', '034-horse.png', '035-skunk.png',
+  '036-hippopotamus.png', '037-crab.png', '038-rhino.png', '039-giraffe.png', '040-gorilla.png',
+  '041-zebra.png', '042-wolf.png', '043-goat.png', '044-turtle.png', '045-pig.png',
+  '046-walrus.png', '047-bee.png', '048-sheep.png', '049-monkey.png', '050-octopus.png',
+  '051-bear-1.png', '052-sea-lion.png', '053-polar-bear.png',
+];
+function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
+function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
+
+function loadTeachers() {
+  const raw = localStorage.getItem('admin-teachers');
+  if (raw) return JSON.parse(raw);
+
+  const now = Date.now();
+  const DAY = 86400000;
+  const NAMES = ['田中老師', '佐藤老師', '鈴木老師', '山田老師', '高橋老師', '中村老師', '小林老師', '渡辺老師', '伊藤老師', '加藤老師', '吉田老師', '山本老師', '松本老師'];
+  const VIEW_OFFSETS = [4, 11, 0, 8, 2, 10, 6, 1, 9, 3, 7, 12, 5];
+  // 對應 student/booking.html 靜態老師卡片原本就有的專長/座右銘文字（僅前 8 位老師有對應資料）
+  const SPECIALTIES = ['日文會話・5 年教學經驗', '商用日文・JLPT N1', '日文文法・JLPT 檢定專攻', '動漫日文・流行文化會話', '會話練習・生活日文', '聽力訓練・新聞日文', '文法解析・句型整理', '作文指導・寫作技巧'];
+  const MOTTOS = ['一緒に学び、共に成長していきましょう。', '失敗を恐れず、新しい世界へ踏み出そう！', '毎日の小さな積み重ねが、大きな力になる。', '臭豆腐の美味しさがわかる人は、もう私の仲間です。', '授業よりも、放課後の台湾夜市グルメが本番です。', '私の体の半分は、タピオカミルクティーとルーロー飯でできています。', '質問は大歓迎！でもパクチーは大盛りでよろしく。', '私の体の半分は、タピオカミルクティーとルーロー飯でできています。'];
+
+  const INACTIVE_IDS = [4, 9, 13];
+
+  const seed = NAMES.map((name, i) => ({
+    id: i + 1,
+    name,
+    phone: `09${String(20 + i).padStart(2, '0')}${String(300 + i * 7).padStart(3, '0')}${String(400 + i * 3).padStart(3, '0')}`,
+    email: `teacher${i + 1}@example.com`,
+    avatar: AVATAR_LIST[i % AVATAR_LIST.length],
+    specialty: SPECIALTIES[i] || '',
+    motto: MOTTOS[i] || '',
+    lastViewedAt: now - VIEW_OFFSETS[i] * DAY,
+    status: INACTIVE_IDS.includes(i + 1) ? 'inactive' : 'active',
+  }));
+
+  localStorage.setItem('admin-teachers', JSON.stringify(seed));
+  return seed;
+}
+function saveTeachers(list) { localStorage.setItem('admin-teachers', JSON.stringify(list)); }
+
+const COURSE_NAME_FIX = { 'N4 綜合日本語 J1': 'N4 綜合日本語 J4', 'N4 綜合日本語 J2': 'N4 綜合日本語 J5' };
+
+function loadStudents() {
+  const raw = localStorage.getItem('admin-students');
+  if (raw) {
+    const list = JSON.parse(raw);
+    let patched = false;
+    list.forEach((s) => {
+      if (!s.avatar) { s.avatar = randomAvatar(); patched = true; }
+      (s.courses || []).forEach((c) => {
+        if (COURSE_NAME_FIX[c.name]) { c.name = COURSE_NAME_FIX[c.name]; patched = true; }
+      });
+      (s.bookings || []).forEach((b) => {
+        if (COURSE_NAME_FIX[b.course]) { b.course = COURSE_NAME_FIX[b.course]; patched = true; }
+      });
+    });
+    if (patched) saveStudents(list);
+    return list;
+  }
+
+  const now = Date.now();
+  const DAY = 86400000;
+  const NAMES = ['陳靜怡', '王大明', '李美芳', '張凱文', '林佳穎', '黃俊傑', '吳雅婷', '劉建宏', '蔡欣怡', '楊子軒', '鄭雅雯', '許志明', '謝佩珊'];
+  const VIEW_OFFSETS = [5, 12, 1, 9, 3, 11, 0, 7, 4, 10, 2, 8, 6];
+  const TEACHERS = ['田中老師', '佐藤老師', '山本老師', '鈴木老師', '渡辺老師'];
+  const COURSES = ['N5 綜合日本語 J1', 'N5 綜合日本語 J2', 'N5 綜合日本語 J3', 'N4 綜合日本語 J4', 'N4 綜合日本語 J5', 'N4 綜合日本語 J6', 'N3 綜合日本語 J7', 'N3 綜合日本語 J8', 'N3 綜合日本語 J9', 'N2 綜合日本語 J10', 'N2 綜合日本語 J11', 'N2 綜合日本語 J12', 'N2 綜合日本語 J13', '商務日文 基礎會話篇', '商務日文 應用會話篇'];
+  // 對應 admin-courses / admin-teachers 種子資料的 id（同名同序），讓種子預約也帶有真正的 courseId/teacherId 可供比對
+  const COURSE_ID_MAP = Object.fromEntries(COURSES.map((name, idx) => [name, idx + 1]));
+  const TEACHER_ID_MAP = { '田中老師': 1, '佐藤老師': 2, '鈴木老師': 3, '山田老師': 4, '高橋老師': 5, '中村老師': 6, '小林老師': 7, '渡辺老師': 8, '伊藤老師': 9, '加藤老師': 10, '吉田老師': 11, '山本老師': 12, '松本老師': 13 };
+
+  const seed = NAMES.map((name, i) => {
+    const id = i + 1;
+    const hasCourse = i % 3 !== 2;
+    const courses = [];
+    if (hasCourse) {
+      courses.push({ id: id * 100 + 1, name: COURSES[i % COURSES.length], status: 'ongoing', attended: `${i % 10}/16`, booked: `${(i % 10) + 1}/16` });
+    }
+    if (i % 4 === 0) {
+      courses.push({ id: id * 100 + 2, name: COURSES[(i + 2) % COURSES.length], status: 'completed', attended: '16/16', booked: '16/16' });
+    }
+    const bookings = [];
+    if (hasCourse) {
+      const bookingCount = 1 + (i % 3);
+      for (let b = 0; b < bookingCount; b++) {
+        const day = 1 + ((i * 3 + b * 5) % 27);
+        const dateStr = `2026-09-${String(day).padStart(2, '0')}`;
+        const timeStr = `${10 + ((i + b) % 8)}:00`;
+        const teacherName = TEACHERS[(i + b) % TEACHERS.length];
+        bookings.push({
+          id: id * 1000 + b,
+          bookingCode: `${dateStr.replace(/-/g, '')}-${timeStr.replace(':', '')}-${String((id + b) % 100).padStart(2, '0')}`,
+          course: courses[0].name, courseId: COURSE_ID_MAP[courses[0].name],
+          teacher: teacherName, teacherId: TEACHER_ID_MAP[teacherName],
+          date: dateStr,
+          time: timeStr,
+          status: b === 0 ? 'upcoming' : (b % 2 === 0 ? 'attended' : 'cancelled'),
+        });
+      }
+    }
+    return {
+      id, name,
+      phone: `09${String(10 + i).padStart(2, '0')}${String(100 + i * 7).padStart(3, '0')}${String(200 + i * 3).padStart(3, '0')}`,
+      email: id <= 4 ? `student${id}@jptip.co.jp` : `student${id}@example.com`, // 前 4 位對齊 D1 種子登入帳號，讓登入快選按鈕能找到對應的學生資料
+      teamsLink: '',
+      avatar: AVATAR_LIST[i % AVATAR_LIST.length],
+      lastViewedAt: now - VIEW_OFFSETS[i] * DAY,
+      courses, bookings,
+    };
+  });
+
+  localStorage.setItem('admin-students', JSON.stringify(seed));
+  return seed;
+}
+function saveStudents(list) { localStorage.setItem('admin-students', JSON.stringify(list)); }
+
+// ==========================================================================
+// 分頁（列表 + 分頁按鈕）
+// ==========================================================================
+function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  pageState.page = Math.min(pageState.page, totalPages);
+  const start = (pageState.page - 1) * pageSize;
+  const pageItems = items.slice(start, start + pageSize);
+
+  containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
+  if (onRender) onRender(containerEl);
+
+  paginationEl.innerHTML = '';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.setAttribute('aria-label', '上一頁');
+  prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+  prevBtn.disabled = pageState.page === 1;
+  prevBtn.addEventListener('click', () => {
+    pageState.page--;
+    paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+  });
+  paginationEl.appendChild(prevBtn);
+
+  for (let p = 1; p <= totalPages; p++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = p;
+    if (p === pageState.page) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      pageState.page = p;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.setAttribute('aria-label', '下一頁');
+  nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+  nextBtn.disabled = pageState.page === totalPages;
+  nextBtn.addEventListener('click', () => {
+    pageState.page++;
+    paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+  });
+  paginationEl.appendChild(nextBtn);
+}
+
+// ==========================================================================
+// 下拉選單（下拉框選單）讀寫目前選取值
+// ==========================================================================
+function getDropdownValue(dropdownId) {
+  const selected = document.querySelector(`#${dropdownId} .dropdown-menu li.selected`);
+  return selected ? selected.dataset.value : null;
+}
+function setDropdownValue(dropdownId, value) {
+  if (!value) return;
+  const dropdown = document.getElementById(dropdownId);
+  const li = dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
+  if (!li) return;
+  dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
+  li.classList.add('selected');
+  dropdown.querySelector('.dropdown-trigger .label').textContent = li.textContent.trim();
+}
+
+// ==========================================================================
 // Dropdown (custom select)
 // ==========================================================================
 document.querySelectorAll('.dropdown').forEach((dropdown) => {

@@ -499,13 +499,18 @@
   // 資料讀取（每頁各自內嵌一份，比照專案慣例）
   // ------------------------------------------------------------------------
   function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
-  function loadTeachers() { return JSON.parse(localStorage.getItem('admin-teachers') || '[]'); } // TODO: 之後改接真正的 D1/API
-  function loadStudents() { return JSON.parse(localStorage.getItem('admin-students') || '[]'); } // TODO: 之後改接真正的 D1/API
-  function saveStudents(list) { localStorage.setItem('admin-students', JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
   function loadTeacherHours() { return JSON.parse(localStorage.getItem('teacher-hours') || '{}'); } // TODO: 之後改接真正的 D1/API
   function loadTeacherLeave() { return JSON.parse(localStorage.getItem('teacher-leave') || '{}'); } // TODO: 之後改接真正的 D1/API
-  function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
   function getSession() { try { return JSON.parse(sessionStorage.getItem('session')); } catch { return null; } }
+
+  // 預約編號規則：上課日期(8碼) + 上課時間(4碼) + 同時段流水序號(2碼)，方便學生口頭告知管理者快速查找
+  function generateBookingCode(dateISO, timeStr) {
+    const sameSlotCount = loadStudents()
+      .flatMap((s) => s.bookings || [])
+      .filter((b) => b.date === dateISO && b.time === timeStr).length;
+    const seq = String(sameSlotCount + 1).padStart(2, '0');
+    return `${dateISO.replace(/-/g, '')}-${timeStr.replace(':', '')}-${seq}`;
+  }
 
   // ------------------------------------------------------------------------
   // 時間／日期輔助函式
@@ -780,6 +785,7 @@
     student.bookings = student.bookings || [];
     student.bookings.push({
       id: Date.now(),
+      bookingCode: generateBookingCode(dateISO, timeStr),
       course: course.name, courseId: course.id,
       teacher: teacher.name, teacherId: teacher.id,
       date: dateISO, time: timeStr, status: 'upcoming',

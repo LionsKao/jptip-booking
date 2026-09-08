@@ -98,6 +98,55 @@
   .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
   .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
 
+  .status-toggle-wrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .status-toggle-text {
+    font-weight: 700;
+    font-size: var(--fs-body);
+    color: var(--text-muted);
+  }
+  .status-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .status-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .status-toggle-track {
+    width: 74px;
+    height: 42px;
+    border-radius: var(--radius-pill);
+    background: var(--line);
+    position: relative;
+    flex: none;
+    transition: background-color .2s ease;
+  }
+  .status-toggle-thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    transition: transform .2s ease;
+  }
+  .status-toggle input:checked + .status-toggle-track {
+    background: var(--color-green);
+  }
+  .status-toggle input:checked + .status-toggle-track .status-toggle-thumb {
+    transform: translateX(32px);
+  }
+
   .field-info-btn {
     display: inline-flex;
     align-items: center;
@@ -136,7 +185,6 @@
   #receipt-submit-btn { min-width: 160px; }
 
 
-  #edit-status-dropdown,
   #receipt-tax-dropdown,
   #receipt-timezone-dropdown { width: 100%; }
   #receipt-tax-dropdown .dropdown-trigger,
@@ -179,6 +227,13 @@
       <button type="button" class="btn outline sm" id="edit-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
       <button type="button" class="btn outline sm" id="edit-avatar-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
       <input type="file" id="edit-avatar-file-input" accept="image/*" hidden>
+      <div class="status-toggle-wrap">
+        <span class="status-toggle-text" id="status-toggle-text">啟用</span>
+        <label class="status-toggle">
+          <input type="checkbox" id="edit-status-toggle">
+          <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
+        </label>
+      </div>
     </div>
 
     <div class="field-row">
@@ -197,18 +252,6 @@
         <input type="email" id="edit-email" class="text-input">
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-power-off"></i> 狀態 <button type="button" class="field-info-btn" id="status-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
-        <div class="dropdown" id="edit-status-dropdown" data-placeholder="選擇狀態">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇狀態</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
-          <ul class="dropdown-menu">
-            <li data-value="啟用">啟用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="停用">停用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="form-field">
         <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
         <div class="dropdown" id="receipt-timezone-dropdown" data-placeholder="選擇時區">
           <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
@@ -217,6 +260,16 @@
             <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-specialty"><i class="fa-solid fa-fw fa-star"></i> 專長</label>
+        <input type="text" id="edit-specialty" class="text-input" placeholder="例：日文會話・5 年教學經驗">
+      </div>
+      <div class="form-field">
+        <label for="edit-motto"><i class="fa-solid fa-fw fa-quote-left"></i> 座右銘</label>
+        <input type="text" id="edit-motto" class="text-input" placeholder="例：一緒に学び、共に成長していきましょう。">
       </div>
     </div>
 
@@ -331,34 +384,10 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="statusInfoModal">
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
-    <h3>狀態</h3>
-    <p class="text-small">老師離職時改成停用，學生預約頁面就不會再顯示這位老師。</p>
-    <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
-  const TEACHERS_KEY = 'admin-teachers';
-
-  function loadTeachers() { const raw = localStorage.getItem(TEACHERS_KEY); return raw ? JSON.parse(raw) : []; } // TODO: 之後改接真正的 D1/API
-  function saveTeachers(list) { localStorage.setItem(TEACHERS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
-
-  const AVATAR_LIST = [
-    '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
-    '006-panda.png', '007-hen.png', '008-llama.png', '009-elephant.png', '010-cat.png',
-    '011-penguin.png', '012-chicken.png', '013-frog.png', '014-hedgehog.png', '015-mouse.png',
-  ];
-  function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
-  function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
 
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
   const teachers = loadTeachers();
@@ -377,11 +406,16 @@
     document.getElementById('edit-name').value = teacher.name;
     document.getElementById('edit-phone').value = formatPhoneDisplay(teacher.phone);
     document.getElementById('edit-email').value = teacher.email;
+    document.getElementById('edit-specialty').value = teacher.specialty || '';
+    document.getElementById('edit-motto').value = teacher.motto || '';
     document.getElementById('edit-avatar-preview').src = avatarSrc(currentAvatar);
-    setDropdownValue('edit-status-dropdown', teacher.status === 'inactive' ? '停用' : '啟用');
-
-    document.getElementById('status-info-btn').addEventListener('click', () => {
-      document.getElementById('statusInfoModal').classList.add('open');
+    function setStatusToggle(isActive) {
+      document.getElementById('edit-status-toggle').checked = isActive;
+      document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+    }
+    setStatusToggle(teacher.status !== 'inactive');
+    document.getElementById('edit-status-toggle').addEventListener('change', (e) => {
+      setStatusToggle(e.target.checked);
     });
 
     function setAvatar(newAvatar) {
@@ -465,25 +499,14 @@
       teacher.name = name;
       teacher.phone = phone;
       teacher.email = email;
+      teacher.specialty = document.getElementById('edit-specialty').value.trim();
+      teacher.motto = document.getElementById('edit-motto').value.trim();
       teacher.avatar = currentAvatar;
-      teacher.status = getDropdownValue('edit-status-dropdown') === '停用' ? 'inactive' : 'active';
+      teacher.status = document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive';
       saveTeachers(teachers);
       document.getElementById('edit-phone').value = formatPhoneDisplay(phone);
       document.getElementById('editSuccessModal').classList.add('open');
     });
-
-    function setDropdownValue(dropdownId, value) {
-      const dropdown = document.getElementById(dropdownId);
-      const li = value && dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
-      if (!li) return;
-      dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
-      li.classList.add('selected');
-      dropdown.querySelector('.dropdown-trigger .label').textContent = li.textContent.trim();
-    }
-    function getDropdownValue(dropdownId) {
-      const selected = document.querySelector(`#${dropdownId} .dropdown-menu li.selected`);
-      return selected ? selected.dataset.value : null;
-    }
 
     teacher.receipt = teacher.receipt || {};
     document.getElementById('receipt-address').value = teacher.receipt.address || '';
@@ -528,7 +551,9 @@
         name: document.getElementById('edit-name').value,
         phone: document.getElementById('edit-phone').value,
         email: document.getElementById('edit-email').value,
-        status: getDropdownValue('edit-status-dropdown'),
+        specialty: document.getElementById('edit-specialty').value,
+        motto: document.getElementById('edit-motto').value,
+        status: document.getElementById('edit-status-toggle').checked,
         address: document.getElementById('receipt-address').value,
         companyName: document.getElementById('receipt-company-name').value,
         companyAddress: document.getElementById('receipt-company-address').value,

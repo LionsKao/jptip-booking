@@ -15,7 +15,7 @@
   }
 
   .section {
-    max-width: 600px;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
   }
@@ -58,6 +58,30 @@
     font-size: var(--fs-small);
     color: var(--text-muted);
   }
+  .form-field label i { color: var(--text-muted); margin-right: 4px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  #add-status-dropdown,
+  #add-timezone-dropdown { width: 100%; }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+  .field-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 15px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: color .2s ease, opacity .2s ease;
+  }
+  .field-info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
   .text-input {
     width: 100%;
     box-sizing: border-box;
@@ -95,6 +119,7 @@
   .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
   .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
   .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
 
   @media (max-width: 1048px) {
     body.admin-page .page {
@@ -135,21 +160,47 @@
       <button type="button" class="btn outline sm" id="add-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
     </div>
 
-    <div class="form-field">
-      <label for="add-name">姓名</label>
-      <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
+        <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名">
+      </div>
+      <div class="form-field">
+        <label for="add-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
+        <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼">
+      </div>
     </div>
-    <div class="form-field">
-      <label for="add-phone">手機</label>
-      <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
+        <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-power-off"></i> 狀態 <button type="button" class="field-info-btn" id="status-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
+        <div class="dropdown" id="add-status-dropdown" data-placeholder="選擇狀態">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇狀態</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="啟用">啟用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="停用">停用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
     </div>
-    <div class="form-field">
-      <label for="add-email">Email</label>
-      <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email">
-    </div>
-    <div class="form-field">
-      <label for="add-teams-link">Teams 會議室連結</label>
-      <input type="url" id="add-teams-link" class="text-input" placeholder="請輸入 Teams 會議室連結">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
+        <input type="url" id="add-teams-link" class="text-input" placeholder="請輸入 Teams 會議室連結">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
+        <div class="dropdown" id="add-timezone-dropdown" data-placeholder="選擇時區">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -181,6 +232,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="statusInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
+    <h3>狀態</h3>
+    <p class="text-small">學生停用後，無法再登入預約系統。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -197,25 +260,6 @@
 <script src="../script.js"></script>
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students(id, name, phone, email, teams_link)
-  const STUDENTS_KEY = 'admin-students';
-
-  function loadStudents() { return JSON.parse(localStorage.getItem(STUDENTS_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
-  function saveStudents(list) { localStorage.setItem(STUDENTS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
-
-  const AVATAR_LIST = [
-    '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
-    '006-panda.png', '007-hen.png', '008-llama.png', '009-elephant.png', '010-cat.png',
-    '011-penguin.png', '012-chicken.png', '013-frog.png', '014-hedgehog.png', '015-mouse.png',
-    '016-duck.png', '017-dog.png', '018-sloth.png', '019-ferret.png', '020-beaver.png',
-    '021-wild-boar.png', '022-chameleons.png', '023-koala.png', '024-squirrel.png', '025-turkey.png',
-    '026-deer.png', '027-fox.png', '028-bat.png', '029-lion.png', '030-parrot.png',
-    '031-ostrich.png', '032-snake.png', '033-camel.png', '034-horse.png', '035-skunk.png',
-    '036-hippopotamus.png', '037-crab.png', '038-rhino.png', '039-giraffe.png', '040-gorilla.png',
-    '041-zebra.png', '042-wolf.png', '043-goat.png', '044-turtle.png', '045-pig.png',
-    '046-walrus.png', '047-bee.png', '048-sheep.png', '049-monkey.png', '050-octopus.png',
-    '051-bear-1.png', '052-sea-lion.png', '053-polar-bear.png',
-  ];
-  function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
 
   let currentAvatar = randomAvatar();
   document.getElementById('add-avatar-preview').src = `../assets/avatars/${currentAvatar}`;
@@ -226,6 +270,13 @@
     avatarImg.classList.remove('avatar-swap');
     void avatarImg.offsetWidth;
     avatarImg.classList.add('avatar-swap');
+  });
+
+  setDropdownValue('add-status-dropdown', '啟用');
+  setDropdownValue('add-timezone-dropdown', '(UTC+8) 台北');
+
+  document.getElementById('status-info-btn').addEventListener('click', () => {
+    document.getElementById('statusInfoModal').classList.add('open');
   });
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -255,6 +306,8 @@
       id: Date.now(),
       name, phone: phone.replace(/\D/g, ''), email, teamsLink,
       avatar: currentAvatar,
+      status: getDropdownValue('add-status-dropdown') === '停用' ? 'inactive' : 'active',
+      timezone: getDropdownValue('add-timezone-dropdown'),
       lastViewedAt: Date.now(),
       courses: [],
       bookings: [],
