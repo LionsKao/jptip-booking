@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 課程管理</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .section-title { margin-bottom: var(--space-5); }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    margin-bottom: var(--space-3);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .search-box:focus-within {
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  }
+  .search-box i { color: var(--text-muted); }
+  .search-clear-btn {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    width: 24px;
+    height: 24px;
+    padding: 6px;
+    margin: -6px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .search-clear-btn:hover {
+    background: var(--bg-card-alt);
+    color: var(--text-main);
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: none;
+    font-family: var(--font-cn);
+    font-size: var(--fs-body);
+    color: var(--text-main);
+  }
+
+  #course-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+  @keyframes courseCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #course-cards .course-list-card,
+  #course-cards .course-list-card-empty,
+  #course-cards .course-add-card {
+    animation: courseCardIn .3s ease backwards;
+  }
+  #course-cards .course-list-card:nth-child(2n) {
+    animation-delay: .04s;
+  }
+
+  .course-list-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .course-list-card:hover { border-color: var(--color-blue); }
+  .course-list-card-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 88px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .course-list-card-empty:hover { border-color: var(--color-blue); }
+  .course-add-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    color: var(--color-blue);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .course-add-card:hover { border-color: var(--color-blue); }
+  .course-add-card .add-icon {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+  .course-list-card-image {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg-card-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .course-list-card-image img { width: 100%; height: 100%; object-fit: cover; }
+  .course-list-card-badge {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    font-family: var(--font-en);
+    font-variant-numeric: tabular-nums;
+  }
+  .course-list-card h4 { margin: 0; font-size: 1.125rem; }
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #course-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>課程管理</h2></div>
+    <div class="search-box">
+      <i class="fa-solid fa-fw fa-magnifying-glass"></i>
+      <input type="text" id="course-search" placeholder="搜尋課程名稱">
+      <button type="button" class="search-clear-btn" id="course-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    </div>
+    <div id="course-cards"></div>
+  </section>
+
+  <div class="page-nav">
+    <div class="pagination" id="course-pagination"></div>
+  </div>
+
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, image)
+  const COURSES_KEY = 'admin-courses';
+  const SEARCH_KEY = 'admin-course-search';
+
+  function loadCourses() { // TODO: 之後改接真正的 D1/API
+    const raw = localStorage.getItem(COURSES_KEY);
+    if (raw) return JSON.parse(raw);
+
+    const NAMES = ['N5 綜合日本語 J1', 'N5 綜合日本語 J2', 'N5 綜合日本語 J3', 'N4 綜合日本語 J4', 'N4 綜合日本語 J5', 'N4 綜合日本語 J6', 'N3 綜合日本語 J7', 'N3 綜合日本語 J8', 'N3 綜合日本語 J9', 'N2 綜合日本語 J10', 'N2 綜合日本語 J11', 'N2 綜合日本語 J12', 'N2 綜合日本語 J13', '商務日文 基礎會話篇', '商務日文 應用會話篇'];
+
+    const seed = NAMES.map((name, i) => ({
+      id: i + 1, name, image: '', description: '',
+      durationMinutes: 100, bufferBeforeMinutes: 0, bufferAfterMinutes: 20,
+      scheduleIncrement: '1 小時', minLeadHours: 48, maxLeadDays: 30,
+    }));
+
+    localStorage.setItem(COURSES_KEY, JSON.stringify(seed));
+    return seed;
+  }
+
+  function saveCourses(list) { localStorage.setItem(COURSES_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+
+  // 沒有上傳自訂圖片時，用課程名稱裡的級數（J1、J2...）自動配色，顏色跟 student/booking.html 選課步驟的 course-tag 彩虹配色一致；
+  // 商務日文系列沒有 J 級數，固定用鐵灰色＋「商」字
+  function courseBadge(name) {
+    const match = name.match(/J(\d+)/);
+    if (match) return { label: `J${match[1]}`, color: `var(--level-j${match[1]})` };
+    return { label: '商', color: 'var(--color-steel)' };
+  }
+
+  function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    pageState.page = Math.min(pageState.page, totalPages);
+    const start = (pageState.page - 1) * pageSize;
+    const pageItems = items.slice(start, start + pageSize);
+
+    containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
+    if (onRender) onRender(containerEl);
+
+    paginationEl.innerHTML = '';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.setAttribute('aria-label', '上一頁');
+    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    prevBtn.disabled = pageState.page === 1;
+    prevBtn.addEventListener('click', () => {
+      pageState.page--;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(prevBtn);
+
+    for (let p = 1; p <= totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p;
+      if (p === pageState.page) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        pageState.page = p;
+        paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+      });
+      paginationEl.appendChild(btn);
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.setAttribute('aria-label', '下一頁');
+    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    nextBtn.disabled = pageState.page === totalPages;
+    nextBtn.addEventListener('click', () => {
+      pageState.page++;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(nextBtn);
+  }
+
+  const coursePageState = { page: 1 };
+
+  function renderCourseCard(c) {
+    let badge;
+    if (c.image) {
+      badge = `<img src="${c.image}" alt="">`;
+    } else {
+      const b = courseBadge(c.name);
+      badge = `<span class="course-list-card-badge" style="background:${b.color};">${b.label}</span>`;
+    }
+    return `<div class="course-list-card" data-id="${c.id}">
+      <span class="course-list-card-image">${badge}</span>
+      <h4>${c.name}</h4>
+    </div>`;
+  }
+
+  function bindCourseCardClicks(containerEl) {
+    containerEl.querySelectorAll('.course-list-card').forEach((card) => {
+      applyTiltEffect(card);
+      card.addEventListener('click', () => {
+        window.location.href = `course-detail.html?id=${card.dataset.id}`;
+      });
+    });
+    containerEl.querySelectorAll('.course-list-card-empty, .course-add-card').forEach((card) => applyTiltEffect(card));
+  }
+
+  function renderCourses() {
+    const query = searchInput.value.trim().toLowerCase();
+    const all = loadCourses();
+    const filtered = query
+      ? all.filter((c) => c.name.toLowerCase().includes(query))
+      : all;
+    const sorted = filtered.slice().sort((a, b) => (b.lastViewedAt || b.id) - (a.lastViewedAt || a.id));
+
+    paginate(sorted, 10, renderCourseCard,
+      document.getElementById('course-cards'),
+      document.getElementById('course-pagination'),
+      coursePageState,
+      '<div class="course-list-card-empty">找不到符合的課程</div>',
+      (containerEl) => {
+        if (query) {
+          containerEl.insertAdjacentHTML('beforeend', '<div class="course-add-card" id="course-add-card"><span class="add-icon"><i class="fa-solid fa-fw fa-plus"></i></span>新增課程</div>');
+          document.getElementById('course-add-card').addEventListener('click', () => {
+            window.location.href = 'course-add.html';
+          });
+        }
+        bindCourseCardClicks(containerEl);
+      });
+  }
+
+  const searchInput = document.getElementById('course-search');
+  const searchClearBtn = document.getElementById('course-search-clear');
+  searchInput.value = localStorage.getItem(SEARCH_KEY) || '';
+  searchClearBtn.hidden = searchInput.value === '';
+  let courseSearchDebounce = null;
+  searchInput.addEventListener('input', () => {
+    searchClearBtn.hidden = searchInput.value === '';
+    localStorage.setItem(SEARCH_KEY, searchInput.value); // TODO: 之後改接真正的 D1/API（此欄位僅為前端搜尋狀態）
+    clearTimeout(courseSearchDebounce);
+    courseSearchDebounce = setTimeout(() => {
+      coursePageState.page = 1;
+      renderCourses();
+    }, 500);
+  });
+
+  searchClearBtn.addEventListener('click', () => {
+    clearTimeout(courseSearchDebounce);
+    searchInput.value = '';
+    searchClearBtn.hidden = true;
+    localStorage.setItem(SEARCH_KEY, '');
+    searchInput.focus();
+    coursePageState.page = 1;
+    renderCourses();
+  });
+
+  renderCourses();
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+</script>
+
+</body>
+</html>

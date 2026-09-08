@@ -73,9 +73,10 @@ document.addEventListener('click', (e) => {
   const prevBtn = picker.querySelector('[data-prev]');
   const nextBtn = picker.querySelector('[data-next]');
 
-  let viewYear = 2026;
-  let viewMonth = 7; // 0-indexed: 7 = August
-  const today = { year: 2026, month: 7, day: 26 };
+  const now = new Date();
+  let viewYear = now.getFullYear();
+  let viewMonth = now.getMonth();
+  const today = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
   let selected = null;
 
   function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
@@ -99,6 +100,8 @@ document.addEventListener('click', (e) => {
     for (let d = 1; d <= trailing; d++) {
       grid.appendChild(makeDay(d, true));
     }
+
+    picker.dispatchEvent(new CustomEvent('datepicker:rendered', { bubbles: true }));
   }
 
   function makeDay(day, muted) {
@@ -394,6 +397,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         submitBtn.disabled = false;
         return;
       }
+      sessionStorage.setItem('session', JSON.stringify({ role: card.dataset.role, email: emailInput.value.trim() }));
       window.location.href = `${card.dataset.role}/`;
     } catch {
       showLoginAlert('網路錯誤，請稍後再試', 'error');

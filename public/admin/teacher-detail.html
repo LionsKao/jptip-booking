@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 老師詳細資料</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 500px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .teacher-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .teacher-header-avatar {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--line);
+    background: var(--bg-card-alt);
+  }
+  .teacher-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .teacher-header h2 { margin: 0; }
+  .teacher-header-name { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .pill.tone-muted { background: var(--bg-card-alt); color: var(--text-muted); }
+
+  .dash-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    width: 100%;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    padding: var(--space-5);
+    transition: border-color .2s ease, box-shadow .2s ease, transform .35s ease;
+    will-change: transform;
+    transform-style: preserve-3d;
+  }
+  .dash-card:hover {
+    border-color: var(--color-blue);
+    box-shadow: var(--shadow-md);
+  }
+  .dash-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 56px;
+    height: 56px;
+  }
+  .dash-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .dash-card h3 { margin: 0 0 4px; font-size: 1.25rem; }
+  .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
+
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <div class="teacher-header">
+    <span class="teacher-header-avatar"><img id="teacher-header-avatar-img" src="" alt=""></span>
+    <div class="teacher-header-name">
+      <h2 id="teacher-header-name"></h2>
+      <span class="pill tone-muted" id="teacher-header-status" hidden>停用</span>
+    </div>
+  </div>
+
+  <button type="button" class="dash-card" id="basic-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/clipboard.png" alt=""></span>
+    <span>
+      <h3>基本資料</h3>
+      <p>查看與編輯姓名、聯絡方式、領收書資料</p>
+    </span>
+  </button>
+
+  <button type="button" class="dash-card" id="leave-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/summer-holidays.png" alt=""></span>
+    <span>
+      <h3>休假申請</h3>
+      <p>設定不上課的休假日</p>
+    </span>
+  </button>
+
+  <button type="button" class="dash-card" id="hours-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/clock.png" alt=""></span>
+    <span>
+      <h3>教課可能時間</h3>
+      <p>設定每週可授課的時段</p>
+    </span>
+  </button>
+
+  <button type="button" class="dash-card" id="courses-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/books.png" alt=""></span>
+    <span>
+      <h3>可教課程</h3>
+      <p>設定老師可以教的課程</p>
+    </span>
+  </button>
+
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
+  const TEACHERS_KEY = 'admin-teachers';
+
+  function loadTeachers() { const raw = localStorage.getItem(TEACHERS_KEY); return raw ? JSON.parse(raw) : []; } // TODO: 之後改接真正的 D1/API
+  function saveTeachers(list) { localStorage.setItem(TEACHERS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+  function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
+
+  const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
+  const teachers = loadTeachers();
+  const teacher = teachers.find((t) => t.id === teacherId);
+
+  if (!teacher) {
+    window.location.href = 'teachers.html';
+  } else {
+    teacher.lastViewedAt = Date.now();
+    saveTeachers(teachers);
+
+    document.getElementById('teacher-header-avatar-img').src = avatarSrc(teacher.avatar);
+    document.getElementById('teacher-header-name').textContent = teacher.name;
+    document.getElementById('teacher-header-status').hidden = teacher.status !== 'inactive';
+
+    document.getElementById('basic-entry-card').addEventListener('click', () => {
+      window.location.href = `teacher-basic.html?id=${teacher.id}`;
+    });
+    document.getElementById('leave-entry-card').addEventListener('click', () => {
+      window.location.href = `../teacher/leave.html?teacherId=${teacher.id}`;
+    });
+    document.getElementById('hours-entry-card').addEventListener('click', () => {
+      window.location.href = `../teacher/hours.html?teacherId=${teacher.id}`;
+    });
+    document.getElementById('courses-entry-card').addEventListener('click', () => {
+      window.location.href = `teacher-courses.html?id=${teacher.id}`;
+    });
+
+    document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));
+  }
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'teachers.html';
+  });
+</script>
+
+</body>
+</html>

@@ -44,9 +44,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: content-box;
     width: 24px;
     height: 24px;
-    padding: 0;
+    padding: 6px;
+    margin: -6px;
     border: none;
     background: none;
     color: var(--text-muted);
@@ -80,7 +82,7 @@
   #student-cards .student-card,
   #student-cards .student-card-empty,
   #student-cards .student-add-card {
-    animation: studentCardIn .3s ease both;
+    animation: studentCardIn .3s ease backwards;
   }
   #student-cards .student-card:nth-child(2n) {
     animation-delay: .04s;
@@ -290,8 +292,8 @@
       }
       return {
         id, name,
-        phone: `09${String(10 + i).padStart(2, '0')}-${String(100 + i * 7).padStart(3, '0')}-${String(200 + i * 3).padStart(3, '0')}`,
-        email: `student${id}@example.com`,
+        phone: `09${String(10 + i).padStart(2, '0')}${String(100 + i * 7).padStart(3, '0')}${String(200 + i * 3).padStart(3, '0')}`,
+        email: id <= 4 ? `student${id}@jptip.co.jp` : `student${id}@example.com`, // 前 4 位對齊 D1 種子登入帳號，讓登入快選按鈕能找到對應的學生資料
         teamsLink: '',
         avatar: AVATAR_LIST[i % AVATAR_LIST.length],
         lastViewedAt: now - VIEW_OFFSETS[i] * DAY,
@@ -304,6 +306,7 @@
   }
 
   function saveStudents(list) { localStorage.setItem(STUDENTS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+  function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
 
   function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
@@ -353,12 +356,17 @@
 
   const studentPageState = { page: 1 };
 
+  function formatPhoneDisplay(digits) {
+    const clean = (digits || '').replace(/\D/g, '');
+    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : digits;
+  }
+
   function renderStudentCard(s) {
     return `<div class="student-card" data-id="${s.id}">
-      <span class="student-card-avatar"><img src="../assets/avatars/${s.avatar}" alt=""></span>
+      <span class="student-card-avatar"><img src="${avatarSrc(s.avatar)}" alt=""></span>
       <span class="student-card-info">
         <h4>${s.name}</h4>
-        <p>${s.phone}</p>
+        <p>${formatPhoneDisplay(s.phone)}</p>
         <p>${s.email}</p>
       </span>
     </div>`;
@@ -380,7 +388,7 @@
     const all = loadStudents();
     const filtered = query
       ? all.filter((s) => [s.name, s.email].some((f) => f.toLowerCase().includes(query))
-          || (queryDigits && s.phone.replace(/-/g, '').includes(queryDigits)))
+          || (queryDigits && s.phone.includes(queryDigits)))
       : all;
     const sorted = filtered.slice().sort((a, b) => (b.lastViewedAt || 0) - (a.lastViewedAt || 0));
 

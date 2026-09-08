@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 課程詳細資料</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 900px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .course-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .course-header-image {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg-card-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .course-header-image img { width: 100%; height: 100%; object-fit: cover; }
+  .course-header-badge {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.25rem;
+    font-family: var(--font-en);
+    font-variant-numeric: tabular-nums;
+  }
+  .course-header h2 { margin: 0; }
+
+  #card-basic { max-width: 600px; width: 100%; margin: 0 auto; }
+
+  .form-field { margin-bottom: var(--space-4); }
+  .form-field label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 700;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+  }
+  .form-field label i { color: var(--text-muted); margin-right: 4px; }
+  .text-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-cn);
+    font-size: var(--fs-body);
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 3px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .text-input:focus {
+    outline: none;
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  }
+
+  .duration-inputs { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+  .duration-unit { display: flex; align-items: center; gap: var(--space-2); }
+  .duration-unit .text-input {
+    width: 80px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .duration-unit span { color: var(--text-muted); font-size: var(--fs-small); }
+
+  #schedule-increment-dropdown { width: 100%; }
+  #schedule-increment-dropdown .dropdown-trigger { border-radius: var(--radius-pill); }
+  #schedule-increment-dropdown .select-badge { display: none; }
+
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+  }
+  .wizard-nav .btn { min-width: 160px; }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
+  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+
+  .field-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 15px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: color .2s ease, opacity .2s ease;
+  }
+  .field-info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
+
+  @media (max-width: 948px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <div class="course-header">
+    <span class="course-header-image" id="course-header-image"></span>
+    <h2 id="course-header-name"></h2>
+  </div>
+
+  <section class="section" id="card-basic">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>基本資料</h2></div>
+
+    <div class="form-field">
+      <label for="edit-course-name"><i class="fa-solid fa-fw fa-book"></i> 課程名稱</label>
+      <input type="text" id="edit-course-name" class="text-input" maxlength="50">
+    </div>
+    <div class="form-field">
+      <label for="edit-course-description"><i class="fa-solid fa-fw fa-align-left"></i> 描述</label>
+      <input type="text" id="edit-course-description" class="text-input" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-clock"></i> 上課時間</label>
+        <div class="duration-inputs">
+          <div class="duration-unit">
+            <input type="text" id="duration-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+            <span>時</span>
+          </div>
+          <div class="duration-unit">
+            <input type="text" id="duration-minutes" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+            <span>分</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-list"></i> 時間增量</label>
+        <div class="dropdown" id="schedule-increment-dropdown" data-placeholder="選擇時間增量">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇時間增量</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="30 分鐘">30 分鐘<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="1 小時">1 小時<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-hourglass-start"></i> 前緩衝時間</label>
+        <div class="duration-inputs">
+          <div class="duration-unit">
+            <input type="text" id="buffer-before-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+            <span>時</span>
+          </div>
+          <div class="duration-unit">
+            <input type="text" id="buffer-before-minutes" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+            <span>分</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-hourglass-end"></i> 後緩衝時間</label>
+        <div class="duration-inputs">
+          <div class="duration-unit">
+            <input type="text" id="buffer-after-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+            <span>時</span>
+          </div>
+          <div class="duration-unit">
+            <input type="text" id="buffer-after-minutes" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+            <span>分</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-stopwatch"></i> 不可預約／不可取消 <button type="button" class="field-info-btn" id="min-lead-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
+        <div class="duration-unit">
+          <input type="text" id="min-lead-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+          <span>小時內</span>
+        </div>
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-calendar-days"></i> 最久可預約的日期 <button type="button" class="field-info-btn" id="max-lead-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
+        <div class="duration-unit">
+          <input type="text" id="max-lead-days" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
+          <span>天內</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn blue" id="basic-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+    </div>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <h3>已更新課程資料</h3>
+    <div class="modal-actions">
+      <button class="btn blue" id="edit-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3>確定要離開嗎？</h3>
+    <p class="text-small">目前修改的資料將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="minLeadInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
+    <h3>不可預約／不可取消</h3>
+    <p class="text-small">課程開始前的這段時間內，學生無法預約，也無法取消這堂課。</p>
+    <p class="text-small">例如設定 48 小時，代表如果課程再過不到 48 小時就要開始，學生就不能預約這堂課，也不能取消已經預約好的這堂課。這個限制可以讓老師與教務有足夠時間準備上課或安排代課，避免臨時被預約或臨時被取消。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="maxLeadInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
+    <h3>最久可預約的日期</h3>
+    <p class="text-small">學生最多只能預約到今天加上這個天數以內的課程。</p>
+    <p class="text-small">例如設定 30 天，代表學生今天最遠只能預約到 30 天後的課程，超過這個範圍的日期就不會開放讓學生選擇。這可以避免老師的課表被排到太遠的未來，方便老師與教務安排長期的授課時段。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, description, image, durationMinutes, bufferBeforeMinutes, bufferAfterMinutes, scheduleIncrement, minLeadHours)
+  const COURSES_KEY = 'admin-courses';
+
+  function loadCourses() { return JSON.parse(localStorage.getItem(COURSES_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
+  function saveCourses(list) { localStorage.setItem(COURSES_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+
+  function courseBadge(name) {
+    const match = name.match(/J(\d+)/);
+    if (match) return { label: `J${match[1]}`, color: `var(--level-j${match[1]})` };
+    return { label: '商', color: 'var(--color-steel)' };
+  }
+
+  const courseId = Number(new URLSearchParams(window.location.search).get('id'));
+  const courses = loadCourses();
+  const course = courses.find((c) => c.id === courseId);
+
+  if (!course) {
+    window.location.href = 'courses.html';
+  } else {
+    course.lastViewedAt = Date.now();
+    saveCourses(courses);
+
+    function renderHeader() {
+      const imageEl = document.getElementById('course-header-image');
+      if (course.image) {
+        imageEl.innerHTML = `<img src="${course.image}" alt="">`;
+      } else {
+        const b = courseBadge(course.name);
+        imageEl.innerHTML = `<span class="course-header-badge" style="width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${b.color};">${b.label}</span>`;
+      }
+      document.getElementById('course-header-name').textContent = course.name;
+    }
+    renderHeader();
+
+    document.getElementById('min-lead-info-btn').addEventListener('click', () => {
+      document.getElementById('minLeadInfoModal').classList.add('open');
+    });
+    document.getElementById('max-lead-info-btn').addEventListener('click', () => {
+      document.getElementById('maxLeadInfoModal').classList.add('open');
+    });
+
+    function setDropdownValue(dropdownId, value) {
+      if (!value) return;
+      const dropdown = document.getElementById(dropdownId);
+      const li = dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
+      if (!li) return;
+      dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
+      li.classList.add('selected');
+      dropdown.querySelector('.dropdown-trigger .label').textContent = value;
+    }
+    function getDropdownValue(dropdownId) {
+      const selected = document.querySelector(`#${dropdownId} .dropdown-menu li.selected`);
+      return selected ? selected.dataset.value : null;
+    }
+
+    const durationMinutes = course.durationMinutes ?? 60;
+    const bufferBeforeMinutes = course.bufferBeforeMinutes ?? 0;
+    const bufferAfterMinutes = course.bufferAfterMinutes ?? 0;
+
+    document.getElementById('edit-course-name').value = course.name || '';
+    document.getElementById('edit-course-description').value = course.description || '';
+    document.getElementById('duration-hours').value = Math.floor(durationMinutes / 60);
+    document.getElementById('duration-minutes').value = durationMinutes % 60;
+    document.getElementById('buffer-before-hours').value = Math.floor(bufferBeforeMinutes / 60);
+    document.getElementById('buffer-before-minutes').value = bufferBeforeMinutes % 60;
+    document.getElementById('buffer-after-hours').value = Math.floor(bufferAfterMinutes / 60);
+    document.getElementById('buffer-after-minutes').value = bufferAfterMinutes % 60;
+    document.getElementById('min-lead-hours').value = course.minLeadHours ?? 48;
+    document.getElementById('max-lead-days').value = course.maxLeadDays ?? 30;
+    setDropdownValue('schedule-increment-dropdown', course.scheduleIncrement || '1 小時');
+
+    ['duration-hours', 'buffer-before-hours', 'buffer-after-hours', 'min-lead-hours', 'max-lead-days'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      });
+    });
+    ['duration-minutes', 'buffer-before-minutes', 'buffer-after-minutes'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', (e) => {
+        const digits = e.target.value.replace(/[^0-9]/g, '');
+        e.target.value = digits === '' ? '' : String(Math.min(59, Number(digits)));
+      });
+    });
+
+    function showBasicAlert(message) {
+      document.getElementById('basicInfoAlertText').textContent = message;
+      document.getElementById('basicInfoAlertModal').classList.add('open');
+    }
+
+    document.getElementById('basic-submit-btn').addEventListener('click', () => {
+      const name = document.getElementById('edit-course-name').value.trim();
+      if (!name) {
+        showBasicAlert('請填寫課程名稱');
+        return;
+      }
+
+      course.name = name;
+      course.description = document.getElementById('edit-course-description').value.trim();
+      course.durationMinutes = Number(document.getElementById('duration-hours').value || 0) * 60 + Number(document.getElementById('duration-minutes').value || 0);
+      course.bufferBeforeMinutes = Number(document.getElementById('buffer-before-hours').value || 0) * 60 + Number(document.getElementById('buffer-before-minutes').value || 0);
+      course.bufferAfterMinutes = Number(document.getElementById('buffer-after-hours').value || 0) * 60 + Number(document.getElementById('buffer-after-minutes').value || 0);
+      course.scheduleIncrement = getDropdownValue('schedule-increment-dropdown');
+      course.minLeadHours = Number(document.getElementById('min-lead-hours').value || 0);
+      course.maxLeadDays = Number(document.getElementById('max-lead-days').value || 0);
+
+      saveCourses(courses);
+      renderHeader();
+      document.getElementById('editSuccessModal').classList.add('open');
+    });
+
+    document.getElementById('edit-success-ok-btn').addEventListener('click', () => {
+      window.location.href = `course-detail.html?id=${course.id}`;
+    });
+
+    function getFormSnapshot() {
+      return JSON.stringify({
+        name: document.getElementById('edit-course-name').value,
+        description: document.getElementById('edit-course-description').value,
+        durationHours: document.getElementById('duration-hours').value,
+        durationMinutes: document.getElementById('duration-minutes').value,
+        bufferBeforeHours: document.getElementById('buffer-before-hours').value,
+        bufferBeforeMinutes: document.getElementById('buffer-before-minutes').value,
+        bufferAfterHours: document.getElementById('buffer-after-hours').value,
+        bufferAfterMinutes: document.getElementById('buffer-after-minutes').value,
+        scheduleIncrement: getDropdownValue('schedule-increment-dropdown'),
+        minLeadHours: document.getElementById('min-lead-hours').value,
+        maxLeadDays: document.getElementById('max-lead-days').value,
+      });
+    }
+
+    const initialSnapshot = getFormSnapshot();
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      if (getFormSnapshot() !== initialSnapshot) {
+        document.getElementById('leaveConfirmModal').classList.add('open');
+        return;
+      }
+      window.location.href = 'courses.html';
+    });
+
+    document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+      window.location.href = 'courses.html';
+    });
+  }
+</script>
+
+</body>
+</html>

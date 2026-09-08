@@ -1021,7 +1021,7 @@
     gap: var(--space-2);
     background: var(--bg-card);
     border: 3px solid var(--line);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     padding: 12px 16px;
     font-family: var(--font-cn);
     font-size: var(--fs-body);
@@ -1092,20 +1092,7 @@
     font-weight: 600;
   }
   .dropdown-menu li .select-badge {
-    position: static;
-    width: 18px;
-    height: 18px;
-    font-size: .65rem;
-    box-shadow: none;
-    flex: none;
-  }
-  .dropdown-menu li .select-badge i {
-    position: relative;
-    top: 1px;
-  }
-  .dropdown-menu li.selected .select-badge {
-    opacity: 1;
-    transform: none;
+    display: none;
   }
   .timezone-bar {
     display: flex;
@@ -1250,6 +1237,11 @@
   }
   .datepicker-grid button.muted:hover {
     background: transparent;
+  }
+  .datepicker-grid button.disabled {
+    opacity: .35;
+    pointer-events: none;
+    cursor: default;
   }
   .datepicker-grid button.today {
     background: var(--bg-card-alt);

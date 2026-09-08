@@ -359,16 +359,48 @@
 <script src="../script.js"></script>
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teacher_availability(teacher_id, day_of_week, start_time, end_time)
+  const HOURS_KEY = 'teacher-hours';
 
-  let availability = [
-    { id: 1, day: '星期一', start: '09:00', end: '12:00' },
-    { id: 2, day: '星期三', start: '14:00', end: '18:00' },
-    { id: 3, day: '星期五', start: '09:00', end: '11:30' },
-    { id: 4, day: '星期一', start: '08:00', end: '09:00' },
-    { id: 5, day: '星期一', start: '10:00', end: '11:00' },
-    { id: 6, day: '星期一', start: '13:00', end: '14:00' },
-  ];
-  let nextHoursId = 7;
+  function loadAllHours() { return JSON.parse(localStorage.getItem(HOURS_KEY) || '{}'); } // TODO: 之後改接真正的 D1/API
+  function saveAllHours(all) { localStorage.setItem(HOURS_KEY, JSON.stringify(all)); } // TODO: 之後改接真正的 D1/API
+
+  const adminTeacherId = new URLSearchParams(window.location.search).get('teacherId');
+  const DEMO_SELF_TEACHER_ID = '1'; // TODO: 之後改接真正的教師登入 session
+  const currentTeacherId = adminTeacherId || DEMO_SELF_TEACHER_ID;
+
+  // 時段統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
+  function loadTeachers() { return JSON.parse(localStorage.getItem('admin-teachers') || '[]'); } // TODO: 之後改接真正的 D1/API
+  const currentTeacherRecord = loadTeachers().find((t) => t.id === Number(currentTeacherId));
+  const TEACHER_TZ_OFFSET = (currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone || '').includes('+9') ? 9 : 8;
+  const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
+
+  function shiftHourString(hhmm, deltaHours) {
+    if (!deltaHours) return hhmm;
+    const [h, m] = hhmm.split(':').map(Number);
+    const total = ((h * 60 + m) + deltaHours * 60 + 24 * 60) % (24 * 60);
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  const allHours = loadAllHours();
+  let availability = allHours[currentTeacherId];
+  if (!availability) {
+    availability = currentTeacherId === DEMO_SELF_TEACHER_ID ? [
+      { id: 1, day: '星期一', start: '09:00', end: '12:00' },
+      { id: 2, day: '星期三', start: '14:00', end: '18:00' },
+      { id: 3, day: '星期五', start: '09:00', end: '11:30' },
+      { id: 4, day: '星期一', start: '08:00', end: '09:00' },
+      { id: 5, day: '星期一', start: '10:00', end: '11:00' },
+      { id: 6, day: '星期一', start: '13:00', end: '14:00' },
+    ] : [];
+    allHours[currentTeacherId] = availability;
+    saveAllHours(allHours);
+  }
+  let nextHoursId = availability.reduce((max, h) => Math.max(max, h.id), 0) + 1;
+
+  function persistAvailability() {
+    allHours[currentTeacherId] = availability;
+    saveAllHours(allHours);
+  }
 
   const WEEKDAYS = [
     { key: '星期一', icon: 'monday.png' },
@@ -404,7 +436,7 @@
       const container = document.getElementById(`hours-day-${wd.key}`);
       const slots = availability.filter((h) => h.day === wd.key).sort((a, b) => a.start.localeCompare(b.start));
       container.innerHTML = slots.length
-        ? slots.map((h) => `<div class="hours-slot-row"><span>${h.start} - ${h.end}</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button></div>`).join('')
+        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)} (UTC+${TEACHER_TZ_OFFSET})</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button></div>`).join('')
         : `<p class="hours-day-empty">無設定</p>`;
       container.querySelectorAll('.hours-slot-row, .hours-day-empty').forEach((card) => applyTiltEffect(card));
       container.querySelectorAll('button[data-id]').forEach((btn) => {
@@ -422,6 +454,7 @@
 
   document.getElementById('hours-delete-confirm-btn').addEventListener('click', () => {
     availability = availability.filter((h) => h.id !== pendingDeleteId);
+    persistAvailability();
     pendingDeleteId = null;
     document.getElementById('hoursDeleteConfirmModal').classList.remove('open');
     renderHoursTable();
@@ -450,12 +483,17 @@
     }
     availability.push({ id: nextHoursId++, day, start, end });
     availability.sort((a, b) => a.day.localeCompare(b.day) || a.start.localeCompare(b.start));
+    persistAvailability();
     document.getElementById('hoursAddSuccessModal').classList.add('open');
     renderHoursTable();
   });
 
+  if (adminTeacherId) {
+    document.getElementById('back-btn').innerHTML = '<i class="fa-solid fa-fw fa-arrow-left"></i>';
+  }
+
   document.getElementById('back-btn').addEventListener('click', () => {
-    window.location.href = 'index.html';
+    window.location.href = adminTeacherId ? `../admin/teacher-detail.html?id=${adminTeacherId}` : 'index.html';
   });
 </script>
 

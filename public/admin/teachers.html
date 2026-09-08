@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 老師管理</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  .section-title { margin-bottom: var(--space-5); }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    margin-bottom: var(--space-3);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .search-box:focus-within {
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  }
+  .search-box i { color: var(--text-muted); }
+  .search-clear-btn {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    width: 24px;
+    height: 24px;
+    padding: 6px;
+    margin: -6px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .search-clear-btn:hover {
+    background: var(--bg-card-alt);
+    color: var(--text-main);
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: none;
+    font-family: var(--font-cn);
+    font-size: var(--fs-body);
+    color: var(--text-main);
+  }
+
+  #teacher-list-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+  @keyframes teacherCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #teacher-list-cards .teacher-list-card,
+  #teacher-list-cards .teacher-list-card-empty,
+  #teacher-list-cards .teacher-add-card {
+    animation: teacherCardIn .3s ease backwards;
+  }
+  #teacher-list-cards .teacher-list-card:nth-child(2n) {
+    animation-delay: .04s;
+  }
+
+  .teacher-list-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .teacher-list-card:hover { border-color: var(--color-blue); }
+  .teacher-list-card-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 122px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .teacher-list-card-empty:hover { border-color: var(--color-blue); }
+  .teacher-add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 122px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    color: var(--color-blue);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .teacher-add-card:hover { border-color: var(--color-blue); }
+  .teacher-add-card .add-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+  .teacher-list-card-avatar {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg-card-alt);
+  }
+  .teacher-list-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .teacher-list-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .teacher-list-card-info h4 { margin: 0; font-size: 1.125rem; }
+  .teacher-list-card-info p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
+
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #teacher-list-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/write-teacher.png" alt=""><h2>老師管理</h2></div>
+    <div class="search-box">
+      <i class="fa-solid fa-fw fa-magnifying-glass"></i>
+      <input type="text" id="teacher-search" placeholder="搜尋姓名／手機／Email">
+      <button type="button" class="search-clear-btn" id="teacher-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    </div>
+    <div id="teacher-list-cards"></div>
+  </section>
+
+  <div class="page-nav">
+    <div class="pagination" id="teacher-pagination"></div>
+  </div>
+
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status)
+  const TEACHERS_KEY = 'admin-teachers';
+  const SEARCH_KEY = 'admin-teacher-search';
+
+  // 順序需與 student/booking.html 選老師步驟的頭像對應一致（同一位老師＝同一張頭像）
+  const AVATAR_LIST = [
+    '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
+    '006-panda.png', '007-hen.png', '008-llama.png', '009-elephant.png', '010-cat.png',
+    '011-penguin.png', '012-chicken.png', '013-frog.png',
+  ];
+
+  function loadTeachers() { // TODO: 之後改接真正的 D1/API
+    const raw = localStorage.getItem(TEACHERS_KEY);
+    if (raw) return JSON.parse(raw);
+
+    const now = Date.now();
+    const DAY = 86400000;
+    const NAMES = ['田中老師', '佐藤老師', '鈴木老師', '山田老師', '高橋老師', '中村老師', '小林老師', '渡辺老師', '伊藤老師', '加藤老師', '吉田老師', '山本老師', '松本老師'];
+    const VIEW_OFFSETS = [4, 11, 0, 8, 2, 10, 6, 1, 9, 3, 7, 12, 5];
+    // 對應 student/booking.html 靜態老師卡片原本就有的專長/座右銘文字（僅前 8 位老師有對應資料）
+    const SPECIALTIES = ['日文會話・5 年教學經驗', '商用日文・JLPT N1', '日文文法・JLPT 檢定專攻', '動漫日文・流行文化會話', '會話練習・生活日文', '聽力訓練・新聞日文', '文法解析・句型整理', '作文指導・寫作技巧'];
+    const MOTTOS = ['一緒に学び、共に成長していきましょう。', '失敗を恐れず、新しい世界へ踏み出そう！', '毎日の小さな積み重ねが、大きな力になる。', '臭豆腐の美味しさがわかる人は、もう私の仲間です。', '授業よりも、放課後の台湾夜市グルメが本番です。', '私の体の半分は、タピオカミルクティーとルーロー飯でできています。', '質問は大歓迎！でもパクチーは大盛りでよろしく。', '私の体の半分は、タピオカミルクティーとルーロー飯でできています。'];
+
+    const INACTIVE_IDS = [4, 9, 13];
+
+    const seed = NAMES.map((name, i) => ({
+      id: i + 1,
+      name,
+      phone: `09${String(20 + i).padStart(2, '0')}${String(300 + i * 7).padStart(3, '0')}${String(400 + i * 3).padStart(3, '0')}`,
+      email: `teacher${i + 1}@example.com`,
+      avatar: AVATAR_LIST[i % AVATAR_LIST.length],
+      specialty: SPECIALTIES[i] || '',
+      motto: MOTTOS[i] || '',
+      lastViewedAt: now - VIEW_OFFSETS[i] * DAY,
+      status: INACTIVE_IDS.includes(i + 1) ? 'inactive' : 'active',
+    }));
+
+    localStorage.setItem(TEACHERS_KEY, JSON.stringify(seed));
+    return seed;
+  }
+
+  function saveTeachers(list) { localStorage.setItem(TEACHERS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+  function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
+
+  function paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender) {
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    pageState.page = Math.min(pageState.page, totalPages);
+    const start = (pageState.page - 1) * pageSize;
+    const pageItems = items.slice(start, start + pageSize);
+
+    containerEl.innerHTML = pageItems.map(renderRowFn).join('') || emptyHtml;
+    if (onRender) onRender(containerEl);
+
+    paginationEl.innerHTML = '';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.setAttribute('aria-label', '上一頁');
+    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    prevBtn.disabled = pageState.page === 1;
+    prevBtn.addEventListener('click', () => {
+      pageState.page--;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(prevBtn);
+
+    for (let p = 1; p <= totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p;
+      if (p === pageState.page) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        pageState.page = p;
+        paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+      });
+      paginationEl.appendChild(btn);
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.setAttribute('aria-label', '下一頁');
+    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    nextBtn.disabled = pageState.page === totalPages;
+    nextBtn.addEventListener('click', () => {
+      pageState.page++;
+      paginate(items, pageSize, renderRowFn, containerEl, paginationEl, pageState, emptyHtml, onRender);
+    });
+    paginationEl.appendChild(nextBtn);
+  }
+
+  const teacherPageState = { page: 1 };
+
+  function formatPhoneDisplay(digits) {
+    const clean = (digits || '').replace(/\D/g, '');
+    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : digits;
+  }
+
+  function renderTeacherCard(t) {
+    const ribbon = t.status === 'inactive'
+      ? '<span class="ribbon-clip"><span class="course-ribbon">停用</span></span>'
+      : '';
+    return `<div class="teacher-list-card" data-id="${t.id}">
+      ${ribbon}
+      <span class="teacher-list-card-avatar"><img src="${avatarSrc(t.avatar)}" alt=""></span>
+      <span class="teacher-list-card-info">
+        <h4>${t.name}</h4>
+        <p>${formatPhoneDisplay(t.phone)}</p>
+        <p>${t.email}</p>
+      </span>
+    </div>`;
+  }
+
+  function bindTeacherCardClicks(containerEl) {
+    containerEl.querySelectorAll('.teacher-list-card').forEach((card) => {
+      applyTiltEffect(card);
+      card.addEventListener('click', () => {
+        window.location.href = `teacher-detail.html?id=${card.dataset.id}`;
+      });
+    });
+    containerEl.querySelectorAll('.teacher-list-card-empty, .teacher-add-card').forEach((card) => applyTiltEffect(card));
+  }
+
+  function renderTeachers() {
+    const query = searchInput.value.trim().toLowerCase();
+    const queryDigits = query.replace(/-/g, '');
+    const all = loadTeachers();
+    const filtered = query
+      ? all.filter((t) => [t.name, t.email].some((f) => f.toLowerCase().includes(query))
+          || (queryDigits && t.phone.includes(queryDigits)))
+      : all;
+    const sorted = filtered.slice().sort((a, b) => {
+      const aInactive = a.status === 'inactive' ? 1 : 0;
+      const bInactive = b.status === 'inactive' ? 1 : 0;
+      if (aInactive !== bInactive) return aInactive - bInactive;
+      return (b.lastViewedAt || 0) - (a.lastViewedAt || 0);
+    });
+
+    paginate(sorted, 10, renderTeacherCard,
+      document.getElementById('teacher-list-cards'),
+      document.getElementById('teacher-pagination'),
+      teacherPageState,
+      '<div class="teacher-list-card-empty">找不到符合的老師</div>',
+      (containerEl) => {
+        if (query) {
+          containerEl.insertAdjacentHTML('beforeend', '<div class="teacher-add-card" id="teacher-add-card"><span class="add-icon"><i class="fa-solid fa-fw fa-plus"></i></span>新增老師</div>');
+          document.getElementById('teacher-add-card').addEventListener('click', () => {
+            window.location.href = 'teacher-add.html';
+          });
+        }
+        bindTeacherCardClicks(containerEl);
+      });
+  }
+
+  const searchInput = document.getElementById('teacher-search');
+  const searchClearBtn = document.getElementById('teacher-search-clear');
+  searchInput.value = localStorage.getItem(SEARCH_KEY) || '';
+  searchClearBtn.hidden = searchInput.value === '';
+  let teacherSearchDebounce = null;
+  searchInput.addEventListener('input', () => {
+    searchClearBtn.hidden = searchInput.value === '';
+    localStorage.setItem(SEARCH_KEY, searchInput.value); // TODO: 之後改接真正的 D1/API（此欄位僅為前端搜尋狀態）
+    clearTimeout(teacherSearchDebounce);
+    teacherSearchDebounce = setTimeout(() => {
+      teacherPageState.page = 1;
+      renderTeachers();
+    }, 500);
+  });
+
+  searchClearBtn.addEventListener('click', () => {
+    clearTimeout(teacherSearchDebounce);
+    searchInput.value = '';
+    searchClearBtn.hidden = true;
+    localStorage.setItem(SEARCH_KEY, '');
+    searchInput.focus();
+    teacherPageState.page = 1;
+    renderTeachers();
+  });
+
+  renderTeachers();
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+</script>
+
+</body>
+</html>

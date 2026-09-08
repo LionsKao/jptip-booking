@@ -43,6 +43,12 @@
     background: var(--bg-card-alt);
   }
   .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
+  @keyframes avatarSwap {
+    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+    40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
+    100% { transform: scale(1) rotate(360deg); opacity: 1; }
+  }
+  .avatar-picker-preview img.avatar-swap { animation: avatarSwap .4s ease; }
 
   .form-field { margin-bottom: var(--space-4); }
   .form-field label {
@@ -215,7 +221,11 @@
   document.getElementById('add-avatar-preview').src = `../assets/avatars/${currentAvatar}`;
   document.getElementById('add-avatar-random-btn').addEventListener('click', () => {
     currentAvatar = randomAvatar();
-    document.getElementById('add-avatar-preview').src = `../assets/avatars/${currentAvatar}`;
+    const avatarImg = document.getElementById('add-avatar-preview');
+    avatarImg.src = `../assets/avatars/${currentAvatar}`;
+    avatarImg.classList.remove('avatar-swap');
+    void avatarImg.offsetWidth;
+    avatarImg.classList.add('avatar-swap');
   });
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -243,7 +253,7 @@
     const students = loadStudents();
     students.push({
       id: Date.now(),
-      name, phone, email, teamsLink,
+      name, phone: phone.replace(/\D/g, ''), email, teamsLink,
       avatar: currentAvatar,
       lastViewedAt: Date.now(),
       courses: [],

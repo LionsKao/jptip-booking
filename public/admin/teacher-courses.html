@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 老師可教課程</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 900px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+  #card-course-add, #card-courses { max-width: 800px; width: 100%; margin: 0 auto var(--space-6); }
+  #card-courses { margin-bottom: 0; }
+
+  .back-header {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: 10;
+  }
+
+  #add-course-dropdown {
+    width: 360px;
+  }
+  #add-course-dropdown .dropdown-trigger {
+    width: 100%;
+    border-radius: var(--radius-lg);
+  }
+  #add-course-dropdown .select-badge {
+    display: none;
+  }
+  @media (min-width: 641px) {
+    #add-course-dropdown .dropdown-menu {
+      right: auto;
+      width: 480px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2px;
+    }
+    #add-course-dropdown.open .dropdown-menu {
+      max-height: 500px;
+      overflow-y: hidden;
+    }
+  }
+  .course-add-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .btn.butter {
+    background: var(--color-butter);
+    color: #6b4f12;
+    padding: 15px 28px;
+  }
+  .btn.butter:hover {
+    filter: brightness(0.97);
+  }
+  .course-cap-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .course-cap-row:hover { border-color: var(--color-blue); }
+  .course-cap-row h4 { margin: 0; font-size: 1.0625rem; }
+  #course-cap-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+
+  .booking-card-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .booking-card-empty:hover { border-color: var(--color-blue); }
+
+  .modal-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-4);
+  }
+  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
+  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
+  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+
+  @media (max-width: 948px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    .back-header {
+      top: var(--space-3);
+      left: var(--space-3);
+    }
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #course-cap-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section" id="card-course-add">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>新增可教課程</h2></div>
+
+    <div class="course-add-row">
+      <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
+        <button type="button" class="dropdown-trigger"><span class="label">選擇課程</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+        <ul class="dropdown-menu" id="add-course-menu">
+          <li data-value="N5 綜合日本語 J1">N5 綜合日本語 J1<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N5 綜合日本語 J2">N5 綜合日本語 J2<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N5 綜合日本語 J3">N5 綜合日本語 J3<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N4 綜合日本語 J4">N4 綜合日本語 J4<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N4 綜合日本語 J5">N4 綜合日本語 J5<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N4 綜合日本語 J6">N4 綜合日本語 J6<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N3 綜合日本語 J7">N3 綜合日本語 J7<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N3 綜合日本語 J8">N3 綜合日本語 J8<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N3 綜合日本語 J9">N3 綜合日本語 J9<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N2 綜合日本語 J10">N2 綜合日本語 J10<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N2 綜合日本語 J11">N2 綜合日本語 J11<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N2 綜合日本語 J12">N2 綜合日本語 J12<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="N2 綜合日本語 J13">N2 綜合日本語 J13<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="商務日文 基礎會話篇">商務日文 基礎會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="商務日文 應用會話篇">商務日文 應用會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+        </ul>
+      </div>
+      <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增可教課程</button>
+    </div>
+  </section>
+
+  <section class="section" id="card-courses">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>可教課程</h2></div>
+    <div id="course-cap-list"></div>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addCourseConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-graduation-cap"></i></div>
+    <h3>確定新增這門可教課程嗎？</h3>
+    <p class="text-small" id="addCourseConfirmName"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn green" id="add-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定新增</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteCourseConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
+    <h3>確定要刪除這門可教課程嗎？</h3>
+    <p class="text-small" id="deleteCourseConfirmName"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="delete-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
+  const TEACHERS_KEY = 'admin-teachers';
+
+  function loadTeachers() { const raw = localStorage.getItem(TEACHERS_KEY); return raw ? JSON.parse(raw) : []; } // TODO: 之後改接真正的 D1/API
+  function saveTeachers(list) { localStorage.setItem(TEACHERS_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+
+  const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
+  const teachers = loadTeachers();
+  const teacher = teachers.find((t) => t.id === teacherId);
+
+  if (!teacher) {
+    window.location.href = 'teachers.html';
+  } else {
+    teacher.courses = teacher.courses || [];
+
+    function getDropdownValue(id) {
+      const selected = document.querySelector(`#${id} .dropdown-menu li.selected`);
+      return selected ? selected.dataset.value : null;
+    }
+
+    function resetCourseDropdown() {
+      const dropdown = document.getElementById('add-course-dropdown');
+      dropdown.querySelectorAll('.dropdown-menu li.selected').forEach((li) => li.classList.remove('selected'));
+      dropdown.querySelector('.dropdown-trigger .label').textContent = '選擇課程';
+    }
+
+    function updateCourseDropdownOptions() {
+      const added = new Set(teacher.courses);
+      document.querySelectorAll('#add-course-menu li').forEach((li) => {
+        li.hidden = added.has(li.dataset.value);
+      });
+    }
+
+    function renderCourseCaps() {
+      const listEl = document.getElementById('course-cap-list');
+      listEl.innerHTML = teacher.courses.length
+        ? teacher.courses.map((name) => `<div class="course-cap-row">
+            <h4>${name}</h4>
+            <button type="button" class="btn sm red" data-name="${name}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>
+          </div>`).join('')
+        : '<div class="booking-card-empty">沒有設定可教課程</div>';
+      listEl.querySelectorAll('.course-cap-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
+      listEl.querySelectorAll('.course-cap-row button[data-name]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          pendingDeleteCourseName = btn.dataset.name;
+          document.getElementById('deleteCourseConfirmName').textContent = pendingDeleteCourseName;
+          document.getElementById('deleteCourseConfirmModal').classList.add('open');
+        });
+      });
+      updateCourseDropdownOptions();
+    }
+
+    let pendingCourseName = null;
+    let pendingDeleteCourseName = null;
+
+    document.getElementById('add-course-btn').addEventListener('click', () => {
+      const value = getDropdownValue('add-course-dropdown');
+      if (!value) {
+        document.getElementById('basicInfoAlertText').textContent = '請先選擇課程';
+        document.getElementById('basicInfoAlertModal').classList.add('open');
+        return;
+      }
+      pendingCourseName = value;
+      document.getElementById('addCourseConfirmName').textContent = value;
+      document.getElementById('addCourseConfirmModal').classList.add('open');
+    });
+
+    document.getElementById('add-course-confirm-btn').addEventListener('click', () => {
+      if (!pendingCourseName) return;
+      teacher.courses.push(pendingCourseName);
+      saveTeachers(teachers);
+      pendingCourseName = null;
+      document.getElementById('addCourseConfirmModal').classList.remove('open');
+      resetCourseDropdown();
+      renderCourseCaps();
+    });
+
+    document.getElementById('delete-course-confirm-btn').addEventListener('click', () => {
+      if (!pendingDeleteCourseName) return;
+      teacher.courses = teacher.courses.filter((n) => n !== pendingDeleteCourseName);
+      saveTeachers(teachers);
+      pendingDeleteCourseName = null;
+      document.getElementById('deleteCourseConfirmModal').classList.remove('open');
+      renderCourseCaps();
+    });
+
+    renderCourseCaps();
+  }
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = `teacher-detail.html?id=${teacherId}`;
+  });
+</script>
+
+</body>
+</html>
