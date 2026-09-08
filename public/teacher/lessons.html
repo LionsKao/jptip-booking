@@ -44,8 +44,22 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  #today-group,
+  #lessons-group {
+    max-width: 1000px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .confirm-highlight:hover {
     border-color: var(--color-blue);
+  }
+  .tz-tag {
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
   }
 
   .info-btn {
@@ -106,8 +120,9 @@
     font-size: 2rem;
     margin: 0 auto var(--space-4);
   }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+  .modal-icon.success  { background: rgba(180, 225, 151, .3); color: #558035; }
+  .modal-icon.info     { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+  .modal-icon.timezone { background: rgba(159, 148, 220, .2); color: var(--color-purple); }
 
   @media (max-width: 640px) {
     .wizard-nav {
@@ -154,8 +169,8 @@
       <div class="booking-cards" id="today-cards"></div>
     </section>
 
-    <section class="section">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/coming-soon.png" alt=""><h2>我的課程</h2><button type="button" class="info-btn" data-modal-open="lessonsRecordInfoModal" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></div>
+    <section class="section" id="lessons-group">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/coming-soon.png" alt=""><h2>我的課程</h2><button type="button" class="info-btn" data-modal-open="lessonsRecordInfoModal" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button><button type="button" class="info-btn" data-modal-open="lessonsTimezoneModal" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
       <div class="booking-cards" id="lessons-cards"></div>
     </section>
 
@@ -228,6 +243,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="lessonsTimezoneModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
+    <h3>課程時間顯示時區</h3>
+    <p class="text-small" id="lessons-timezone-note"></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
 <script src="../script.js"></script>
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：lessons(course, date, time, student_name, status)
@@ -237,8 +264,10 @@
   const DEMO_SELF_TEACHER_ID = '1'; // TODO: 之後改接真正的教師登入 session
   const currentTeacherId = Number(adminTeacherId || DEMO_SELF_TEACHER_ID);
   const currentTeacher = loadTeachers().find((t) => t.id === currentTeacherId);
-  const TEACHER_TZ_OFFSET = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone || '').includes('+9') ? 9 : 8;
+  const TEACHER_TIMEZONE_LABEL = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone) || '(UTC+8) 台北';
+  const TEACHER_TZ_OFFSET = TEACHER_TIMEZONE_LABEL.includes('+9') ? 9 : 8;
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
+  document.getElementById('lessons-timezone-note').textContent = `所有課程時間皆為 ${TEACHER_TIMEZONE_LABEL} 時間`;
 
   function shiftToTeacherTz(dateStr, timeStr) {
     if (!TEACHER_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
@@ -342,15 +371,15 @@
   document.querySelectorAll('#lesson-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card));
 
   const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-  function formatDateTime(dateStr, timeStr) {
+  function formatDateTime(dateStr, timeStr, showTz = true) {
     const shifted = shiftToTeacherTz(dateStr, timeStr);
     const d = new Date(shifted.date.replace(/\//g, '-'));
     const weekday = WEEKDAY_NAMES[d.getDay()];
-    const tzTag = `(UTC+${TEACHER_TZ_OFFSET})`;
+    const tzTag = showTz ? `<span class="tz-tag">(UTC+${TEACHER_TZ_OFFSET})</span>` : '';
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     if (isMobile) return `${shifted.date} ${weekday} ${shifted.time} ${tzTag}`;
     const [y, m, day] = shifted.date.split('/');
-    return `${y} 年 ${m} 月 ${day} 日 星期${weekday} ${shifted.time} ${tzTag}`;
+    return `${y} 年 ${m} 月 ${day} 日 星期${weekday} ${shifted.time}${tzTag}`;
   }
 
   const sortedLessonsAsc = [...visibleLessons].sort((a, b) =>
@@ -374,7 +403,7 @@
       <div class="booking-card-info">
         <p class="booking-card-course">${l.course}</p>
         <h4>${l.student}</h4>
-        <p class="booking-card-datetime">${formatDateTime(l.date, l.time)}</p>
+        <p class="booking-card-datetime">${formatDateTime(l.date, l.time, false)}</p>
       </div>
     </div>`;
   }
@@ -427,7 +456,7 @@
     activeLessonId = id;
     document.getElementById('detail-course').textContent = lesson.course;
     document.getElementById('detail-student').textContent = lesson.student;
-    document.getElementById('detail-datetime').textContent = formatDateTime(lesson.date, lesson.time);
+    document.getElementById('detail-datetime').innerHTML = formatDateTime(lesson.date, lesson.time, false);
     document.getElementById('lessons-list-view').hidden = true;
     document.getElementById('lesson-detail-view').hidden = false;
     document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';

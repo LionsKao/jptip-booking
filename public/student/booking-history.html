@@ -10,8 +10,15 @@
 <link rel="stylesheet" href="../style.css">
 <style>
   body.booking-history .page {
-    max-width: 1000px;
+    max-width: 1048px;
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+  #today-group,
+  #history-group {
+    max-width: 1000px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .back-header {
@@ -66,6 +73,12 @@
   .confirm-highlight:hover {
     border-color: var(--color-blue);
   }
+  .tz-tag {
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
 
   .course-ribbon.tone-orange { background: var(--color-orange); }
   .course-ribbon.tone-navy { background: var(--color-navy); }
@@ -87,8 +100,9 @@
     font-size: 2rem;
     margin: 0 auto var(--space-4);
   }
-  .modal-icon.danger { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+  .modal-icon.danger   { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.info     { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
+  .modal-icon.timezone { background: rgba(159, 148, 220, .2); color: var(--color-purple); }
 
   .info-btn {
     display: flex;
@@ -149,8 +163,8 @@
       <div class="booking-cards" id="today-cards"></div>
     </section>
 
-    <section class="section">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2>我的課程</h2><button type="button" class="info-btn" data-modal-open="historyRecordInfoModal" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></div>
+    <section class="section" id="history-group">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2>我的課程</h2><button type="button" class="info-btn" data-modal-open="historyRecordInfoModal" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button><button type="button" class="info-btn" data-modal-open="historyTimezoneModal" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
       <div class="booking-cards" id="history-cards"></div>
     </section>
 
@@ -210,6 +224,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="historyTimezoneModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
+    <h3>課程時間顯示時區</h3>
+    <p class="text-small" id="history-timezone-note"></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
 <script src="../script.js"></script>
 <script>
   const STATUS_MAP = {
@@ -227,6 +253,25 @@
     attended:  { tone: 'tone-green',  label: '完成' },
   };
 
+  // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給學生看時，依管理者在學生資料設定的時區（+8／+9）換算顯示
+  function loadStudents() { return JSON.parse(localStorage.getItem('admin-students') || '[]'); } // TODO: 之後改接真正的 D1/API
+  function getSession() { try { return JSON.parse(sessionStorage.getItem('session')); } catch { return null; } }
+  const session = getSession();
+  const currentStudent = session ? loadStudents().find((s) => s.email === session.email) : null;
+  const STUDENT_TIMEZONE_LABEL = (currentStudent && currentStudent.timezone) || '(UTC+8) 台北';
+  const STUDENT_TZ_OFFSET = STUDENT_TIMEZONE_LABEL.includes('+9') ? 9 : 8;
+  const STUDENT_TZ_DELTA_HOURS = STUDENT_TZ_OFFSET - 8;
+  document.getElementById('history-timezone-note').textContent = `所有課程時間皆為 ${STUDENT_TIMEZONE_LABEL} 時間`;
+
+  function shiftToStudentTz(dateStr, timeStr) {
+    if (!STUDENT_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
+    const dt = new Date(`${dateStr.replace(/\//g, '-')}T${timeStr}:00`);
+    dt.setHours(dt.getHours() + STUDENT_TZ_DELTA_HOURS);
+    const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, '0'), day = String(dt.getDate()).padStart(2, '0');
+    const hh = String(dt.getHours()).padStart(2, '0'), mm = String(dt.getMinutes()).padStart(2, '0');
+    return { date: `${y}/${m}/${day}`, time: `${hh}:${mm}` };
+  }
+
   const records = [
     { id: 1,  course: 'N5 綜合日本語 J2', teacher: '山本老師', date: '2026/09/18', time: '20:00', status: 'pending' },
     { id: 2,  course: 'N5 綜合日本語 J2', teacher: '小林老師', date: '2026/09/12', time: '14:00', status: 'absent' },
@@ -242,13 +287,15 @@
   ];
 
   const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-  function formatDateTime(dateStr, timeStr) {
-    const d = new Date(dateStr.replace(/\//g, '-'));
+  function formatDateTime(dateStr, timeStr, showTz = true) {
+    const shifted = shiftToStudentTz(dateStr, timeStr);
+    const d = new Date(shifted.date.replace(/\//g, '-'));
     const weekday = WEEKDAY_NAMES[d.getDay()];
+    const tzTag = showTz ? `<span class="tz-tag">(UTC+${STUDENT_TZ_OFFSET})</span>` : '';
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    if (isMobile) return `${dateStr} ${weekday} ${timeStr}`;
-    const [y, m, day] = dateStr.split('/');
-    return `${y} 年 ${m} 月 ${day} 日 星期${weekday} ${timeStr}`;
+    if (isMobile) return `${shifted.date} ${weekday} ${shifted.time} ${tzTag}`;
+    const [y, m, day] = shifted.date.split('/');
+    return `${y} 年 ${m} 月 ${day} 日 星期${weekday} ${shifted.time}${tzTag}`;
   }
 
   function renderHistoryCard(r) {
@@ -258,7 +305,7 @@
       <div class="booking-card-info">
         <p class="booking-card-course">${r.course}</p>
         <h4>${r.teacher}</h4>
-        <p class="booking-card-datetime">${formatDateTime(r.date, r.time)}</p>
+        <p class="booking-card-datetime">${formatDateTime(r.date, r.time, false)}</p>
       </div>
     </div>`;
   }
@@ -359,7 +406,7 @@
     activeRecordId = id;
     document.getElementById('detail-course').textContent = record.course;
     document.getElementById('detail-teacher').textContent = record.teacher;
-    document.getElementById('detail-datetime').textContent = formatDateTime(record.date, record.time);
+    document.getElementById('detail-datetime').innerHTML = formatDateTime(record.date, record.time, false);
     document.getElementById('history-list-view').hidden = true;
     document.getElementById('history-detail-view').hidden = false;
     document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';

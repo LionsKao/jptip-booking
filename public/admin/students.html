@@ -89,6 +89,8 @@
   }
 
   .student-card {
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -362,7 +364,11 @@
   }
 
   function renderStudentCard(s) {
+    const ribbon = s.status === 'inactive'
+      ? '<span class="ribbon-clip"><span class="course-ribbon">停用</span></span>'
+      : '';
     return `<div class="student-card" data-id="${s.id}">
+      ${ribbon}
       <span class="student-card-avatar"><img src="${avatarSrc(s.avatar)}" alt=""></span>
       <span class="student-card-info">
         <h4>${s.name}</h4>
@@ -390,7 +396,12 @@
       ? all.filter((s) => [s.name, s.email].some((f) => f.toLowerCase().includes(query))
           || (queryDigits && s.phone.includes(queryDigits)))
       : all;
-    const sorted = filtered.slice().sort((a, b) => (b.lastViewedAt || 0) - (a.lastViewedAt || 0));
+    const sorted = filtered.slice().sort((a, b) => {
+      const aInactive = a.status === 'inactive' ? 1 : 0;
+      const bInactive = b.status === 'inactive' ? 1 : 0;
+      if (aInactive !== bInactive) return aInactive - bInactive;
+      return (b.lastViewedAt || 0) - (a.lastViewedAt || 0);
+    });
 
     paginate(sorted, 10, renderStudentCard,
       document.getElementById('student-cards'),

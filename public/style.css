@@ -415,9 +415,6 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-4);
-  }
-  #courses .section-title, #dropdown .section-title, #timezone .section-title, #datetime .section-title, #teachers .section-title, #table-hero .section-title, #table-hero-2 .section-title {
     margin-bottom: var(--space-5);
   }
   .section-title h2 {

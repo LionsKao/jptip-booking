@@ -109,6 +109,29 @@
     color: var(--text-muted);
   }
   .form-field label i { color: var(--text-muted); margin-right: 4px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  #edit-status-dropdown,
+  #edit-timezone-dropdown { width: 100%; }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+  .field-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    opacity: .45;
+    font-size: 15px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: color .2s ease, opacity .2s ease;
+  }
+  .field-info-btn:hover {
+    color: var(--color-blue);
+    opacity: 1;
+  }
   .text-input {
     width: 100%;
     box-sizing: border-box;
@@ -241,6 +264,7 @@
   .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
   .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
   .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
+  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
 
   .crop-container {
     width: 320px;
@@ -301,21 +325,47 @@
       <input type="file" id="edit-avatar-file-input" accept="image/*" hidden>
     </div>
 
-    <div class="form-field">
-      <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
-      <input type="text" id="edit-name" class="text-input">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
+        <input type="text" id="edit-name" class="text-input">
+      </div>
+      <div class="form-field">
+        <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
+        <input type="tel" id="edit-phone" class="text-input">
+      </div>
     </div>
-    <div class="form-field">
-      <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
-      <input type="tel" id="edit-phone" class="text-input">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
+        <input type="email" id="edit-email" class="text-input">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-power-off"></i> 狀態 <button type="button" class="field-info-btn" id="status-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
+        <div class="dropdown" id="edit-status-dropdown" data-placeholder="選擇狀態">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇狀態</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="啟用">啟用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="停用">停用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
     </div>
-    <div class="form-field">
-      <label for="edit-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
-      <input type="email" id="edit-email" class="text-input">
-    </div>
-    <div class="form-field">
-      <label for="edit-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
-      <input type="url" id="edit-teams-link" class="text-input">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
+        <input type="url" id="edit-teams-link" class="text-input">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
+        <div class="dropdown" id="edit-timezone-dropdown" data-placeholder="選擇時區">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <div class="wizard-nav">
@@ -432,6 +482,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="statusInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
+    <h3>狀態</h3>
+    <p class="text-small">學生停用後，無法再登入預約系統。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
@@ -502,7 +564,13 @@
     document.getElementById('edit-email').value = student.email;
     document.getElementById('edit-teams-link').value = student.teamsLink || '';
     document.getElementById('edit-avatar-preview').src = avatarSrc(currentAvatar);
+    setDropdownValue('edit-status-dropdown', student.status === 'inactive' ? '停用' : '啟用');
+    setDropdownValue('edit-timezone-dropdown', student.timezone || '(UTC+8) 台北');
   }
+
+  document.getElementById('status-info-btn').addEventListener('click', () => {
+    document.getElementById('statusInfoModal').classList.add('open');
+  });
 
   function setAvatar(newAvatar) {
     currentAvatar = newAvatar;
@@ -586,6 +654,8 @@
     student.email = email;
     student.teamsLink = teamsLink;
     student.avatar = currentAvatar;
+    student.status = getDropdownValue('edit-status-dropdown') === '停用' ? 'inactive' : 'active';
+    student.timezone = getDropdownValue('edit-timezone-dropdown');
     saveStudents(students);
     document.getElementById('edit-phone').value = formatPhoneDisplay(student.phone);
     document.getElementById('basicInfoSuccessModal').classList.add('open');
@@ -597,6 +667,14 @@
   function getDropdownValue(id) {
     const selected = document.querySelector(`#${id} .dropdown-menu li.selected`);
     return selected ? selected.dataset.value : null;
+  }
+  function setDropdownValue(id, value) {
+    const dropdown = document.getElementById(id);
+    const li = value && dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
+    if (!li) return;
+    dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
+    li.classList.add('selected');
+    dropdown.querySelector('.dropdown-trigger .label').textContent = li.textContent.trim();
   }
 
   function resetCourseDropdown() {
@@ -692,12 +770,13 @@
   }
 
   const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+  // 管理者一律看 UTC+8（台灣時間），不依老師/學生個人時區換算顯示
   function formatBookingDateTime(dateISO, timeStr) {
     const [y, m, d] = dateISO.split('-');
     const weekday = WEEKDAY_NAMES[new Date(dateISO).getDay()];
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    if (isMobile) return `${y}/${m}/${d} ${weekday} ${timeStr}`;
-    return `${y} 年 ${m} 月 ${d} 日 星期${weekday} ${timeStr}`;
+    if (isMobile) return `${y}/${m}/${d} ${weekday} ${timeStr} (UTC+8)`;
+    return `${y} 年 ${m} 月 ${d} 日 星期${weekday} ${timeStr} (UTC+8)`;
   }
 
   function renderBookingCard(b) {
@@ -810,6 +889,8 @@
       phone: document.getElementById('edit-phone').value,
       email: document.getElementById('edit-email').value,
       teamsLink: document.getElementById('edit-teams-link').value,
+      status: getDropdownValue('edit-status-dropdown'),
+      timezone: getDropdownValue('edit-timezone-dropdown'),
     });
   }
   const initialBasicInfoSnapshot = student ? getBasicInfoSnapshot() : null;
