@@ -21,15 +21,6 @@
     margin-right: auto;
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .section-title { margin-bottom: var(--space-5); }
-
   .page-nav {
     display: flex;
     justify-content: center;
@@ -44,56 +35,7 @@
   .booking-card.is-clickable { cursor: pointer; }
   .booking-card:hover { border-color: var(--color-blue); }
 
-  .booking-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 160px;
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    will-change: transform;
-    transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
-  }
-  .booking-card-empty:hover {
-    border-color: var(--color-blue);
-  }
-
-  #history-detail-view .section {
-    position: relative;
-    max-width: 550px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .confirm-highlight:hover {
-    border-color: var(--color-blue);
-  }
-  #history-detail-view .confirm-highlight {
-    padding: 14px 20px;
-    gap: var(--space-4);
-  }
-  #history-detail-view .confirm-highlight-icon {
-    width: 44px;
-    height: 44px;
-  }
-  #history-detail-view .confirm-highlight h3 {
-    margin: 0 0 2px;
-    font-size: 1.0625rem;
-  }
-  #history-detail-view .confirm-highlight p {
-    font-size: 0.8125rem;
-  }
-  .tz-tag {
-    font-size: var(--fs-small);
-    font-weight: 400;
-    color: var(--text-muted);
-    margin-left: 4px;
-  }
+  .booking-card-empty { min-height: 160px; }
 
   .booking-card-info {
     gap: 3px;
@@ -114,9 +56,6 @@
     font-size: 1.125rem;
   }
 
-  .course-ribbon.tone-orange { background: var(--color-orange); }
-  .course-ribbon.tone-navy { background: var(--color-navy); }
-
   .wizard-nav {
     display: flex;
     align-items: center;
@@ -124,36 +63,7 @@
     gap: var(--space-4);
     margin-top: var(--space-6);
   }
-  .wizard-nav[hidden] { display: none; }
   .wizard-nav .btn { min-width: 160px; }
-
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.danger   { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.info     { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-  .modal-icon.timezone { background: rgba(159, 148, 220, .2); color: var(--color-purple); }
-
-  .info-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 18px;
-    cursor: pointer;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
 
   @media (max-width: 1048px) {
     body.booking-history .page {
@@ -163,10 +73,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.booking-history .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -263,7 +169,7 @@
 <div class="modal-overlay" id="cancelTooLateModal">
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="modal-icon danger"><i class="fa-solid fa-exclamation"></i></div>
     <h3>已無法取消此預約</h3>
     <p class="text-small" id="cancel-too-late-note"></p>
     <div class="modal-actions">
@@ -384,13 +290,13 @@
       ? `${shifted.date} ${weekday}`
       : (() => { const [y, m, day] = shifted.date.split('/'); return `${y} 年 ${m} 月 ${day} 日 星期${weekday}`; })();
     const durationLabel = durationLabelStr(durationMinutes);
-    return { dateLabel, timeLabel, durationLabel };
+    return { dateLabel, timeLabel, startTimeLabel: shifted.time, durationLabel };
   }
 
   function formatDateTime(r, showTz = true) {
-    const { dateLabel, timeLabel } = computeDisplayParts(r);
+    const { dateLabel, startTimeLabel } = computeDisplayParts(r);
     const tzTag = showTz ? `<span class="tz-tag">(UTC+${STUDENT_TZ_OFFSET})</span>` : '';
-    return `${dateLabel} ${timeLabel}${tzTag}`;
+    return `${dateLabel} ${startTimeLabel}${tzTag}`;
   }
 
   function renderHistoryCard(r) {

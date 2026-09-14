@@ -7,7 +7,6 @@
 <link rel="icon" type="image/png" href="../assets/icons/favicon.png">
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 <link rel="stylesheet" href="../style.css">
 <style>
   body.admin-page .page {
@@ -16,68 +15,14 @@
   }
 
   .section {
-    max-width: 600px;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .avatar-picker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-5);
-  }
-  .avatar-picker-preview {
-    flex: none;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
-  @keyframes avatarSwap {
-    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-    40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
-    100% { transform: scale(1) rotate(360deg); opacity: 1; }
-  }
-  .avatar-picker-preview img.avatar-swap { animation: avatarSwap .4s ease; }
-
-  .form-field { margin-bottom: var(--space-4); }
-  .form-field label {
-    display: block;
-    margin-bottom: var(--space-2);
-    font-weight: 700;
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-  }
-  .text-input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 12px 16px;
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .text-input:focus {
-    outline: none;
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
   }
 
   .wizard-nav {
@@ -89,27 +34,6 @@
   }
   .wizard-nav .btn { min-width: 160px; }
 
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-
-  .crop-container {
-    width: 320px;
-    height: 320px;
-    max-width: 100%;
-    margin: var(--space-4) auto;
-    background: #1a1a1a;
-    overflow: hidden;
-  }
-  .crop-container img { display: block; max-width: 100%; }
-
   @media (max-width: 1048px) {
     body.admin-page .page {
       max-width: 100%;
@@ -118,10 +42,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -145,14 +65,26 @@
     <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>新增課程</h2></div>
 
     <div class="avatar-picker">
-      <span class="avatar-picker-preview"><img id="add-course-image-preview" src="../assets/icons/books.png" alt=""></span>
-      <button type="button" class="btn outline sm" id="add-course-image-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
-      <input type="file" id="add-course-image-file-input" accept="image/*" hidden>
+      <span class="avatar-picker-preview is-inactive" id="add-course-image-wrap"><img id="add-course-image-preview" src="" alt=""></span>
+      <button type="button" class="btn outline sm" id="add-course-image-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <div class="status-toggle-wrap">
+        <span class="status-toggle-text" id="status-toggle-text">停用</span>
+        <label class="status-toggle">
+          <input type="checkbox" id="add-status-toggle">
+          <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
+        </label>
+      </div>
     </div>
 
-    <div class="form-field">
-      <label for="add-course-name">課程名稱</label>
-      <input type="text" id="add-course-name" class="text-input" placeholder="請輸入課程名稱">
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-course-name"><i class="fa-solid fa-fw fa-book"></i> 課程名稱</label>
+        <input type="text" id="add-course-name" class="text-input" placeholder="請輸入課程名稱" maxlength="25">
+      </div>
+      <div class="form-field">
+        <label for="add-course-description"><i class="fa-solid fa-fw fa-align-left"></i> 描述</label>
+        <input type="text" id="add-course-description" class="text-input" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
+      </div>
     </div>
   </section>
 
@@ -165,7 +97,7 @@
 <div class="modal-overlay" id="courseAddAlertModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="courseAddAlertText"></h3>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
@@ -176,10 +108,22 @@
 <div class="modal-overlay" id="courseAddSuccessModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
     <h3>已新增課程</h3>
     <div class="modal-actions">
       <button class="btn blue" id="course-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="statusLockedModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3>還不能啟用</h3>
+    <p class="text-small">新增課程後，請先設定完成時間參數與可以上這堂課的老師，再啟用課程，避免學生看到還沒設定好的課程。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
     </div>
   </div>
 </div>
@@ -197,21 +141,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="courseImageCropModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
-    <button class="modal-close" id="course-image-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <h3>裁切課程圖片</h3>
-    <div class="crop-container">
-      <img id="course-image-crop-image" alt="">
-    </div>
-    <div class="modal-actions">
-      <button class="btn outline" id="course-image-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn blue" id="course-image-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確認裁切</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, image)
@@ -220,50 +149,34 @@
   function loadCourses() { return JSON.parse(localStorage.getItem(COURSES_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
   function saveCourses(list) { localStorage.setItem(COURSES_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
 
-  let currentImage = '';
+  let currentImage = randomAvatar(); // 新增課程時先隨機給一個動物頭像
 
   function setCourseImage(newImage) {
     currentImage = newImage;
     const img = document.getElementById('add-course-image-preview');
-    img.src = currentImage || '../assets/icons/books.png';
+    img.src = courseImageSrc(currentImage);
     img.classList.remove('avatar-swap');
     void img.offsetWidth;
     img.classList.add('avatar-swap');
   }
+  document.getElementById('add-course-image-preview').src = courseImageSrc(currentImage);
 
-  const CROP_OUTPUT_SIZE = 400; // 輸出固定 400x400，避免存進 localStorage/未來 D1 的圖片太大
-  let cropper = null;
-  function closeCropModal() {
-    if (cropper) { cropper.destroy(); cropper = null; }
-    document.getElementById('courseImageCropModal').classList.remove('open');
-    document.getElementById('add-course-image-file-input').value = '';
+  function setStatusToggle(isActive) {
+    document.getElementById('add-status-toggle').checked = isActive;
+    document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+    document.getElementById('add-course-image-wrap').classList.toggle('is-inactive', !isActive);
   }
-  document.getElementById('add-course-image-upload-btn').addEventListener('click', () => {
-    document.getElementById('add-course-image-file-input').click();
+  setStatusToggle(false); // 新課程還有很多東西要設定，預設先停用，這階段不能啟用
+  document.getElementById('add-status-toggle').addEventListener('click', (e) => {
+    if (e.target.checked) {
+      e.preventDefault();
+      document.getElementById('statusLockedModal').classList.add('open');
+    }
   });
-  document.getElementById('add-course-image-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = document.getElementById('course-image-crop-image');
-      img.src = reader.result;
-      document.getElementById('courseImageCropModal').classList.add('open');
-      img.onload = () => {
-        if (cropper) cropper.destroy();
-        cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, dragMode: 'move', guides: true, autoCropArea: 1, background: false });
-      };
-    };
-    reader.readAsDataURL(file);
+
+  document.getElementById('add-course-image-random-btn').addEventListener('click', () => {
+    setCourseImage(randomAvatar());
   });
-  document.getElementById('course-image-crop-confirm-btn').addEventListener('click', () => {
-    if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: CROP_OUTPUT_SIZE, height: CROP_OUTPUT_SIZE });
-    setCourseImage(canvas.toDataURL('image/jpeg', 0.8));
-    closeCropModal();
-  });
-  document.getElementById('course-image-crop-cancel-btn').addEventListener('click', closeCropModal);
-  document.getElementById('course-image-crop-close-btn').addEventListener('click', closeCropModal);
 
   function showAddAlert(message) {
     document.getElementById('courseAddAlertText').textContent = message;
@@ -278,11 +191,15 @@
       return;
     }
 
+    const id = Date.now();
+
     const courses = loadCourses();
     courses.push({
-      id: Date.now(),
+      id,
       name,
+      description: document.getElementById('add-course-description').value.trim(),
       image: currentImage,
+      status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
     });
     saveCourses(courses);
     document.getElementById('courseAddSuccessModal').classList.add('open');
@@ -292,8 +209,13 @@
     window.location.href = 'courses.html';
   });
 
+  const initialImage = currentImage;
+
   function hasUnsavedInput() {
-    return document.getElementById('add-course-name').value.trim() !== '' || currentImage !== '';
+    return document.getElementById('add-course-name').value.trim() !== ''
+      || document.getElementById('add-course-description').value.trim() !== ''
+      || currentImage !== initialImage
+      || document.getElementById('add-status-toggle').checked;
   }
 
   document.getElementById('back-btn').addEventListener('click', () => {

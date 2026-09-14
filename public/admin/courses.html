@@ -14,62 +14,6 @@
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .section-title { margin-bottom: var(--space-5); }
-
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 12px 16px;
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    margin-bottom: var(--space-3);
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .search-box:focus-within {
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
-  .search-box i { color: var(--text-muted); }
-  .search-clear-btn {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: content-box;
-    width: 24px;
-    height: 24px;
-    padding: 6px;
-    margin: -6px;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background-color .15s ease, color .15s ease;
-  }
-  .search-clear-btn:hover {
-    background: var(--bg-card-alt);
-    color: var(--text-main);
-  }
-  .search-box input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: none;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-  }
-
   #course-cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -103,23 +47,7 @@
     transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
   }
   .course-list-card:hover { border-color: var(--color-blue); }
-  .course-list-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 88px;
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    will-change: transform;
-    transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
-  }
-  .course-list-card-empty:hover { border-color: var(--color-blue); }
+  .course-list-card-empty { min-height: 88px; }
   .course-add-card {
     display: flex;
     align-items: center;
@@ -143,12 +71,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: var(--color-green);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
+    display: block;
   }
   .course-list-card-image {
     flex: none;
@@ -191,10 +114,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -265,7 +184,7 @@
   function renderCourseCard(c) {
     let badge;
     if (c.image) {
-      badge = `<img src="${c.image}" alt="">`;
+      badge = `<img src="${courseImageSrc(c.image)}" alt="">`;
     } else {
       const b = courseBadge(c.name);
       badge = `<span class="course-list-card-badge" style="background:${b.color};">${b.label}</span>`;
@@ -301,7 +220,7 @@
       '<div class="course-list-card-empty">找不到符合的課程</div>',
       (containerEl) => {
         if (query) {
-          containerEl.insertAdjacentHTML('beforeend', '<div class="course-add-card" id="course-add-card"><span class="add-icon"><i class="fa-solid fa-fw fa-plus"></i></span>新增課程</div>');
+          containerEl.insertAdjacentHTML('beforeend', '<div class="course-add-card" id="course-add-card"><img class="add-icon" src="/assets/icons/plus.png" alt="">新增課程</div>');
           document.getElementById('course-add-card').addEventListener('click', () => {
             window.location.href = 'course-add.html';
           });
@@ -309,6 +228,18 @@
         bindCourseCardClicks(containerEl);
       });
   }
+
+  // 「最近點擊」是所有管理者共用的排序依據，存在 D1；背景同步完再重繪一次即可，
+  // 不用讓使用者等，也不影響第一次渲染的速度。
+  fetch('/api/recently-viewed?type=course').then((res) => (res.ok ? res.json() : {})).then((sharedMap) => {
+    const all = loadCourses();
+    let changed = false;
+    all.forEach((c) => {
+      const shared = sharedMap[c.id];
+      if (shared != null && shared > (c.lastViewedAt || 0)) { c.lastViewedAt = shared; changed = true; }
+    });
+    if (changed) { saveCourses(all); renderCourses(); }
+  }).catch(() => {});
 
   const searchInput = document.getElementById('course-search');
   const searchClearBtn = document.getElementById('course-search-clear');

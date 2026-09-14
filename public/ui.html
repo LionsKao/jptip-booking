@@ -186,17 +186,6 @@
   /* Modal variants (design exploration) */
   .modal-demo-triggers { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-
   .modal-overlay.sheet { align-items: flex-end; padding: 0; }
   .modal-overlay.sheet .modal {
     max-width: 100%;
@@ -1129,7 +1118,7 @@
     <div class="modal-overlay" id="dangerModal" data-modal-persistent>
       <div class="modal" style="text-align:center;">
         <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-        <div class="modal-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="modal-icon danger"><i class="fa-solid fa-exclamation"></i></div>
         <h3>確定要取消這堂預約嗎？</h3>
         <p class="text-small">田中老師・日文 N3 會話班・2026/08/26 11:00，取消後無法復原。</p>
         <div class="modal-actions">

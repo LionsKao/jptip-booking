@@ -14,61 +14,6 @@
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
   }
 
-  .info-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 18px;
-    cursor: pointer;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
-
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.timezone { background: rgba(159, 148, 220, .2); color: var(--color-purple); }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.success { background: rgba(180, 225, 151, .3);  color: #558035; }
-  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
-  .modal-icon.navy    { background: color-mix(in srgb, var(--color-navy) 16%, white); color: var(--color-navy); }
-
-  #bookings-detail-view .section {
-    position: relative;
-    max-width: 550px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .confirm-highlight:hover {
-    border-color: var(--color-blue);
-  }
-  #bookings-detail-view .confirm-highlight {
-    padding: 14px 20px;
-    gap: var(--space-4);
-  }
-  #bookings-detail-view .confirm-highlight-icon {
-    width: 44px;
-    height: 44px;
-  }
-  #bookings-detail-view .confirm-highlight h3 {
-    margin: 0 0 2px;
-    font-size: 1.0625rem;
-  }
-  #bookings-detail-view .confirm-highlight p {
-    font-size: 0.8125rem;
-  }
-
   .booking-card.is-clickable { cursor: pointer; }
 
   .wizard-nav {
@@ -90,79 +35,7 @@
     margin-right: auto;
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 12px 16px;
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    margin-bottom: var(--space-3);
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .search-box:focus-within {
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
-  .search-box i { color: var(--text-muted); }
-  .search-clear-btn {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: content-box;
-    width: 24px;
-    height: 24px;
-    padding: 6px;
-    margin: -6px;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background-color .15s ease, color .15s ease;
-  }
-  .search-clear-btn:hover {
-    background: var(--bg-card-alt);
-    color: var(--text-main);
-  }
-  .search-box input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: none;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-  }
-
-  .booking-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 160px;
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    will-change: transform;
-    transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
-  }
-  .booking-card-empty:hover {
-    border-color: var(--color-blue);
-  }
+  .booking-card-empty { min-height: 160px; }
 
   #student-bookings-cards {
     display: grid;
@@ -215,10 +88,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -330,7 +199,7 @@
 <div class="modal-overlay" id="markPendingConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3>確定要標記為需處理嗎？</h3>
     <p class="text-small">適用於這堂課程有爭議、需要進一步確認的情況。</p>
     <div class="modal-actions">
@@ -449,12 +318,12 @@
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     const dateLabel = isMobile ? `${y}/${m}/${d} ${weekday}` : `${y} 年 ${m} 月 ${d} 日 星期${weekday}`;
     const durationLabel = durationLabelStr(durationMinutes);
-    return { dateLabel, timeLabel, durationLabel };
+    return { dateLabel, timeLabel, startTimeLabel: b.time, durationLabel };
   }
 
   function formatBookingDateTime(b) {
-    const { dateLabel, timeLabel } = computeDisplayParts(b);
-    return `${dateLabel} ${timeLabel}`;
+    const { dateLabel, startTimeLabel } = computeDisplayParts(b);
+    return `${dateLabel} ${startTimeLabel}`;
   }
 
   function renderBookingCard(b) {

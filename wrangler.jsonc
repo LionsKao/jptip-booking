@@ -14,5 +14,11 @@
       "database_id": "9130949e-5936-48d5-8c5e-491f2bf8759d",
       "migrations_dir": "migrations"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "AVATARS",
+      "bucket_name": "lionbooking-avatars"
+    }
   ]
 }

@@ -7,6 +7,7 @@
 <link rel="icon" type="image/png" href="../assets/icons/favicon.png">
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 <link rel="stylesheet" href="../style.css">
 <style>
   body.admin-page .page {
@@ -15,13 +16,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-  }
-
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
   }
 
   .course-header {
@@ -53,34 +47,8 @@
   }
   .course-header h2 { margin: 0; }
 
-  #card-basic { max-width: 600px; width: 100%; margin: 0 auto; }
-
-  .form-field { margin-bottom: var(--space-4); }
-  .form-field label {
-    display: block;
-    margin-bottom: var(--space-2);
-    font-weight: 700;
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-  }
-  .form-field label i { color: var(--text-muted); margin-right: 4px; }
-  .text-input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 12px 16px;
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .text-input:focus {
-    outline: none;
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
+  #card-basic { max-width: 800px; width: 100%; margin: 0 auto; }
+  #card-schedule { max-width: 600px; width: 100%; margin: 0 auto; }
 
   .duration-inputs { display: flex; gap: var(--space-4); flex-wrap: wrap; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
@@ -108,36 +76,6 @@
   }
   .wizard-nav .btn { min-width: 160px; }
 
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-
-  .field-info-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 15px;
-    cursor: pointer;
-    vertical-align: middle;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .field-info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
-
   @media (max-width: 948px) {
     body.admin-page .page {
       max-width: 100%;
@@ -146,10 +84,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -172,14 +106,39 @@
   <section class="section" id="card-basic">
     <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>基本資料</h2></div>
 
-    <div class="form-field">
-      <label for="edit-course-name"><i class="fa-solid fa-fw fa-book"></i> 課程名稱</label>
-      <input type="text" id="edit-course-name" class="text-input" maxlength="50">
+    <div class="avatar-picker">
+      <span class="avatar-picker-preview" id="edit-course-image-wrap"><img id="edit-course-image-preview" src="" alt=""></span>
+      <button type="button" class="btn outline sm" id="edit-course-image-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <button type="button" class="btn outline sm" id="edit-course-image-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
+      <input type="file" id="edit-course-image-file-input" accept="image/*" hidden>
+      <div class="status-toggle-wrap">
+        <span class="status-toggle-text" id="status-toggle-text">啟用</span>
+        <label class="status-toggle">
+          <input type="checkbox" id="edit-status-toggle">
+          <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
+        </label>
+      </div>
     </div>
-    <div class="form-field">
-      <label for="edit-course-description"><i class="fa-solid fa-fw fa-align-left"></i> 描述</label>
-      <input type="text" id="edit-course-description" class="text-input" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
+
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-course-name"><i class="fa-solid fa-fw fa-book"></i> 課程名稱</label>
+        <input type="text" id="edit-course-name" class="text-input" maxlength="25">
+      </div>
+      <div class="form-field">
+        <label for="edit-course-description"><i class="fa-solid fa-fw fa-align-left"></i> 描述</label>
+        <input type="text" id="edit-course-description" class="text-input" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
+      </div>
     </div>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn blue" id="basic-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+    </div>
+  </section>
+
+  <section class="section" id="card-schedule">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2>時間參數設定</h2></div>
+
     <div class="field-row">
       <div class="form-field">
         <label><i class="fa-solid fa-fw fa-clock"></i> 上課時間</label>
@@ -251,16 +210,31 @@
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="basic-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+      <button type="button" class="btn blue" id="schedule-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
     </div>
   </section>
 
 </div>
 
+<div class="modal-overlay" id="courseImageCropModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" id="course-image-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <h3>裁切課程圖片</h3>
+    <p class="text-small">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
+    <div class="crop-container">
+      <img id="course-image-crop-image" alt="">
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" id="course-image-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn blue" id="course-image-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確認裁切</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
@@ -271,7 +245,7 @@
 <div class="modal-overlay" id="editSuccessModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
     <h3>已更新課程資料</h3>
     <div class="modal-actions">
       <button class="btn blue" id="edit-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
@@ -318,9 +292,10 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, description, image, durationMinutes, bufferBeforeMinutes, bufferAfterMinutes, scheduleIncrement, minLeadHours)
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, description, image, status, durationMinutes, bufferBeforeMinutes, bufferAfterMinutes, scheduleIncrement, minLeadHours)
   const COURSES_KEY = 'admin-courses';
 
   function loadCourses() { return JSON.parse(localStorage.getItem(COURSES_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
@@ -341,11 +316,13 @@
   } else {
     course.lastViewedAt = Date.now();
     saveCourses(courses);
+    // 「最近點擊」要讓所有管理者共用，寫進 D1（失敗就算了，不影響本頁瀏覽）
+    fetch(`/api/recently-viewed?type=course&id=${course.id}`, { method: 'PUT' }).catch(() => {});
 
     function renderHeader() {
       const imageEl = document.getElementById('course-header-image');
       if (course.image) {
-        imageEl.innerHTML = `<img src="${course.image}" alt="">`;
+        imageEl.innerHTML = `<img src="${courseImageSrc(course.image)}" alt="">`;
       } else {
         const b = courseBadge(course.name);
         imageEl.innerHTML = `<span class="course-header-badge" style="width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${b.color};">${b.label}</span>`;
@@ -354,6 +331,96 @@
     }
     renderHeader();
 
+    // ---- 課程頭像：隨機 / 上傳裁切，跟老師/學生基本資料同一套 ----
+    let currentImage = course.image || randomAvatar();
+
+    function setStatusToggle(isActive) {
+      document.getElementById('edit-status-toggle').checked = isActive;
+      document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+      document.getElementById('edit-course-image-wrap').classList.toggle('is-inactive', !isActive);
+    }
+    setStatusToggle(course.status !== 'inactive');
+    document.getElementById('edit-status-toggle').addEventListener('change', (e) => {
+      setStatusToggle(e.target.checked);
+    });
+
+    function setCourseImage(newImage) {
+      currentImage = newImage;
+      const img = document.getElementById('edit-course-image-preview');
+      img.src = courseImageSrc(currentImage);
+      img.classList.remove('avatar-swap');
+      void img.offsetWidth;
+      img.classList.add('avatar-swap');
+    }
+    document.getElementById('edit-course-image-preview').src = courseImageSrc(currentImage);
+
+    // 上傳完成後把 currentImage 換成 R2 路徑，畫面上是同一張圖，不需要再播一次切換動畫
+    function setCourseImageQuiet(newImage) {
+      currentImage = newImage;
+    }
+
+    document.getElementById('edit-course-image-random-btn').addEventListener('click', () => {
+      setCourseImage(randomAvatar());
+    });
+
+    // ---- 上傳圖片並裁切成正方形 ----
+    const CROP_OUTPUT_SIZE = 400; // 輸出固定 400x400，避免存進 localStorage/未來 D1 的圖片太大
+    let cropper = null;
+
+    function closeCropModal() {
+      if (cropper) { cropper.destroy(); cropper = null; }
+      document.getElementById('courseImageCropModal').classList.remove('open');
+      document.getElementById('edit-course-image-file-input').value = '';
+    }
+
+    document.getElementById('edit-course-image-upload-btn').addEventListener('click', () => {
+      document.getElementById('edit-course-image-file-input').click();
+    });
+
+    document.getElementById('edit-course-image-file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = document.getElementById('course-image-crop-image');
+        img.src = reader.result;
+        document.getElementById('courseImageCropModal').classList.add('open');
+        img.onload = () => {
+          if (cropper) cropper.destroy();
+          cropper = new Cropper(img, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            guides: true,
+            autoCropArea: 1,
+            background: false,
+          });
+        };
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('course-image-crop-confirm-btn').addEventListener('click', () => {
+      if (!cropper) return;
+      const canvas = cropper.getCroppedCanvas({ width: CROP_OUTPUT_SIZE, height: CROP_OUTPUT_SIZE });
+      setCourseImage(canvas.toDataURL('image/jpeg', 0.8)); // 先本地預覽，上傳完成後再換成 R2 的相對路徑
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        fetch(`/api/avatar/upload?role=course&id=${course.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: blob,
+        })
+          .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+          .then((data) => setCourseImageQuiet(data.path))
+          .catch((err) => console.warn('課程圖片上傳失敗，暫時沿用本地預覽', err));
+      }, 'image/jpeg', 0.8);
+      closeCropModal();
+    });
+
+    document.getElementById('course-image-crop-cancel-btn').addEventListener('click', closeCropModal);
+    document.getElementById('course-image-crop-close-btn').addEventListener('click', closeCropModal);
+
     document.getElementById('min-lead-info-btn').addEventListener('click', () => {
       document.getElementById('minLeadInfoModal').classList.add('open');
     });
@@ -361,9 +428,9 @@
       document.getElementById('maxLeadInfoModal').classList.add('open');
     });
 
-    const durationMinutes = course.durationMinutes ?? 60;
+    const durationMinutes = course.durationMinutes ?? 100;
     const bufferBeforeMinutes = course.bufferBeforeMinutes ?? 0;
-    const bufferAfterMinutes = course.bufferAfterMinutes ?? 0;
+    const bufferAfterMinutes = course.bufferAfterMinutes ?? 20;
 
     document.getElementById('edit-course-name').value = course.name || '';
     document.getElementById('edit-course-description').value = course.description || '';
@@ -403,6 +470,16 @@
 
       course.name = name;
       course.description = document.getElementById('edit-course-description').value.trim();
+      course.image = currentImage;
+      course.status = document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive';
+
+      saveCourses(courses);
+      renderHeader();
+      document.getElementById('editSuccessModal').classList.add('open');
+      initialSnapshot = getFormSnapshot();
+    });
+
+    document.getElementById('schedule-submit-btn').addEventListener('click', () => {
       course.durationMinutes = Number(document.getElementById('duration-hours').value || 0) * 60 + Number(document.getElementById('duration-minutes').value || 0);
       course.bufferBeforeMinutes = Number(document.getElementById('buffer-before-hours').value || 0) * 60 + Number(document.getElementById('buffer-before-minutes').value || 0);
       course.bufferAfterMinutes = Number(document.getElementById('buffer-after-hours').value || 0) * 60 + Number(document.getElementById('buffer-after-minutes').value || 0);
@@ -411,8 +488,8 @@
       course.maxLeadDays = Number(document.getElementById('max-lead-days').value || 0);
 
       saveCourses(courses);
-      renderHeader();
       document.getElementById('editSuccessModal').classList.add('open');
+      initialSnapshot = getFormSnapshot();
     });
 
     document.getElementById('edit-success-ok-btn').addEventListener('click', () => {
@@ -423,6 +500,8 @@
       return JSON.stringify({
         name: document.getElementById('edit-course-name').value,
         description: document.getElementById('edit-course-description').value,
+        image: currentImage,
+        status: document.getElementById('edit-status-toggle').checked,
         durationHours: document.getElementById('duration-hours').value,
         durationMinutes: document.getElementById('duration-minutes').value,
         bufferBeforeHours: document.getElementById('buffer-before-hours').value,
@@ -435,7 +514,7 @@
       });
     }
 
-    const initialSnapshot = getFormSnapshot();
+    let initialSnapshot = getFormSnapshot();
 
     document.getElementById('back-btn').addEventListener('click', () => {
       if (getFormSnapshot() !== initialSnapshot) {

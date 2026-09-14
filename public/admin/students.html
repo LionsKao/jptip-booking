@@ -14,62 +14,6 @@
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .section-title { margin-bottom: var(--space-5); }
-
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 12px 16px;
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    margin-bottom: var(--space-3);
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .search-box:focus-within {
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
-  .search-box i { color: var(--text-muted); }
-  .search-clear-btn {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: content-box;
-    width: 24px;
-    height: 24px;
-    padding: 6px;
-    margin: -6px;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background-color .15s ease, color .15s ease;
-  }
-  .search-clear-btn:hover {
-    background: var(--bg-card-alt);
-    color: var(--text-main);
-  }
-  .search-box input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: none;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-  }
-
   #student-cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -105,30 +49,11 @@
     transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
   }
   .student-card:hover { border-color: var(--color-blue); }
-  .student-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 122px;
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    will-change: transform;
-    transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
-  }
-  .student-card-empty:hover { border-color: var(--color-blue); }
+  .student-card-empty { min-height: 122px; }
   .student-add-card {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    min-height: 122px;
+    gap: var(--space-3);
     padding: var(--space-4) var(--space-5);
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
@@ -144,15 +69,11 @@
   }
   .student-add-card:hover { border-color: var(--color-blue); }
   .student-add-card .add-icon {
-    width: 48px;
-    height: 48px;
+    flex: none;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: var(--color-green);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
+    display: block;
   }
   .student-card-avatar {
     flex: none;
@@ -163,6 +84,7 @@
     background: var(--bg-card-alt);
   }
   .student-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .student-card-avatar.is-inactive img { filter: grayscale(1); }
   .student-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .student-card-info h4 { margin: 0; font-size: 1.125rem; }
   .student-card-info p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
@@ -182,10 +104,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -237,7 +155,7 @@
       : '';
     return `<div class="student-card" data-id="${s.id}">
       ${ribbon}
-      <span class="student-card-avatar"><img src="${avatarSrc(s.avatar)}" alt=""></span>
+      <span class="student-card-avatar${s.status === 'inactive' ? ' is-inactive' : ''}"><img src="${avatarSrc(s.avatar)}" alt=""></span>
       <span class="student-card-info">
         <h4>${s.name}</h4>
         <p>${formatPhoneDisplay(s.phone)}</p>
@@ -278,7 +196,7 @@
       '<div class="student-card-empty">找不到符合的學生</div>',
       (containerEl) => {
         if (query) {
-          containerEl.insertAdjacentHTML('beforeend', '<div class="student-add-card" id="student-add-card"><span class="add-icon"><i class="fa-solid fa-fw fa-plus"></i></span>新增學生</div>');
+          containerEl.insertAdjacentHTML('beforeend', '<div class="student-add-card" id="student-add-card"><img class="add-icon" src="/assets/icons/plus.png" alt="">新增學生</div>');
           document.getElementById('student-add-card').addEventListener('click', () => {
             window.location.href = 'student-add.html';
           });
@@ -286,6 +204,18 @@
         bindStudentCardClicks(containerEl);
       });
   }
+
+  // 「最近點擊」是所有管理者共用的排序依據，存在 D1；背景同步完再重繪一次即可，
+  // 不用讓使用者等，也不影響第一次渲染的速度。
+  fetch('/api/recently-viewed?type=student').then((res) => (res.ok ? res.json() : {})).then((sharedMap) => {
+    const all = loadStudents();
+    let changed = false;
+    all.forEach((s) => {
+      const shared = sharedMap[s.id];
+      if (shared != null && shared > (s.lastViewedAt || 0)) { s.lastViewedAt = shared; changed = true; }
+    });
+    if (changed) { saveStudents(all); renderStudents(); }
+  }).catch(() => {});
 
   const searchInput = document.getElementById('student-search');
   const searchClearBtn = document.getElementById('student-search-clear');

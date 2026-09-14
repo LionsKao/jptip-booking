@@ -17,27 +17,11 @@
   }
   body.dashboard .page {
     width: 100%;
-    max-width: 550px;
+    max-width: 548px;
     margin: 0 auto;
     padding-top: var(--space-6);
     padding-bottom: var(--space-6);
   }
-
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.danger { background: rgba(255, 138, 138, .18); color: var(--color-red); }
 
   .dash-cards {
     display: flex;
@@ -48,7 +32,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-5);
-    width: 550px;
+    width: 500px;
     max-width: 100%;
     margin: 0 auto;
     border-radius: var(--radius-lg);
@@ -59,7 +43,9 @@
     cursor: pointer;
     font-family: inherit;
     padding: var(--space-5) 40px;
-    transition: border-color .2s ease, box-shadow .2s ease;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .35s ease;
   }
   .dash-card:hover {
     border-color: var(--color-blue);
@@ -78,10 +64,6 @@
   .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     .dash-card {
       padding: var(--space-4) var(--space-4);
       gap: var(--space-3);

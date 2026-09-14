@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 新增老師</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .section {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  #add-timezone-dropdown { width: 100%; }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+  .wizard-nav .btn { min-width: 160px; }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .wizard-nav {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .wizard-nav .btn { min-width: 0; flex: 1 1 0; }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/write-teacher.png" alt=""><h2>新增老師</h2></div>
+
+    <div class="avatar-picker">
+      <span class="avatar-picker-preview is-inactive" id="add-avatar-wrap"><img id="add-avatar-preview" src="" alt=""></span>
+      <button type="button" class="btn outline sm" id="add-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <div class="status-toggle-wrap">
+        <span class="status-toggle-text" id="status-toggle-text">停用</span>
+        <label class="status-toggle">
+          <input type="checkbox" id="add-status-toggle">
+          <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
+        <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名" maxlength="50">
+      </div>
+      <div class="form-field">
+        <label for="add-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
+        <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼" maxlength="15">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
+        <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email" maxlength="100">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
+        <div class="dropdown" id="add-timezone-dropdown" data-placeholder="選擇時區">
+          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="add-specialty"><i class="fa-solid fa-fw fa-star"></i> 專長</label>
+        <input type="text" id="add-specialty" class="text-input" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
+      </div>
+      <div class="form-field">
+        <label for="add-motto"><i class="fa-solid fa-fw fa-quote-left"></i> 座右銘</label>
+        <input type="text" id="add-motto" class="text-input" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
+      </div>
+    </div>
+  </section>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增</button>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="teacherAddAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="teacherAddAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="teacherAddSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
+    <h3>已新增老師</h3>
+    <div class="modal-actions">
+      <button class="btn blue" id="teacher-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="statusLockedModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3>還不能啟用</h3>
+    <p class="text-small">新增老師後，請先到「可教課程」與「可上課時段」設定完成，再啟用老師帳號，避免學生看到還沒設定好的老師。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3>確定要離開嗎？</h3>
+    <p class="text-small">目前輸入的資料將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, specialty, motto)
+
+  let currentAvatar = randomAvatar(); // 新增老師時先隨機給一個動物頭像
+
+  function setAvatar(newAvatar) {
+    currentAvatar = newAvatar;
+    const img = document.getElementById('add-avatar-preview');
+    img.src = avatarSrc(currentAvatar);
+    img.classList.remove('avatar-swap');
+    void img.offsetWidth;
+    img.classList.add('avatar-swap');
+  }
+  document.getElementById('add-avatar-preview').src = avatarSrc(currentAvatar);
+
+  function setStatusToggle(isActive) {
+    document.getElementById('add-status-toggle').checked = isActive;
+    document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+    document.getElementById('add-avatar-wrap').classList.toggle('is-inactive', !isActive);
+  }
+  setStatusToggle(false); // 新老師還有很多東西要設定，預設先停用，這階段不能啟用
+  document.getElementById('add-status-toggle').addEventListener('click', (e) => {
+    if (e.target.checked) {
+      e.preventDefault();
+      document.getElementById('statusLockedModal').classList.add('open');
+    }
+  });
+
+  document.getElementById('add-avatar-random-btn').addEventListener('click', () => {
+    setAvatar(randomAvatar());
+  });
+
+  setDropdownValue('add-timezone-dropdown', '(UTC+9) 大阪、札幌、東京');
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function showAddAlert(message) {
+    document.getElementById('teacherAddAlertText').textContent = message;
+    document.getElementById('teacherAddAlertModal').classList.add('open');
+  }
+
+  document.getElementById('add-submit-btn').addEventListener('click', () => {
+    const name = document.getElementById('add-name').value.trim();
+    const phone = document.getElementById('add-phone').value.trim();
+    const email = document.getElementById('add-email').value.trim();
+
+    if (!name || !phone || !email) {
+      showAddAlert('請填寫完整資料');
+      return;
+    }
+    if (!EMAIL_RE.test(email)) {
+      showAddAlert('Email 格式不對');
+      return;
+    }
+
+    const teachers = loadTeachers();
+    teachers.push({
+      id: Date.now(),
+      name,
+      phone: phone.replace(/\D/g, ''),
+      email,
+      avatar: currentAvatar,
+      specialty: document.getElementById('add-specialty').value.trim(),
+      motto: document.getElementById('add-motto').value.trim(),
+      status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
+      receipt: { timezone: getDropdownValue('add-timezone-dropdown') },
+      lastViewedAt: Date.now(),
+    });
+    saveTeachers(teachers);
+    document.getElementById('teacherAddSuccessModal').classList.add('open');
+  });
+
+  document.getElementById('teacher-add-success-ok-btn').addEventListener('click', () => {
+    window.location.href = 'teachers.html';
+  });
+
+  const initialAvatar = currentAvatar;
+
+  function hasUnsavedInput() {
+    return ['add-name', 'add-phone', 'add-email', 'add-specialty', 'add-motto']
+      .some((id) => document.getElementById(id).value.trim() !== '')
+      || currentAvatar !== initialAvatar
+      || document.getElementById('add-status-toggle').checked;
+  }
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (hasUnsavedInput()) {
+      document.getElementById('leaveConfirmModal').classList.add('open');
+      return;
+    }
+    window.location.href = 'teachers.html';
+  });
+
+  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+    window.location.href = 'teachers.html';
+  });
+</script>
+
+</body>
+</html>

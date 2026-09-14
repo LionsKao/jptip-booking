@@ -10,38 +10,12 @@
 <link rel="stylesheet" href="../style.css">
 <style>
   body.admin-page .page {
-    max-width: 500px;
+    max-width: 548px;
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
   }
-
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .student-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-  }
-  .student-header-avatar {
-    flex: none;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-  }
-  .student-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .student-header h2 { margin: 0; }
-  .student-header-name { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-  .pill.tone-muted { background: var(--bg-card-alt); color: var(--text-muted); }
 
   .dash-card {
     display: flex;
@@ -77,10 +51,6 @@
   .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -141,6 +111,8 @@
   } else {
     student.lastViewedAt = Date.now();
     saveStudents(students);
+    // 「最近點擊」要讓所有管理者共用，寫進 D1（失敗就算了，不影響本頁瀏覽）
+    fetch(`/api/recently-viewed?type=student&id=${student.id}`, { method: 'PUT' }).catch(() => {});
 
     document.getElementById('student-header-avatar-img').src = avatarSrc(student.avatar);
     document.getElementById('student-header-name').textContent = student.name;

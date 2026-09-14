@@ -1,6 +1,7 @@
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  AVATARS: R2Bucket;
   TEAMS_WEBHOOK_URL?: string;
   // Dev/test-site only: when 'true', /api/otp/verify accepts any 6-digit code.
   // Must never be set in the production deployment's vars/secrets.
@@ -131,6 +132,105 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
   return Response.json({ ok: true });
 }
 
+// Only these two roles have a `photo_path` column (see migrations 0004 / 0007).
+// 'course' has no D1 table at all yet (courses are still frontend-mock), so it
+// just skips the D1 write below — the R2 object is still the source of truth.
+const AVATAR_ROLE_TABLES: Record<string, string> = {
+  student: 'students',
+  teacher: 'teachers',
+};
+const UPLOAD_ROLES = new Set(['teacher', 'student', 'course']);
+
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2MB is generous headroom for a 400x400 JPEG at q0.8
+
+async function handleAvatarUpload(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const role = url.searchParams.get('role') || '';
+  const id = Number(url.searchParams.get('id'));
+
+  if (!UPLOAD_ROLES.has(role) || !Number.isInteger(id) || id <= 0) {
+    return Response.json({ error: '缺少或無效的 role/id' }, { status: 400 });
+  }
+
+  const contentType = request.headers.get('Content-Type') || '';
+  if (!contentType.startsWith('image/')) {
+    return Response.json({ error: '檔案格式必須是圖片' }, { status: 400 });
+  }
+
+  const body = await request.arrayBuffer();
+  if (body.byteLength === 0 || body.byteLength > MAX_AVATAR_BYTES) {
+    return Response.json({ error: '圖片檔案大小不正確' }, { status: 400 });
+  }
+
+  const ext = contentType === 'image/png' ? 'png' : 'jpg';
+  const key = role === 'course' ? `courses/course-${id}.${ext}` : `avatars/${role}-${id}.${ext}`;
+
+  await env.AVATARS.put(key, body, { httpMetadata: { contentType } });
+
+  // Best-effort: the admin UI's mock records don't always have a matching real
+  // D1 row yet (student/teacher CRUD is still frontend-only, courses have no
+  // table at all), so a no-op here is expected and fine — the R2 object is
+  // still the source of truth for the path.
+  const table = AVATAR_ROLE_TABLES[role];
+  if (table) {
+    await env.DB.prepare(`UPDATE ${table} SET photo_path = ? WHERE id = ?`).bind(key, id).run();
+  }
+
+  return Response.json({ path: key });
+}
+
+async function handleAvatarGet(request: Request, env: Env, key: string): Promise<Response> {
+  const object = await env.AVATARS.get(key);
+  if (!object) {
+    return new Response('Not found', { status: 404 });
+  }
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  headers.set('ETag', object.httpEtag);
+  return new Response(object.body, { headers });
+}
+
+// Shared "recently viewed" tracking for the admin teacher/student/course list
+// pages — one admin opening a detail page bumps it for every admin, so this
+// lives in D1. (The list pages' search box text is deliberately kept local;
+// see the SEARCH_KEY handling in teachers.html/students.html/courses.html.)
+const RECENTLY_VIEWED_TYPES = new Set(['teacher', 'student', 'course']);
+
+async function handleRecentlyViewedMark(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const type = url.searchParams.get('type') || '';
+  const id = Number(url.searchParams.get('id'));
+
+  if (!RECENTLY_VIEWED_TYPES.has(type) || !Number.isInteger(id) || id <= 0) {
+    return Response.json({ error: '缺少或無效的 type/id' }, { status: 400 });
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO recently_viewed (entity_type, entity_id, viewed_at) VALUES (?, ?, ?)
+     ON CONFLICT (entity_type, entity_id) DO UPDATE SET viewed_at = excluded.viewed_at`
+  ).bind(type, id, Date.now()).run();
+
+  return Response.json({ ok: true });
+}
+
+async function handleRecentlyViewedList(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const type = url.searchParams.get('type') || '';
+
+  if (!RECENTLY_VIEWED_TYPES.has(type)) {
+    return Response.json({ error: '缺少或無效的 type' }, { status: 400 });
+  }
+
+  const { results } = await env.DB.prepare(
+    `SELECT entity_id, viewed_at FROM recently_viewed WHERE entity_type = ?`
+  ).bind(type).all<{ entity_id: number; viewed_at: number }>();
+
+  const map: Record<number, number> = {};
+  for (const row of results) map[row.entity_id] = row.viewed_at;
+  return Response.json(map);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -146,6 +246,18 @@ export default {
     }
     if (url.pathname === '/api/otp/verify' && request.method === 'POST') {
       return handleOtpVerify(request, env);
+    }
+    if (url.pathname === '/api/avatar/upload' && request.method === 'PUT') {
+      return handleAvatarUpload(request, env);
+    }
+    if ((url.pathname.startsWith('/avatars/') || url.pathname.startsWith('/courses/')) && request.method === 'GET') {
+      return handleAvatarGet(request, env, url.pathname.slice(1));
+    }
+    if (url.pathname === '/api/recently-viewed' && request.method === 'PUT') {
+      return handleRecentlyViewedMark(request, env);
+    }
+    if (url.pathname === '/api/recently-viewed' && request.method === 'GET') {
+      return handleRecentlyViewedList(request, env);
     }
 
     return env.ASSETS.fetch(request);

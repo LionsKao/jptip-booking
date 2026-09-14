@@ -17,66 +17,11 @@
   #card-basic { max-width: 800px; width: 100%; margin: 0 auto var(--space-5); }
   #card-receipt { max-width: 800px; width: 100%; margin: 0 auto; }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .avatar-picker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-5);
-  }
-  .avatar-picker-preview {
-    flex: none;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-  }
-  .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
-  @keyframes avatarSwap {
-    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-    40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
-    100% { transform: scale(1) rotate(360deg); opacity: 1; }
-  }
-  .avatar-picker-preview img.avatar-swap { animation: avatarSwap .4s ease; }
-
-  .form-field { margin-bottom: var(--space-4); }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
   @media (max-width: 480px) {
     .field-row { grid-template-columns: 1fr; }
   }
-  .form-field label {
-    display: block;
-    margin-bottom: var(--space-2);
-    font-weight: 700;
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-  }
-  .text-input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    font-variant-numeric: tabular-nums;
-    color: var(--text-main);
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 12px 16px;
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .text-input:focus {
-    outline: none;
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
-  }
+  .text-input { font-variant-numeric: tabular-nums; }
 
   .wizard-nav {
     display: flex;
@@ -86,96 +31,6 @@
   }
   .wizard-nav .btn { min-width: 160px; }
 
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-
-  .status-toggle-wrap {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-  .status-toggle-text {
-    font-weight: 700;
-    font-size: var(--fs-body);
-    color: var(--text-muted);
-  }
-  .status-toggle {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-  }
-  .status-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .status-toggle-track {
-    width: 74px;
-    height: 42px;
-    border-radius: var(--radius-pill);
-    background: var(--line);
-    position: relative;
-    flex: none;
-    transition: background-color .2s ease;
-  }
-  .status-toggle-thumb {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: var(--shadow-sm);
-    transition: transform .2s ease;
-  }
-  .status-toggle input:checked + .status-toggle-track {
-    background: var(--color-green);
-  }
-  .status-toggle input:checked + .status-toggle-track .status-toggle-thumb {
-    transform: translateX(32px);
-  }
-
-  .field-info-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 15px;
-    cursor: pointer;
-    vertical-align: middle;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .field-info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
-
-  .crop-container {
-    width: 320px;
-    height: 320px;
-    max-width: 100%;
-    margin: var(--space-4) auto;
-    background: #1a1a1a;
-    overflow: hidden;
-  }
-  .crop-container img { display: block; max-width: 100%; }
-
-  .form-field label i { color: var(--text-muted); margin-right: 4px; }
   .receipt-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -200,10 +55,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -239,17 +90,17 @@
     <div class="field-row">
       <div class="form-field">
         <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
-        <input type="text" id="edit-name" class="text-input">
+        <input type="text" id="edit-name" class="text-input" maxlength="50">
       </div>
       <div class="form-field">
         <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
-        <input type="tel" id="edit-phone" class="text-input">
+        <input type="tel" id="edit-phone" class="text-input" maxlength="15">
       </div>
     </div>
     <div class="field-row">
       <div class="form-field">
         <label for="edit-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
-        <input type="email" id="edit-email" class="text-input">
+        <input type="email" id="edit-email" class="text-input" maxlength="100">
       </div>
       <div class="form-field">
         <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
@@ -265,11 +116,11 @@
     <div class="field-row">
       <div class="form-field">
         <label for="edit-specialty"><i class="fa-solid fa-fw fa-star"></i> 專長</label>
-        <input type="text" id="edit-specialty" class="text-input" placeholder="例：日文會話・5 年教學經驗">
+        <input type="text" id="edit-specialty" class="text-input" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
       </div>
       <div class="form-field">
         <label for="edit-motto"><i class="fa-solid fa-fw fa-quote-left"></i> 座右銘</label>
-        <input type="text" id="edit-motto" class="text-input" placeholder="例：一緒に学び、共に成長していきましょう。">
+        <input type="text" id="edit-motto" class="text-input" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
       </div>
     </div>
 
@@ -284,19 +135,19 @@
     <div class="receipt-grid">
       <div class="form-field">
         <label for="receipt-address"><i class="fa-solid fa-fw fa-house"></i> 老師地址</label>
-        <input type="text" id="receipt-address" class="text-input">
+        <input type="text" id="receipt-address" class="text-input" maxlength="200">
       </div>
       <div class="form-field">
         <label for="receipt-company-name"><i class="fa-solid fa-fw fa-building"></i> 公司名稱</label>
-        <input type="text" id="receipt-company-name" class="text-input">
+        <input type="text" id="receipt-company-name" class="text-input" maxlength="100">
       </div>
       <div class="form-field">
         <label for="receipt-company-address"><i class="fa-solid fa-fw fa-location-dot"></i> 公司地址</label>
-        <input type="text" id="receipt-company-address" class="text-input">
+        <input type="text" id="receipt-company-address" class="text-input" maxlength="200">
       </div>
       <div class="form-field">
         <label for="receipt-wage"><i class="fa-solid fa-fw fa-sack-dollar"></i> 時薪</label>
-        <input type="text" id="receipt-wage" class="text-input" inputmode="numeric" pattern="[0-9]*">
+        <input type="text" id="receipt-wage" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="10">
       </div>
       <div class="form-field">
         <label><i class="fa-solid fa-fw fa-receipt"></i> 消費稅</label>
@@ -311,19 +162,19 @@
       </div>
       <div class="form-field">
         <label for="receipt-bank"><i class="fa-solid fa-fw fa-building-columns"></i> 銀行</label>
-        <input type="text" id="receipt-bank" class="text-input">
+        <input type="text" id="receipt-bank" class="text-input" maxlength="50">
       </div>
       <div class="form-field">
         <label for="receipt-bank-branch"><i class="fa-solid fa-fw fa-building"></i> 支店名</label>
-        <input type="text" id="receipt-bank-branch" class="text-input">
+        <input type="text" id="receipt-bank-branch" class="text-input" maxlength="50">
       </div>
       <div class="form-field">
         <label for="receipt-bank-branch-no"><i class="fa-solid fa-fw fa-hashtag"></i> 店番</label>
-        <input type="text" id="receipt-bank-branch-no" class="text-input">
+        <input type="text" id="receipt-bank-branch-no" class="text-input" maxlength="10">
       </div>
       <div class="form-field">
         <label for="receipt-bank-account-no"><i class="fa-solid fa-fw fa-credit-card"></i> 口座番号</label>
-        <input type="text" id="receipt-bank-account-no" class="text-input">
+        <input type="text" id="receipt-bank-account-no" class="text-input" maxlength="20">
       </div>
     </div>
 
@@ -337,7 +188,7 @@
 <div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
@@ -348,7 +199,7 @@
 <div class="modal-overlay" id="editSuccessModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
     <h3>已更新老師資料</h3>
     <div class="modal-actions">
       <button class="btn blue" id="edit-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
@@ -412,6 +263,7 @@
     function setStatusToggle(isActive) {
       document.getElementById('edit-status-toggle').checked = isActive;
       document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+      document.querySelector('.avatar-picker-preview').classList.toggle('is-inactive', !isActive);
     }
     setStatusToggle(teacher.status !== 'inactive');
     document.getElementById('edit-status-toggle').addEventListener('change', (e) => {
@@ -425,6 +277,11 @@
       avatarImg.classList.remove('avatar-swap');
       void avatarImg.offsetWidth;
       avatarImg.classList.add('avatar-swap');
+    }
+
+    // 上傳完成後把 currentAvatar 換成 R2 路徑，畫面上是同一張圖，不需要再播一次切換動畫
+    function setAvatarQuiet(newAvatar) {
+      currentAvatar = newAvatar;
     }
 
     document.getElementById('edit-avatar-random-btn').addEventListener('click', () => {
@@ -471,7 +328,18 @@
     document.getElementById('avatar-crop-confirm-btn').addEventListener('click', () => {
       if (!cropper) return;
       const canvas = cropper.getCroppedCanvas({ width: CROP_OUTPUT_SIZE, height: CROP_OUTPUT_SIZE });
-      setAvatar(canvas.toDataURL('image/jpeg', 0.8));
+      setAvatar(canvas.toDataURL('image/jpeg', 0.8)); // 先本地預覽，上傳完成後再換成 R2 的相對路徑
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        fetch(`/api/avatar/upload?role=teacher&id=${teacherId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: blob,
+        })
+          .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+          .then((data) => setAvatarQuiet(data.path))
+          .catch((err) => console.warn('頭像上傳失敗，暫時沿用本地預覽', err));
+      }, 'image/jpeg', 0.8);
       closeCropModal();
     });
 
@@ -503,9 +371,12 @@
       teacher.motto = document.getElementById('edit-motto').value.trim();
       teacher.avatar = currentAvatar;
       teacher.status = document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive';
+      teacher.receipt = teacher.receipt || {};
+      teacher.receipt.timezone = getDropdownValue('receipt-timezone-dropdown');
       saveTeachers(teachers);
       document.getElementById('edit-phone').value = formatPhoneDisplay(phone);
       document.getElementById('editSuccessModal').classList.add('open');
+      initialSnapshot = getFormSnapshot();
     });
 
     teacher.receipt = teacher.receipt || {};
@@ -517,7 +388,7 @@
     document.getElementById('receipt-bank-branch').value = teacher.receipt.bankBranch || '';
     document.getElementById('receipt-bank-branch-no').value = teacher.receipt.bankBranchNo || '';
     document.getElementById('receipt-bank-account-no').value = teacher.receipt.bankAccountNo || '';
-    setDropdownValue('receipt-tax-dropdown', teacher.receipt.taxRate);
+    setDropdownValue('receipt-tax-dropdown', teacher.receipt.taxRate || '0%');
     setDropdownValue('receipt-timezone-dropdown', teacher.receipt.timezone || '(UTC+9) 大阪、札幌、東京');
 
     document.getElementById('receipt-wage').addEventListener('input', (e) => {
@@ -539,6 +410,7 @@
       };
       saveTeachers(teachers);
       document.getElementById('editSuccessModal').classList.add('open');
+      initialSnapshot = getFormSnapshot();
     });
 
     document.getElementById('edit-success-ok-btn').addEventListener('click', () => {
@@ -567,7 +439,7 @@
       });
     }
 
-    const initialSnapshot = getFormSnapshot();
+    let initialSnapshot = getFormSnapshot();
 
     document.getElementById('back-btn').addEventListener('click', () => {
       if (getFormSnapshot() !== initialSnapshot) {

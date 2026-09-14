@@ -20,84 +20,10 @@
     margin-right: auto;
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .avatar-picker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-5);
-  }
-  .avatar-picker-preview {
-    flex: none;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-  }
-  .avatar-picker-preview img { width: 100%; height: 100%; object-fit: cover; }
-  @keyframes avatarSwap {
-    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-    40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
-    100% { transform: scale(1) rotate(360deg); opacity: 1; }
-  }
-  .avatar-picker-preview img.avatar-swap { animation: avatarSwap .4s ease; }
-
-  .form-field { margin-bottom: var(--space-4); }
-  .form-field label {
-    display: block;
-    margin-bottom: var(--space-2);
-    font-weight: 700;
-    font-size: var(--fs-small);
-    color: var(--text-muted);
-  }
-  .form-field label i { color: var(--text-muted); margin-right: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
-  #add-status-dropdown,
   #add-timezone-dropdown { width: 100%; }
   @media (max-width: 480px) {
     .field-row { grid-template-columns: 1fr; }
-  }
-  .field-info-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 15px;
-    cursor: pointer;
-    vertical-align: middle;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .field-info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
-  .text-input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-cn);
-    font-size: var(--fs-body);
-    color: var(--text-main);
-    background: var(--bg-card);
-    border: 3px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 12px 16px;
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-  .text-input:focus {
-    outline: none;
-    border-color: var(--color-blue);
-    box-shadow: 0 0 0 4px rgba(111, 200, 232, .14);
   }
 
   .wizard-nav {
@@ -109,18 +35,6 @@
   }
   .wizard-nav .btn { min-width: 160px; }
 
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.warning { background: rgba(255, 232, 163, .45); color: #8a6d1a; }
-  .modal-icon.success { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.danger  { background: rgba(255, 138, 138, .18); color: var(--color-red); }
-  .modal-icon.info    { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-
   @media (max-width: 1048px) {
     body.admin-page .page {
       max-width: 100%;
@@ -129,10 +43,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -158,38 +68,29 @@
     <div class="avatar-picker">
       <span class="avatar-picker-preview"><img id="add-avatar-preview" src="" alt=""></span>
       <button type="button" class="btn outline sm" id="add-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <div class="status-toggle-wrap">
+        <span class="status-toggle-text" id="status-toggle-text">停用</span>
+        <label class="status-toggle">
+          <input type="checkbox" id="add-status-toggle">
+          <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
+        </label>
+      </div>
     </div>
 
     <div class="field-row">
       <div class="form-field">
         <label for="add-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
-        <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名">
+        <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名" maxlength="50">
       </div>
       <div class="form-field">
         <label for="add-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
-        <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼">
+        <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼" maxlength="15">
       </div>
     </div>
     <div class="field-row">
       <div class="form-field">
         <label for="add-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
-        <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email">
-      </div>
-      <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-power-off"></i> 狀態 <button type="button" class="field-info-btn" id="status-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
-        <div class="dropdown" id="add-status-dropdown" data-placeholder="選擇狀態">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇狀態</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
-          <ul class="dropdown-menu">
-            <li data-value="啟用">啟用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="停用">停用<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="form-field">
-        <label for="add-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
-        <input type="url" id="add-teams-link" class="text-input" placeholder="請輸入 Teams 會議室連結">
+        <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email" maxlength="100">
       </div>
       <div class="form-field">
         <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
@@ -200,6 +101,12 @@
             <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field" style="grid-column: span 2;">
+        <label for="add-teams-link"><i class="fa-solid fa-fw fa-video"></i> Teams 會議室連結</label>
+        <input type="url" id="add-teams-link" class="text-input" placeholder="請輸入 Teams 會議室連結" maxlength="200">
       </div>
     </div>
   </section>
@@ -213,7 +120,7 @@
 <div class="modal-overlay" id="studentAddAlertModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="studentAddAlertText"></h3>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
@@ -221,25 +128,25 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="studentAddSuccessModal" data-modal-persistent>
+<div class="modal-overlay" id="statusLockModal">
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-circle-check"></i></div>
-    <h3>已新增學生</h3>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
+    <h3>尚無法啟用</h3>
+    <p class="text-small">請先新增這位學生，並在學生詳情頁面設定已購買的課程，再啟用帳號。</p>
     <div class="modal-actions">
-      <button class="btn blue" id="student-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="statusInfoModal">
+<div class="modal-overlay" id="studentAddSuccessModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
-    <h3>狀態</h3>
-    <p class="text-small">學生停用後，無法再登入預約系統。</p>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
+    <h3>已新增學生</h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" id="student-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
     </div>
   </div>
 </div>
@@ -272,11 +179,17 @@
     avatarImg.classList.add('avatar-swap');
   });
 
-  setDropdownValue('add-status-dropdown', '啟用');
   setDropdownValue('add-timezone-dropdown', '(UTC+8) 台北');
+  document.querySelector('.avatar-picker-preview').classList.add('is-inactive');
 
-  document.getElementById('status-info-btn').addEventListener('click', () => {
-    document.getElementById('statusInfoModal').classList.add('open');
+  document.getElementById('add-status-toggle').addEventListener('change', (e) => {
+    if (e.target.checked) {
+      e.target.checked = false;
+      document.getElementById('statusLockModal').classList.add('open');
+      return;
+    }
+    document.getElementById('status-toggle-text').textContent = '停用';
+    document.querySelector('.avatar-picker-preview').classList.add('is-inactive');
   });
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -286,13 +199,28 @@
     document.getElementById('studentAddAlertModal').classList.add('open');
   }
 
-  document.getElementById('add-submit-btn').addEventListener('click', () => {
-    const name = document.getElementById('add-name').value.trim();
-    const phone = document.getElementById('add-phone').value.trim();
-    const email = document.getElementById('add-email').value.trim();
-    const teamsLink = document.getElementById('add-teams-link').value.trim();
+  ['add-name', 'add-phone', 'add-email', 'add-teams-link'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      e.target.classList.remove('input-error');
+    });
+  });
 
-    if (!name || !phone || !email) {
+  document.getElementById('add-submit-btn').addEventListener('click', () => {
+    const nameEl = document.getElementById('add-name');
+    const phoneEl = document.getElementById('add-phone');
+    const emailEl = document.getElementById('add-email');
+    const teamsLinkEl = document.getElementById('add-teams-link');
+    const name = nameEl.value.trim();
+    const phone = phoneEl.value.trim();
+    const email = emailEl.value.trim();
+    const teamsLink = teamsLinkEl.value.trim();
+
+    nameEl.classList.toggle('input-error', !name);
+    phoneEl.classList.toggle('input-error', !phone);
+    emailEl.classList.toggle('input-error', !email || !EMAIL_RE.test(email));
+    teamsLinkEl.classList.toggle('input-error', !teamsLink);
+
+    if (!name || !phone || !email || !teamsLink) {
       showAddAlert('請填寫完整資料');
       return;
     }
@@ -306,7 +234,7 @@
       id: Date.now(),
       name, phone: phone.replace(/\D/g, ''), email, teamsLink,
       avatar: currentAvatar,
-      status: getDropdownValue('add-status-dropdown') === '停用' ? 'inactive' : 'active',
+      status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
       timezone: getDropdownValue('add-timezone-dropdown'),
       lastViewedAt: Date.now(),
       courses: [],

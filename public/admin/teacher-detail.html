@@ -10,38 +10,12 @@
 <link rel="stylesheet" href="../style.css">
 <style>
   body.admin-page .page {
-    max-width: 500px;
+    max-width: 548px;
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
   }
-
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
-  .teacher-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-  }
-  .teacher-header-avatar {
-    flex: none;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--line);
-    background: var(--bg-card-alt);
-  }
-  .teacher-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .teacher-header h2 { margin: 0; }
-  .teacher-header-name { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-  .pill.tone-muted { background: var(--bg-card-alt); color: var(--text-muted); }
 
   .dash-card {
     display: flex;
@@ -77,10 +51,6 @@
   .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.admin-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -111,6 +81,14 @@
     </span>
   </button>
 
+  <button type="button" class="dash-card" id="courses-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/books.png" alt=""></span>
+    <span>
+      <h3>可教課程</h3>
+      <p>設定老師可以教的課程</p>
+    </span>
+  </button>
+
   <button type="button" class="dash-card" id="leave-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/summer-holidays.png" alt=""></span>
     <span>
@@ -127,11 +105,11 @@
     </span>
   </button>
 
-  <button type="button" class="dash-card" id="courses-entry-card">
-    <span class="dash-card-icon"><img src="../assets/icons/books.png" alt=""></span>
+  <button type="button" class="dash-card" id="lessons-entry-card">
+    <span class="dash-card-icon"><img src="../assets/icons/coming-soon.png" alt=""></span>
     <span>
-      <h3>可教課程</h3>
-      <p>設定老師可以教的課程</p>
+      <h3>老師的課程</h3>
+      <p>查看這位老師的課程與預約紀錄</p>
     </span>
   </button>
 
@@ -150,6 +128,8 @@
   } else {
     teacher.lastViewedAt = Date.now();
     saveTeachers(teachers);
+    // 「最近點擊」要讓所有管理者共用，寫進 D1（失敗就算了，不影響本頁瀏覽）
+    fetch(`/api/recently-viewed?type=teacher&id=${teacher.id}`, { method: 'PUT' }).catch(() => {});
 
     document.getElementById('teacher-header-avatar-img').src = avatarSrc(teacher.avatar);
     document.getElementById('teacher-header-name').textContent = teacher.name;
@@ -166,6 +146,9 @@
     });
     document.getElementById('courses-entry-card').addEventListener('click', () => {
       window.location.href = `teacher-courses.html?id=${teacher.id}`;
+    });
+    document.getElementById('lessons-entry-card').addEventListener('click', () => {
+      window.location.href = `../teacher/lessons.html?teacherId=${teacher.id}`;
     });
 
     document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));

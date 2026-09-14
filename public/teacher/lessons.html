@@ -14,13 +14,6 @@
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
   }
 
-  .back-header {
-    position: absolute;
-    top: var(--space-6);
-    left: var(--space-6);
-    z-index: 10;
-  }
-
   .page-nav {
     display: flex;
     justify-content: center;
@@ -33,9 +26,6 @@
     justify-content: center;
     gap: var(--space-4);
     margin-top: var(--space-6);
-  }
-  .wizard-nav[hidden] {
-    display: none;
   }
   .wizard-nav .btn { min-width: 160px; }
 
@@ -70,55 +60,6 @@
     margin-right: auto;
   }
 
-  .confirm-highlight:hover {
-    border-color: var(--color-blue);
-  }
-  #lesson-detail-view .confirm-highlight {
-    padding: 14px 20px;
-    gap: var(--space-4);
-  }
-  #lesson-detail-view .confirm-highlight-icon {
-    width: 44px;
-    height: 44px;
-  }
-  #lesson-detail-view .confirm-highlight h3 {
-    margin: 0 0 2px;
-    font-size: 1.0625rem;
-  }
-  #lesson-detail-view .confirm-highlight p {
-    font-size: 0.8125rem;
-  }
-  .tz-tag {
-    font-size: var(--fs-small);
-    font-weight: 400;
-    color: var(--text-muted);
-    margin-left: 4px;
-  }
-
-  .info-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    opacity: .45;
-    font-size: 18px;
-    cursor: pointer;
-    transition: color .2s ease, opacity .2s ease;
-  }
-  .info-btn:hover {
-    color: var(--color-blue);
-    opacity: 1;
-  }
-
-  #lesson-detail-view .section {
-    position: relative;
-    max-width: 550px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
   .booking-card.is-clickable {
     cursor: pointer;
   }
@@ -126,36 +67,7 @@
     border-color: var(--color-blue);
   }
 
-  .booking-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 160px;
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-lg);
-    border: 3px solid var(--line);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    will-change: transform;
-    transform-style: preserve-3d;
-    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
-  }
-  .booking-card-empty:hover {
-    border-color: var(--color-blue);
-  }
-
-  .modal-icon {
-    width: 76px; height: 76px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem;
-    margin: 0 auto var(--space-4);
-  }
-  .modal-icon.success  { background: rgba(180, 225, 151, .3); color: #558035; }
-  .modal-icon.info     { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
-  .modal-icon.timezone { background: rgba(159, 148, 220, .2); color: var(--color-purple); }
+  .booking-card-empty { min-height: 160px; }
 
   @media (max-width: 640px) {
     .wizard-nav {
@@ -173,10 +85,6 @@
     }
   }
   @media (max-width: 640px) {
-    .back-header {
-      top: var(--space-3);
-      left: var(--space-3);
-    }
     body.teacher-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
@@ -345,11 +253,13 @@
     upcoming:  { cls: 'pill info has-icon',      icon: 'icon-hourglass.png', label: '預約' },
     attended:  { cls: 'pill confirmed has-icon', icon: 'check.png',          label: '完成' },
     cancelled: { cls: 'pill cancelled has-icon', icon: 'close.png',          label: '取消' },
+    absent:    { cls: 'pill tone-navy has-icon', icon: 'question.png',       label: '缺席' },
   };
   const RIBBON_TONE_MAP = {
     upcoming:  { tone: 'tone-blue',  label: '預約' },
     attended:  { tone: 'tone-green', label: '完成' },
     cancelled: { tone: 'tone-red',   label: '取消' },
+    absent:    { tone: 'tone-navy',  label: '缺席' },
   };
 
   // 只保留 60 天內的紀錄，上課日期超過 60 天的舊紀錄不再顯示
@@ -393,7 +303,7 @@
       ? `${shifted.date} ${weekday}`
       : (() => { const [y, m, day] = shifted.date.split('/'); return `${y} 年 ${m} 月 ${day} 日 星期${weekday}`; })();
     const durationLabel = durationLabelStr(durationMinutes);
-    return { dateLabel, timeLabel, durationLabel };
+    return { dateLabel, timeLabel, startTimeLabel: shifted.time, durationLabel };
   }
 
   function formatDateTime(dateStr, timeStr, showTz = true) {
@@ -430,7 +340,7 @@
         ${l.bookingCode ? `<p class="booking-card-code">${l.bookingCode}</p>` : ''}
         <p class="booking-card-course">${l.course}</p>
         <h4>${l.student} ／ ${currentTeacher.name}</h4>
-        <p class="booking-card-datetime">${parts.dateLabel} ${parts.timeLabel}</p>
+        <p class="booking-card-datetime">${parts.dateLabel} ${parts.startTimeLabel}</p>
       </div>
     </div>`;
   }
@@ -440,6 +350,7 @@
       applyTiltEffect(card);
       card.addEventListener('click', () => showLessonDetail(Number(card.dataset.id)));
     });
+    containerEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
   }
 
   function renderTodayGroup() {
@@ -457,19 +368,23 @@
     const cardsEl = document.getElementById('lessons-cards');
     paginate(sortedLessonsDesc, 10, renderLessonCard,
       cardsEl, document.getElementById('lessons-pagination'), lessonsPageState,
-      `<p style="text-align:center;color:var(--text-muted);">尚無課程</p>`,
+      `<div class="booking-card-empty">尚無課程紀錄</div>`,
       bindCardClicks);
   }
 
   renderTodayGroup();
   renderLessonsCards();
 
+  if (adminTeacherId) {
+    document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';
+  }
+
   document.getElementById('back-btn').addEventListener('click', () => {
     if (!document.getElementById('lesson-detail-view').hidden) {
       hideLessonDetail();
       return;
     }
-    window.location.href = 'index.html';
+    window.location.href = adminTeacherId ? `../admin/teacher-detail.html?id=${adminTeacherId}` : 'index.html';
   });
 
   // ==========================================================================
@@ -508,7 +423,7 @@
     activeLessonId = null;
     document.getElementById('lesson-detail-view').hidden = true;
     document.getElementById('lessons-list-view').hidden = false;
-    document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-house';
+    document.getElementById('back-btn-icon').className = adminTeacherId ? 'fa-solid fa-fw fa-arrow-left' : 'fa-solid fa-fw fa-house';
   }
 
   function lessonEndTime(lesson) {

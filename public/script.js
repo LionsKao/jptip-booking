@@ -1,29 +1,4 @@
 // ==========================================================================
-// Toast notifications (shared helper — window.showToast(message, type))
-// type: 'success' | 'error' | 'warning'
-// ==========================================================================
-function showToast(message, type = 'warning', duration = 3200) {
-  let stack = document.querySelector('.toast-stack');
-  if (!stack) {
-    stack = document.createElement('div');
-    stack.className = 'toast-stack';
-    document.body.appendChild(stack);
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${message}</span>`;
-  stack.appendChild(toast);
-
-  requestAnimationFrame(() => toast.classList.add('show'));
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-  }, duration);
-}
-
-// ==========================================================================
 // 共用 mock 資料存取（admin-teachers / admin-students，localStorage）
 // TODO: 之後改接真正的 D1/API
 // ==========================================================================
@@ -41,7 +16,20 @@ const AVATAR_LIST = [
   '051-bear-1.png', '052-sea-lion.png', '053-polar-bear.png',
 ];
 function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
-function avatarSrc(avatar) { return avatar && avatar.startsWith('data:') ? avatar : `../assets/avatars/${avatar}`; }
+function avatarSrc(avatar) {
+  if (!avatar) return `../assets/avatars/${randomAvatar()}`;
+  if (avatar.startsWith('data:')) return avatar; // 舊資料相容：裁切後直接存 base64（尚未上傳到 R2）
+  if (avatar.startsWith('avatars/')) return `/${avatar}`; // R2 上傳的真實頭像，經 Worker /avatars/:key 讀取
+  return `../assets/avatars/${avatar}`; // 隨機動物頭像（打包在 assets 裡的固定圖示）
+}
+
+// 課程封面圖：沒上傳過就回傳空字串（呼叫端自行 fallback 成色塊+文字）
+function courseImageSrc(image) {
+  if (!image) return '';
+  if (image.startsWith('data:')) return image; // 舊資料相容：裁切後直接存 base64（尚未上傳到 R2）
+  if (image.startsWith('courses/')) return `/${image}`; // R2 上傳的真實課程圖，經 Worker /courses/:key 讀取
+  return `../assets/avatars/${image}`; // 隨機圖示（沿用跟老師/學生一樣的動物圖示集）
+}
 
 function loadTeachers() {
   const raw = localStorage.getItem('admin-teachers');
@@ -478,7 +466,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
   const alertText = document.getElementById('login-alert-text');
   const ALERT_ICON_MAP = {
     success: { tone: 'success', icon: 'fa-check' },
-    warning: { tone: 'warning', icon: 'fa-triangle-exclamation' },
+    warning: { tone: 'warning', icon: 'fa-exclamation' },
     error: { tone: 'danger', icon: 'fa-xmark' },
   };
   function showLoginAlert(message, type = 'warning') {
