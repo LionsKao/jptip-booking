@@ -99,19 +99,19 @@
 <div class="page">
 
   <section class="section" id="card-course-add">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>新增可教課程</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2 data-i18n="admin.teachers.courses.addTitle">新增可教課程</h2></div>
 
     <div class="course-add-row">
       <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
-        <button type="button" class="dropdown-trigger"><span class="label">選擇課程</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+        <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.teachers.courses.selectPlaceholder">選擇課程</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
         <ul class="dropdown-menu" id="add-course-menu"></ul>
       </div>
-      <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增可教課程</button>
+      <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.teachers.courses.addTitle">新增可教課程</span></button>
     </div>
   </section>
 
   <section class="section" id="card-courses">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>可教課程</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2 data-i18n="admin.teachers.detail.courses.title">可教課程</h2></div>
     <div id="course-cap-list"></div>
   </section>
 
@@ -123,7 +123,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -132,11 +132,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-graduation-cap"></i></div>
-    <h3>確定新增這門可教課程嗎？</h3>
+    <h3 data-i18n="admin.teachers.courses.addConfirm.title">確定新增這門可教課程嗎？</h3>
     <p class="text-small" id="addCourseConfirmName"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn green" id="add-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定新增</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="add-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.teachers.courses.addConfirm.confirm">確定新增</span></button>
     </div>
   </div>
 </div>
@@ -145,11 +145,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
-    <h3>確定要刪除這門可教課程嗎？</h3>
+    <h3 data-i18n="admin.teachers.courses.deleteConfirm.title">確定要刪除這門可教課程嗎？</h3>
     <p class="text-small" id="deleteCourseConfirmName"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="delete-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 確定刪除</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="delete-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> <span data-i18n="admin.teachers.courses.deleteConfirm.confirm">確定刪除</span></button>
     </div>
   </div>
 </div>
@@ -157,6 +157,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
   // 課程下拉選單原本是寫死的 15 門課程，現在改成抓真正的課程總表（/api/courses），
   // 這樣新課程開課後老師這邊也能立刻選到，不用再改這個頁面的程式碼。
@@ -192,7 +196,7 @@
 
     function resetCourseDropdown() {
       courseMenu.querySelectorAll('li.selected').forEach((li) => li.classList.remove('selected'));
-      courseDropdownLabel.textContent = '選擇課程';
+      courseDropdownLabel.textContent = t('admin.teachers.courses.selectPlaceholder');
     }
 
     function updateCourseDropdownOptions() {
@@ -212,7 +216,7 @@
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        return { ok: false, error: data.error || '儲存失敗，請稍後再試' };
+        return { ok: false, error: data.error || t('admin.common.saveFailed') };
       }
       const data = await res.json();
       teacher.courses = data.courses;
@@ -224,9 +228,9 @@
       listEl.innerHTML = teacher.courses.length
         ? teacher.courses.map((name) => `<div class="course-cap-row">
             <h4>${name}</h4>
-            <button type="button" class="btn sm red" data-name="${name}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>
+            <button type="button" class="btn sm red" data-name="${name}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>
           </div>`).join('')
-        : '<div class="booking-card-empty">沒有設定可教課程</div>';
+        : `<div class="booking-card-empty">${t('admin.teachers.courses.empty')}</div>`;
       listEl.querySelectorAll('.course-cap-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
       listEl.querySelectorAll('.course-cap-row button[data-name]').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -244,7 +248,7 @@
     document.getElementById('add-course-btn').addEventListener('click', () => {
       const value = getDropdownValue('add-course-dropdown');
       if (!value) {
-        showBasicAlert('請先選擇課程');
+        showBasicAlert(t('admin.teachers.courses.selectFirst'));
         return;
       }
       pendingCourseName = value;

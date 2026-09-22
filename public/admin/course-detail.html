@@ -104,15 +104,15 @@
   </div>
 
   <section class="section" id="card-basic">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>基本資料</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="admin.detail.basic.title">基本資料</h2></div>
 
     <div class="avatar-picker">
       <span class="avatar-picker-preview" id="edit-course-image-wrap"><img id="edit-course-image-preview" src="" alt=""></span>
-      <button type="button" class="btn outline sm" id="edit-course-image-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
-      <button type="button" class="btn outline sm" id="edit-course-image-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
+      <button type="button" class="btn outline sm" id="edit-course-image-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> <span data-i18n="admin.common.random">隨機</span></button>
+      <button type="button" class="btn outline sm" id="edit-course-image-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> <span data-i18n="admin.common.uploadImage">上傳圖片</span></button>
       <input type="file" id="edit-course-image-file-input" accept="image/*" hidden>
       <div class="status-toggle-wrap">
-        <span class="status-toggle-text" id="status-toggle-text">啟用</span>
+        <span class="status-toggle-text" id="status-toggle-text" data-i18n="admin.common.enabled">啟用</span>
         <label class="status-toggle">
           <input type="checkbox" id="edit-status-toggle">
           <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
@@ -122,95 +122,95 @@
 
     <div class="field-row">
       <div class="form-field">
-        <label for="edit-course-name"><i class="fa-solid fa-fw fa-book"></i> 課程名稱</label>
+        <label for="edit-course-name"><i class="fa-solid fa-fw fa-book"></i> <span data-i18n="admin.courses.field.name">課程名稱</span></label>
         <input type="text" id="edit-course-name" class="text-input" maxlength="25">
       </div>
       <div class="form-field">
-        <label for="edit-course-description"><i class="fa-solid fa-fw fa-align-left"></i> 描述</label>
-        <input type="text" id="edit-course-description" class="text-input" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
+        <label for="edit-course-description"><i class="fa-solid fa-fw fa-align-left"></i> <span data-i18n="admin.courses.field.description">描述</span></label>
+        <input type="text" id="edit-course-description" class="text-input" data-i18n-placeholder="admin.courses.field.descriptionPlaceholder" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
       </div>
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="basic-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+      <button type="button" class="btn blue" id="basic-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
   <section class="section" id="card-schedule">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2>時間參數設定</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2 data-i18n="admin.courses.schedule.title">時間參數設定</h2></div>
 
     <div class="field-row">
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-clock"></i> 上課時間</label>
+        <label><i class="fa-solid fa-fw fa-clock"></i> <span data-i18n="admin.courses.schedule.duration">上課時間</span></label>
         <div class="duration-inputs">
           <div class="duration-unit">
             <input type="text" id="duration-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-            <span>時</span>
+            <span data-i18n="admin.common.hourUnit">時</span>
           </div>
           <div class="duration-unit">
             <input type="text" id="duration-minutes" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-            <span>分</span>
+            <span data-i18n="admin.common.minuteUnit">分</span>
           </div>
         </div>
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-list"></i> 時間增量</label>
+        <label><i class="fa-solid fa-fw fa-list"></i> <span data-i18n="admin.courses.schedule.increment">時間增量</span></label>
         <div class="dropdown" id="schedule-increment-dropdown" data-placeholder="選擇時間增量">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇時間增量</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.courses.schedule.selectIncrement">選擇時間增量</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
-            <li data-value="30 分鐘">30 分鐘<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="1 小時">1 小時<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="30 分鐘"><span data-i18n="admin.courses.schedule.increment30">30 分鐘</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="1 小時"><span data-i18n="admin.courses.schedule.increment60">1 小時</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
       </div>
     </div>
     <div class="field-row">
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-hourglass-start"></i> 前緩衝時間</label>
+        <label><i class="fa-solid fa-fw fa-hourglass-start"></i> <span data-i18n="admin.courses.schedule.bufferBefore">前緩衝時間</span></label>
         <div class="duration-inputs">
           <div class="duration-unit">
             <input type="text" id="buffer-before-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-            <span>時</span>
+            <span data-i18n="admin.common.hourUnit">時</span>
           </div>
           <div class="duration-unit">
             <input type="text" id="buffer-before-minutes" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-            <span>分</span>
+            <span data-i18n="admin.common.minuteUnit">分</span>
           </div>
         </div>
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-hourglass-end"></i> 後緩衝時間</label>
+        <label><i class="fa-solid fa-fw fa-hourglass-end"></i> <span data-i18n="admin.courses.schedule.bufferAfter">後緩衝時間</span></label>
         <div class="duration-inputs">
           <div class="duration-unit">
             <input type="text" id="buffer-after-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-            <span>時</span>
+            <span data-i18n="admin.common.hourUnit">時</span>
           </div>
           <div class="duration-unit">
             <input type="text" id="buffer-after-minutes" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-            <span>分</span>
+            <span data-i18n="admin.common.minuteUnit">分</span>
           </div>
         </div>
       </div>
     </div>
     <div class="field-row">
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-stopwatch"></i> 不可預約／不可取消 <button type="button" class="field-info-btn" id="min-lead-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
+        <label><i class="fa-solid fa-fw fa-stopwatch"></i> <span data-i18n="admin.courses.schedule.minLead">不可預約／不可取消</span> <button type="button" class="field-info-btn" id="min-lead-info-btn" data-i18n-aria-label="admin.common.viewInfo" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
         <div class="duration-unit">
           <input type="text" id="min-lead-hours" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-          <span>小時內</span>
+          <span data-i18n="admin.courses.schedule.withinHours">小時內</span>
         </div>
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-calendar-days"></i> 最久可預約的日期 <button type="button" class="field-info-btn" id="max-lead-info-btn" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
+        <label><i class="fa-solid fa-fw fa-calendar-days"></i> <span data-i18n="admin.courses.schedule.maxLead">最久可預約的日期</span> <button type="button" class="field-info-btn" id="max-lead-info-btn" data-i18n-aria-label="admin.common.viewInfo" aria-label="查看說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></label>
         <div class="duration-unit">
           <input type="text" id="max-lead-days" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="2">
-          <span>天內</span>
+          <span data-i18n="admin.courses.schedule.withinDays">天內</span>
         </div>
       </div>
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="schedule-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+      <button type="button" class="btn blue" id="schedule-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -219,14 +219,14 @@
 <div class="modal-overlay" id="courseImageCropModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" id="course-image-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <h3>裁切課程圖片</h3>
-    <p class="text-small">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
+    <h3 data-i18n="admin.courses.cropImage.title">裁切課程圖片</h3>
+    <p class="text-small" data-i18n="admin.common.cropAvatar.desc">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
     <div class="crop-container">
       <img id="course-image-crop-image" alt="">
     </div>
     <div class="modal-actions">
-      <button class="btn outline" id="course-image-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn blue" id="course-image-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確認裁切</button>
+      <button class="btn outline" id="course-image-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn blue" id="course-image-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmCrop">確認裁切</span></button>
     </div>
   </div>
 </div>
@@ -237,7 +237,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -246,9 +246,9 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
-    <h3>已更新課程資料</h3>
+    <h3 data-i18n="admin.courses.updateSuccess">已更新課程資料</h3>
     <div class="modal-actions">
-      <button class="btn blue" id="edit-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" id="edit-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -257,11 +257,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">目前修改的資料將不會保留。</p>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="admin.common.unsavedEditDesc">目前修改的資料將不會保留。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
     </div>
   </div>
 </div>
@@ -270,11 +270,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
-    <h3>不可預約／不可取消</h3>
-    <p class="text-small">課程開始前的這段時間內，學生無法預約，也無法取消這堂課。</p>
-    <p class="text-small">例如設定 48 小時，代表如果課程再過不到 48 小時就要開始，學生就不能預約這堂課，也不能取消已經預約好的這堂課。這個限制可以讓老師與教務有足夠時間準備上課或安排代課，避免臨時被預約或臨時被取消。</p>
+    <h3 data-i18n="admin.courses.schedule.minLead">不可預約／不可取消</h3>
+    <p class="text-small" data-i18n="admin.courses.minLeadInfo.line1">課程開始前的這段時間內，學生無法預約，也無法取消這堂課。</p>
+    <p class="text-small" data-i18n="admin.courses.minLeadInfo.line2">例如設定 48 小時，代表如果課程再過不到 48 小時就要開始，學生就不能預約這堂課，也不能取消已經預約好的這堂課。這個限制可以讓老師與教務有足夠時間準備上課或安排代課，避免臨時被預約或臨時被取消。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -283,11 +283,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon info"><i class="fa-solid fa-fw fa-circle-info"></i></div>
-    <h3>最久可預約的日期</h3>
-    <p class="text-small">學生最多只能預約到今天加上這個天數以內的課程。</p>
-    <p class="text-small">例如設定 30 天，代表學生今天最遠只能預約到 30 天後的課程，超過這個範圍的日期就不會開放讓學生選擇。這可以避免老師的課表被排到太遠的未來，方便老師與教務安排長期的授課時段。</p>
+    <h3 data-i18n="admin.courses.schedule.maxLead">最久可預約的日期</h3>
+    <p class="text-small" data-i18n="admin.courses.maxLeadInfo.line1">學生最多只能預約到今天加上這個天數以內的課程。</p>
+    <p class="text-small" data-i18n="admin.courses.maxLeadInfo.line2">例如設定 30 天，代表學生今天最遠只能預約到 30 天後的課程，超過這個範圍的日期就不會開放讓學生選擇。這可以避免老師的課表被排到太遠的未來，方便老師與教務安排長期的授課時段。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -296,6 +296,15 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+  // 時間增量下拉選單的 value 要維持固定中文（跟課程資料/booking.html 的比對邏輯一致），
+  // 顯示文字才翻譯——幫每個 <li> 補上 data-label。
+  document.querySelectorAll('#schedule-increment-dropdown .dropdown-menu li[data-value]').forEach((li) => {
+    li.dataset.label = li.querySelector('[data-i18n]').textContent;
+  });
+
   function courseBadge(name) {
     const match = name.match(/J(\d+)/);
     if (match) return { label: `J${match[1]}`, color: `var(--level-j${match[1]})` };
@@ -329,7 +338,7 @@
 
     function setStatusToggle(isActive) {
       document.getElementById('edit-status-toggle').checked = isActive;
-      document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+      document.getElementById('status-toggle-text').textContent = isActive ? t('admin.common.enabled') : t('admin.common.disabled');
       document.getElementById('edit-course-image-wrap').classList.toggle('is-inactive', !isActive);
     }
     setStatusToggle(course.status !== 'inactive');
@@ -467,7 +476,7 @@
     document.getElementById('basic-submit-btn').addEventListener('click', async () => {
       const name = document.getElementById('edit-course-name').value.trim();
       if (!name) {
-        showBasicAlert('請填寫課程名稱');
+        showBasicAlert(t('admin.courses.fillNameRequired'));
         return;
       }
 
@@ -477,7 +486,7 @@
         image: currentImage,
         status: document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive',
       });
-      if (!ok) { showBasicAlert('儲存失敗，請稍後再試'); return; }
+      if (!ok) { showBasicAlert(t('admin.common.saveFailed')); return; }
 
       renderHeader();
       document.getElementById('editSuccessModal').classList.add('open');
@@ -493,7 +502,7 @@
         minLeadHours: Number(document.getElementById('min-lead-hours').value || 0),
         maxLeadDays: Number(document.getElementById('max-lead-days').value || 0),
       });
-      if (!ok) { showBasicAlert('儲存失敗，請稍後再試'); return; }
+      if (!ok) { showBasicAlert(t('admin.common.saveFailed')); return; }
 
       document.getElementById('editSuccessModal').classList.add('open');
       initialSnapshot = getFormSnapshot();

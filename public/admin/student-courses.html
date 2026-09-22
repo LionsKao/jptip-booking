@@ -115,19 +115,19 @@
 <div class="page">
 
   <section class="section" id="card-add-course">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/add-event.png" alt=""><h2>新增課程</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/add-event.png" alt=""><h2 data-i18n="admin.courses.addNew">新增課程</h2></div>
 
     <div class="course-add-row">
       <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
-        <button type="button" class="dropdown-trigger"><span class="label">選擇課程</span><span class="arrow"></span></button>
+        <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.teachers.courses.selectPlaceholder">選擇課程</span><span class="arrow"></span></button>
         <ul class="dropdown-menu" id="add-course-menu"></ul>
       </div>
-      <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增課程</button>
+      <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.courses.addNew">新增課程</span></button>
     </div>
   </section>
 
   <section class="section" id="card-courses">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2>已購買課程</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.students.courses.title">已購買課程</h2></div>
     <div id="course-list"></div>
   </section>
 
@@ -139,7 +139,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -148,11 +148,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-graduation-cap"></i></div>
-    <h3>確定新增這門課程嗎？</h3>
+    <h3 data-i18n="admin.students.courses.addConfirm.title">確定新增這門課程嗎？</h3>
     <p class="text-small" id="addCourseConfirmName"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn green" id="add-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定新增</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="add-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.teachers.courses.addConfirm.confirm">確定新增</span></button>
     </div>
   </div>
 </div>
@@ -161,11 +161,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
-    <h3>確定要刪除這門課程嗎？</h3>
+    <h3 data-i18n="admin.students.courses.deleteConfirm.title">確定要刪除這門課程嗎？</h3>
     <p class="text-small" id="deleteCourseConfirmName"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="delete-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 確定刪除</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="delete-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> <span data-i18n="admin.teachers.courses.deleteConfirm.confirm">確定刪除</span></button>
     </div>
   </div>
 </div>
@@ -173,6 +173,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const studentId = Number(new URLSearchParams(window.location.search).get('id'));
   const [students, courses] = await Promise.all([
     fetch('/api/students').then((res) => (res.ok ? res.json() : [])),
@@ -206,7 +210,7 @@
   function resetCourseDropdown() {
     const dropdown = document.getElementById('add-course-dropdown');
     dropdown.querySelectorAll('.dropdown-menu li.selected').forEach((li) => li.classList.remove('selected'));
-    dropdown.querySelector('.dropdown-trigger .label').textContent = '選擇課程';
+    dropdown.querySelector('.dropdown-trigger .label').textContent = t('admin.teachers.courses.selectPlaceholder');
   }
 
   function updateCourseDropdownOptions() {
@@ -232,12 +236,12 @@
           const isComplete = bookedNum >= totalSessions && attendedNum >= totalSessions;
           const isEmpty = bookedNum === 0 && attendedNum === 0;
           const ribbon = isComplete
-            ? '<span class="ribbon-clip"><span class="course-ribbon tone-green">完成</span></span>'
-            : (!isEmpty ? '<span class="ribbon-clip"><span class="course-ribbon tone-blue">進行中</span></span>' : '');
+            ? `<span class="ribbon-clip"><span class="course-ribbon tone-green">${t('status.attended')}</span></span>`
+            : (!isEmpty ? `<span class="ribbon-clip"><span class="course-ribbon tone-blue">${t('admin.students.courses.inProgress')}</span></span>` : '');
           const deleteBtn = isEmpty
-            ? `<button type="button" class="btn sm red course-delete-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>`
+            ? `<button type="button" class="btn sm red course-delete-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>`
             : '';
-          const counts = `<p class="course-count">已預約：<b class="course-count-value">${c.booked}</b></p><p class="course-count">已上課：<b class="course-count-value">${c.attended}</b></p>`;
+          const counts = `<p class="course-count">${t('booking.quota.booked')}<b class="course-count-value">${c.booked}</b></p><p class="course-count">${t('booking.quota.attended')}<b class="course-count-value">${c.attended}</b></p>`;
           return `<div class="course-row">
             ${ribbon}
             ${deleteBtn}
@@ -245,7 +249,7 @@
             ${counts}
           </div>`;
         }).join('')
-      : '<div class="booking-card-empty">沒有購買課程</div>';
+      : `<div class="booking-card-empty">${t('admin.students.courses.empty')}</div>`;
     listEl.querySelectorAll('.course-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
     listEl.querySelectorAll('.course-delete-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -266,7 +270,7 @@
     document.getElementById('deleteCourseConfirmModal').classList.remove('open');
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showAlert(data.error || '刪除失敗，請稍後再試');
+      showAlert(data.error || t('admin.common.deleteFailed'));
       return;
     }
     student.courses = student.courses.filter((c) => c.id !== id);
@@ -279,7 +283,7 @@
   document.getElementById('add-course-btn').addEventListener('click', () => {
     const value = getDropdownValue('add-course-dropdown');
     if (!value) {
-      showAlert('請先選擇課程');
+      showAlert(t('admin.teachers.courses.selectFirst'));
       return;
     }
     pendingCourseName = value;
@@ -298,7 +302,7 @@
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       pendingCourseName = null;
-      showAlert(data.error || '新增失敗，請稍後再試');
+      showAlert(data.error || t('hours.error.addFailed'));
       return;
     }
     const created = await res.json();
