@@ -156,5 +156,57 @@
   "lessons.completeConfirm.title": "確定要完成課程嗎？",
   "lessons.recordInfo.title": "課程只顯示 60 天內",
   "lessons.recordInfo.desc": "從今天往回算 60 天，超過的課程紀錄就不會再顯示囉。",
-  "lessons.error.updateFailed": "更新失敗，請稍後再試"
+  "lessons.error.updateFailed": "更新失敗，請稍後再試",
+
+  "admin.dash.bookings.title": "預約紀錄",
+  "admin.dash.bookings.desc": "查看所有學生的預約總覽",
+  "admin.dash.students.title": "學生管理",
+  "admin.dash.students.desc": "查看與管理學生帳號資料",
+  "admin.dash.teachers.title": "老師管理",
+  "admin.dash.teachers.desc": "查看與管理老師帳號資料",
+  "admin.dash.courses.title": "課程管理",
+  "admin.dash.courses.desc": "設定課程項目與預約規則",
+
+  "admin.common.clearSearch": "清除搜尋",
+  "admin.common.disabled": "停用",
+
+  "admin.students.searchPlaceholder": "搜尋姓名／手機／Email",
+  "admin.students.noMatch": "找不到符合的學生",
+  "admin.students.addNew": "新增學生",
+
+  "admin.teachers.noMatch": "找不到符合的老師",
+  "admin.teachers.addNew": "新增老師",
+
+  "admin.courses.searchPlaceholder": "搜尋課程名稱",
+  "admin.courses.noMatch": "找不到符合的課程",
+  "admin.courses.addNew": "新增課程",
+
+  "admin.common.random": "隨機",
+  "admin.common.enabled": "啟用",
+  "admin.common.add": "新增",
+  "admin.common.fillRequired": "請填寫完整資料",
+  "admin.common.invalidEmail": "Email 格式不對",
+  "admin.common.unsavedFormDesc": "目前輸入的資料將不會保留。",
+
+  "admin.field.name": "姓名",
+  "admin.field.namePlaceholder": "請輸入姓名",
+  "admin.field.phone": "手機",
+  "admin.field.phonePlaceholder": "請輸入手機號碼",
+  "admin.field.emailPlaceholder": "請輸入 Email",
+  "admin.field.timezone": "時區",
+  "admin.field.selectTimezone": "選擇時區",
+  "admin.field.teamsLink": "Teams 會議室連結",
+  "admin.field.teamsLinkPlaceholder": "請輸入 Teams 會議室連結",
+
+  "admin.students.statusLock.title": "尚無法啟用",
+  "admin.students.statusLock.desc": "請先新增這位學生，並在學生詳情頁面設定已購買的課程，再啟用帳號。",
+  "admin.students.addSuccess": "已新增學生",
+
+  "admin.teachers.field.specialty": "專長",
+  "admin.teachers.field.specialtyPlaceholder": "例：日文會話・5 年教學經驗",
+  "admin.teachers.field.motto": "座右銘",
+  "admin.teachers.field.mottoPlaceholder": "例：一緒に学び、共に成長していきましょう。",
+  "admin.teachers.addSuccess": "已新增老師",
+  "admin.teachers.statusLock.title": "還不能啟用",
+  "admin.teachers.statusLock.desc": "新增老師後，請先到「可教課程」與「可上課時段」設定完成，再啟用老師帳號，避免學生看到還沒設定好的老師。"
 }

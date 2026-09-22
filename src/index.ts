@@ -29,17 +29,28 @@ function isSupportedLanguage(value: unknown): value is SupportedLanguage {
   return typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
 }
 
-// Self-service language switch — the student/teacher themselves updates only
-// this one field on their own row (identified by session.userId, never a
+// Self-service language switch — the student/teacher/admin themselves updates
+// only this one field on their own row (identified by session.userId, never a
 // client-supplied id), separate from the admin-only full-profile PATCH.
 async function handleOwnLanguageUpdate(request: Request, env: Env, session: Session): Promise<Response> {
-  const table = session.role === 'student' ? 'students' : 'teachers';
+  const table = ROLE_TABLES[session.role];
   const body = await request.json<{ language?: string }>();
   if (!isSupportedLanguage(body.language)) {
     return Response.json({ error: '不支援的語言' }, { status: 400 });
   }
   await env.DB.prepare(`UPDATE ${table} SET language = ? WHERE id = ?`).bind(body.language, session.userId).run();
   return Response.json({ language: body.language });
+}
+
+// 管理端頁面開始翻譯了，管理者也需要知道自己帳號存的語言——不像老師是整份
+// 名單都能撈（GET /api/teachers 任何登入身分都能看），管理者名單本來就不公開
+// 查詢，所以另外開一個窄的自查端點，只回傳自己這筆需要的欄位。
+async function handleAdminSelf(env: Env, session: Session): Promise<Response> {
+  const row = await env.DB.prepare(`SELECT language FROM admins WHERE id = ?`).bind(session.userId).first<{ language: string }>();
+  if (!row) {
+    return Response.json({ error: '找不到管理者' }, { status: 404 });
+  }
+  return Response.json({ language: row.language });
 }
 
 function isValidEmail(email: string): boolean {
@@ -1133,12 +1144,15 @@ export default {
       if (!session || session.role !== 'student') return Response.json({ error: '未授權' }, { status: 401 });
       return handleStudentSelf(env, session);
     }
-    // Language switch — student or teacher only, always on their own record.
+    if (url.pathname === '/api/admins/me' && request.method === 'GET') {
+      const session = await getSession(request, env);
+      if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+      return handleAdminSelf(env, session);
+    }
+    // Language switch — any logged-in role, always on their own record.
     if (url.pathname === '/api/me/language' && request.method === 'PATCH') {
       const session = await getSession(request, env);
-      if (!session || (session.role !== 'student' && session.role !== 'teacher')) {
-        return Response.json({ error: '未授權' }, { status: 401 });
-      }
+      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
       return handleOwnLanguageUpdate(request, env, session);
     }
     if (url.pathname === '/api/students' && request.method === 'GET') {

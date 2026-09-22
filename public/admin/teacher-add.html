@@ -63,13 +63,13 @@
 <div class="page">
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/write-teacher.png" alt=""><h2>新增老師</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/write-teacher.png" alt=""><h2 data-i18n="admin.teachers.addNew">新增老師</h2></div>
 
     <div class="avatar-picker">
       <span class="avatar-picker-preview is-inactive" id="add-avatar-wrap"><img id="add-avatar-preview" src="" alt=""></span>
-      <button type="button" class="btn outline sm" id="add-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <button type="button" class="btn outline sm" id="add-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> <span data-i18n="admin.common.random">隨機</span></button>
       <div class="status-toggle-wrap">
-        <span class="status-toggle-text" id="status-toggle-text">停用</span>
+        <span class="status-toggle-text" id="status-toggle-text" data-i18n="admin.common.disabled">停用</span>
         <label class="status-toggle">
           <input type="checkbox" id="add-status-toggle">
           <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
@@ -79,23 +79,23 @@
 
     <div class="field-row">
       <div class="form-field">
-        <label for="add-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
-        <input type="text" id="add-name" class="text-input" placeholder="請輸入姓名" maxlength="50">
+        <label for="add-name"><i class="fa-solid fa-fw fa-user"></i> <span data-i18n="admin.field.name">姓名</span></label>
+        <input type="text" id="add-name" class="text-input" data-i18n-placeholder="admin.field.namePlaceholder" placeholder="請輸入姓名" maxlength="50">
       </div>
       <div class="form-field">
-        <label for="add-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
-        <input type="tel" id="add-phone" class="text-input" placeholder="請輸入手機號碼" maxlength="15">
+        <label for="add-phone"><i class="fa-solid fa-fw fa-phone"></i> <span data-i18n="admin.field.phone">手機</span></label>
+        <input type="tel" id="add-phone" class="text-input" data-i18n-placeholder="admin.field.phonePlaceholder" placeholder="請輸入手機號碼" maxlength="15">
       </div>
     </div>
     <div class="field-row">
       <div class="form-field">
         <label for="add-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
-        <input type="email" id="add-email" class="text-input" placeholder="請輸入 Email" maxlength="100">
+        <input type="email" id="add-email" class="text-input" data-i18n-placeholder="admin.field.emailPlaceholder" placeholder="請輸入 Email" maxlength="100">
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> <span data-i18n="admin.field.timezone">時區</span></label>
         <div class="dropdown" id="add-timezone-dropdown" data-placeholder="選擇時區">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.field.selectTimezone">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
             <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
             <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
@@ -107,18 +107,18 @@
     </div>
     <div class="field-row">
       <div class="form-field">
-        <label for="add-specialty"><i class="fa-solid fa-fw fa-star"></i> 專長</label>
-        <input type="text" id="add-specialty" class="text-input" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
+        <label for="add-specialty"><i class="fa-solid fa-fw fa-star"></i> <span data-i18n="admin.teachers.field.specialty">專長</span></label>
+        <input type="text" id="add-specialty" class="text-input" data-i18n-placeholder="admin.teachers.field.specialtyPlaceholder" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
       </div>
       <div class="form-field">
-        <label for="add-motto"><i class="fa-solid fa-fw fa-quote-left"></i> 座右銘</label>
-        <input type="text" id="add-motto" class="text-input" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
+        <label for="add-motto"><i class="fa-solid fa-fw fa-quote-left"></i> <span data-i18n="admin.teachers.field.motto">座右銘</span></label>
+        <input type="text" id="add-motto" class="text-input" data-i18n-placeholder="admin.teachers.field.mottoPlaceholder" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
       </div>
     </div>
   </section>
 
   <div class="wizard-nav">
-    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增</button>
+    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.common.add">新增</span></button>
   </div>
 
 </div>
@@ -129,7 +129,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="teacherAddAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -138,9 +138,9 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
-    <h3>已新增老師</h3>
+    <h3 data-i18n="admin.teachers.addSuccess">已新增老師</h3>
     <div class="modal-actions">
-      <button class="btn blue" id="teacher-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" id="teacher-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -149,10 +149,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
-    <h3>還不能啟用</h3>
-    <p class="text-small">新增老師後，請先到「可教課程」與「可上課時段」設定完成，再啟用老師帳號，避免學生看到還沒設定好的老師。</p>
+    <h3 data-i18n="admin.teachers.statusLock.title">還不能啟用</h3>
+    <p class="text-small" data-i18n="admin.teachers.statusLock.desc">新增老師後，請先到「可教課程」與「可上課時段」設定完成，再啟用老師帳號，避免學生看到還沒設定好的老師。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -161,17 +161,23 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">目前輸入的資料將不會保留。</p>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="admin.common.unsavedFormDesc">目前輸入的資料將不會保留。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
     </div>
   </div>
 </div>
 
 <script src="../script.js"></script>
 <script>
+(async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+})();
+
   let currentAvatar = randomAvatar(); // 新增老師時先隨機給一個動物頭像
 
   function setAvatar(newAvatar) {
@@ -186,10 +192,11 @@
 
   function setStatusToggle(isActive) {
     document.getElementById('add-status-toggle').checked = isActive;
-    document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
     document.getElementById('add-avatar-wrap').classList.toggle('is-inactive', !isActive);
   }
   setStatusToggle(false); // 新老師還有很多東西要設定，預設先停用，這階段不能啟用
+  // 狀態文字一律停用（點擊會被下面攔截，不會真的切到啟用），維持 HTML 原本
+  // data-i18n 套用好的文字即可，不用在這裡搶在語言字典載入完成前先蓋一次。
   document.getElementById('add-status-toggle').addEventListener('click', (e) => {
     if (e.target.checked) {
       e.preventDefault();
@@ -216,11 +223,11 @@
     const email = document.getElementById('add-email').value.trim();
 
     if (!name || !phone || !email) {
-      showAddAlert('請填寫完整資料');
+      showAddAlert(t('admin.common.fillRequired'));
       return;
     }
     if (!EMAIL_RE.test(email)) {
-      showAddAlert('Email 格式不對');
+      showAddAlert(t('admin.common.invalidEmail'));
       return;
     }
 
@@ -240,7 +247,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showAddAlert(data.error || '新增失敗，請稍後再試');
+      showAddAlert(data.error || t('hours.error.addFailed'));
       return;
     }
     document.getElementById('teacherAddSuccessModal').classList.add('open');

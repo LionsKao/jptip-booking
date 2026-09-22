@@ -122,11 +122,11 @@
 <div class="page">
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/write-student.png" alt=""><h2>學生管理</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/write-student.png" alt=""><h2 data-i18n="admin.dash.students.title">學生管理</h2></div>
     <div class="search-box">
       <i class="fa-solid fa-fw fa-magnifying-glass"></i>
-      <input type="text" id="student-search" placeholder="搜尋姓名／手機／Email">
-      <button type="button" class="search-clear-btn" id="student-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+      <input type="text" id="student-search" data-i18n-placeholder="admin.students.searchPlaceholder" placeholder="搜尋姓名／手機／Email">
+      <button type="button" class="search-clear-btn" id="student-search-clear" hidden data-i18n-aria-label="admin.common.clearSearch" aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
     </div>
     <div id="student-cards"></div>
   </section>
@@ -140,6 +140,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const SEARCH_KEY = 'admin-student-search';
 
   // 學生是真正的 D1 資料（見 /api/students），這裡整頁只在載入時抓一次，
@@ -155,7 +159,7 @@
 
   function renderStudentCard(s) {
     const ribbon = s.status === 'inactive'
-      ? '<span class="ribbon-clip"><span class="course-ribbon">停用</span></span>'
+      ? `<span class="ribbon-clip"><span class="course-ribbon">${t('admin.common.disabled')}</span></span>`
       : '';
     return `<div class="student-card" data-id="${s.id}">
       ${ribbon}
@@ -196,10 +200,10 @@
       document.getElementById('student-cards'),
       document.getElementById('student-pagination'),
       studentPageState,
-      '<div class="student-card-empty">找不到符合的學生</div>',
+      `<div class="student-card-empty">${t('admin.students.noMatch')}</div>`,
       (containerEl) => {
         if (query) {
-          containerEl.insertAdjacentHTML('beforeend', '<div class="student-add-card" id="student-add-card"><img class="add-icon" src="/assets/icons/plus.png" alt="">新增學生</div>');
+          containerEl.insertAdjacentHTML('beforeend', `<div class="student-add-card" id="student-add-card"><img class="add-icon" src="/assets/icons/plus.png" alt="">${t('admin.students.addNew')}</div>`);
           document.getElementById('student-add-card').addEventListener('click', () => {
             window.location.href = 'student-add.html';
           });

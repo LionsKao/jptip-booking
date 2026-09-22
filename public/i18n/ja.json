@@ -156,5 +156,57 @@
   "lessons.completeConfirm.title": "この授業を完了にしますか？",
   "lessons.recordInfo.title": "授業は最大60日分まで表示されます",
   "lessons.recordInfo.desc": "今日から60日以上前の授業記録は表示されなくなります。",
-  "lessons.error.updateFailed": "更新に失敗しました。しばらくしてから再度お試しください"
+  "lessons.error.updateFailed": "更新に失敗しました。しばらくしてから再度お試しください",
+
+  "admin.dash.bookings.title": "予約履歴",
+  "admin.dash.bookings.desc": "全生徒の予約状況を確認する",
+  "admin.dash.students.title": "生徒管理",
+  "admin.dash.students.desc": "生徒アカウント情報を確認・管理する",
+  "admin.dash.teachers.title": "講師管理",
+  "admin.dash.teachers.desc": "講師アカウント情報を確認・管理する",
+  "admin.dash.courses.title": "コース管理",
+  "admin.dash.courses.desc": "コース項目と予約ルールを設定する",
+
+  "admin.common.clearSearch": "検索をクリア",
+  "admin.common.disabled": "無効",
+
+  "admin.students.searchPlaceholder": "氏名／電話番号／Emailで検索",
+  "admin.students.noMatch": "該当する生徒が見つかりません",
+  "admin.students.addNew": "生徒を追加",
+
+  "admin.teachers.noMatch": "該当する講師が見つかりません",
+  "admin.teachers.addNew": "講師を追加",
+
+  "admin.courses.searchPlaceholder": "コース名で検索",
+  "admin.courses.noMatch": "該当するコースが見つかりません",
+  "admin.courses.addNew": "コースを追加",
+
+  "admin.common.random": "ランダム",
+  "admin.common.enabled": "有効",
+  "admin.common.add": "追加",
+  "admin.common.fillRequired": "すべての項目を入力してください",
+  "admin.common.invalidEmail": "Emailの形式が正しくありません",
+  "admin.common.unsavedFormDesc": "現在入力中の内容は保存されません。",
+
+  "admin.field.name": "氏名",
+  "admin.field.namePlaceholder": "氏名を入力してください",
+  "admin.field.phone": "電話番号",
+  "admin.field.phonePlaceholder": "電話番号を入力してください",
+  "admin.field.emailPlaceholder": "Emailを入力してください",
+  "admin.field.timezone": "タイムゾーン",
+  "admin.field.selectTimezone": "タイムゾーンを選択",
+  "admin.field.teamsLink": "Teams会議室リンク",
+  "admin.field.teamsLinkPlaceholder": "Teams会議室リンクを入力してください",
+
+  "admin.students.statusLock.title": "まだ有効化できません",
+  "admin.students.statusLock.desc": "まずこの生徒を追加し、生徒詳細ページで購入済みコースを設定してからアカウントを有効化してください。",
+  "admin.students.addSuccess": "生徒を追加しました",
+
+  "admin.teachers.field.specialty": "専門分野",
+  "admin.teachers.field.specialtyPlaceholder": "例：日常会話・5年の指導経験",
+  "admin.teachers.field.motto": "モットー",
+  "admin.teachers.field.mottoPlaceholder": "例：一緒に学び、共に成長していきましょう。",
+  "admin.teachers.addSuccess": "講師を追加しました",
+  "admin.teachers.statusLock.title": "まだ有効化できません",
+  "admin.teachers.statusLock.desc": "講師を追加した後、「対応可能コース」と「対応可能な時間帯」の設定を完了してからアカウントを有効化してください。設定が終わっていない講師が生徒に表示されるのを防ぐためです。"
 }

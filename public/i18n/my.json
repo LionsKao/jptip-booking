@@ -156,5 +156,57 @@
   "lessons.completeConfirm.title": "ဤသင်ခန်းစာကို ပြီးဆုံးအဖြစ် မှတ်သားမှာ သေချာပါသလား။",
   "lessons.recordInfo.title": "သင်ခန်းစာများကို ရက် ၆၀ အထိသာ ပြသပါသည်",
   "lessons.recordInfo.desc": "ယနေ့မှစတွက်၍ ရက် ၆၀ ကျော်လွန်သော သင်ခန်းစာမှတ်တမ်းများကို နောက်ထပ် မပြသတော့ပါ။",
-  "lessons.error.updateFailed": "အပ်ဒိတ် မအောင်မြင်ပါ၊ နောက်မှ ထပ်စမ်းကြည့်ပါ"
+  "lessons.error.updateFailed": "အပ်ဒိတ် မအောင်မြင်ပါ၊ နောက်မှ ထပ်စမ်းကြည့်ပါ",
+
+  "admin.dash.bookings.title": "ဘွတ်ကင် မှတ်တမ်း",
+  "admin.dash.bookings.desc": "ကျောင်းသားအားလုံး၏ ဘွတ်ကင်ခြုံငုံသုံးသပ်ချက်ကို ကြည့်ရှုရန်",
+  "admin.dash.students.title": "ကျောင်းသား စီမံခန့်ခွဲမှု",
+  "admin.dash.students.desc": "ကျောင်းသား အကောင့်အချက်အလက်များကို ကြည့်ရှုပြီး စီမံရန်",
+  "admin.dash.teachers.title": "ဆရာ စီမံခန့်ခွဲမှု",
+  "admin.dash.teachers.desc": "ဆရာ အကောင့်အချက်အလက်များကို ကြည့်ရှုပြီး စီမံရန်",
+  "admin.dash.courses.title": "သင်တန်း စီမံခန့်ခွဲမှု",
+  "admin.dash.courses.desc": "သင်တန်းအချက်များနှင့် ဘွတ်ကင်စည်းမျဉ်းများကို သတ်မှတ်ရန်",
+
+  "admin.common.clearSearch": "ရှာဖွေမှု ရှင်းလင်းရန်",
+  "admin.common.disabled": "ရပ်ဆိုင်းထား",
+
+  "admin.students.searchPlaceholder": "အမည်／ဖုန်းနံပါတ်／Email ဖြင့်ရှာရန်",
+  "admin.students.noMatch": "ကိုက်ညီသော ကျောင်းသား မတွေ့ပါ",
+  "admin.students.addNew": "ကျောင်းသား အသစ်ထည့်ရန်",
+
+  "admin.teachers.noMatch": "ကိုက်ညီသော ဆရာ မတွေ့ပါ",
+  "admin.teachers.addNew": "ဆရာ အသစ်ထည့်ရန်",
+
+  "admin.courses.searchPlaceholder": "သင်တန်းအမည်ဖြင့် ရှာရန်",
+  "admin.courses.noMatch": "ကိုက်ညီသော သင်တန်း မတွေ့ပါ",
+  "admin.courses.addNew": "သင်တန်း အသစ်ထည့်ရန်",
+
+  "admin.common.random": "ကျပန်း",
+  "admin.common.enabled": "ဖွင့်ထား",
+  "admin.common.add": "ထည့်ရန်",
+  "admin.common.fillRequired": "အချက်အလက်အပြည့်အစုံ ဖြည့်ပါ",
+  "admin.common.invalidEmail": "Email ပုံစံ မှားနေပါသည်",
+  "admin.common.unsavedFormDesc": "လက်ရှိထည့်သွင်းထားသော အချက်အလက်ကို သိမ်းဆည်းမည် မဟုတ်ပါ။",
+
+  "admin.field.name": "အမည်",
+  "admin.field.namePlaceholder": "အမည် ထည့်သွင်းပါ",
+  "admin.field.phone": "ဖုန်းနံပါတ်",
+  "admin.field.phonePlaceholder": "ဖုန်းနံပါတ် ထည့်သွင်းပါ",
+  "admin.field.emailPlaceholder": "Email ထည့်သွင်းပါ",
+  "admin.field.timezone": "အချိန်ဇုန်",
+  "admin.field.selectTimezone": "အချိန်ဇုန် ရွေးချယ်ပါ",
+  "admin.field.teamsLink": "Teams အစည်းအဝေးခန်း လင့်ခ်",
+  "admin.field.teamsLinkPlaceholder": "Teams အစည်းအဝေးခန်း လင့်ခ် ထည့်သွင်းပါ",
+
+  "admin.students.statusLock.title": "လောလောဆယ် ဖွင့်၍မရသေးပါ",
+  "admin.students.statusLock.desc": "ဤကျောင်းသားကို ဦးစွာထည့်သွင်းပြီး ကျောင်းသားအသေးစိတ်စာမျက်နှာတွင် ဝယ်ယူထားသော သင်တန်းများကို သတ်မှတ်ပြီးမှ အကောင့်ကို ဖွင့်ပါ။",
+  "admin.students.addSuccess": "ကျောင်းသား ထည့်သွင်းပြီးပါပြီ",
+
+  "admin.teachers.field.specialty": "ကျွမ်းကျင်မှု",
+  "admin.teachers.field.specialtyPlaceholder": "ဥပမာ - ဂျပန်စကားပြော၊ သင်ကြားရေး အတွေ့အကြုံ ၅ နှစ်",
+  "admin.teachers.field.motto": "ဆောင်ပုဒ်",
+  "admin.teachers.field.mottoPlaceholder": "ဥပမာ - အတူတကွ သင်ယူပြီး တိုးတက်ကြပါစို့။",
+  "admin.teachers.addSuccess": "ဆရာ ထည့်သွင်းပြီးပါပြီ",
+  "admin.teachers.statusLock.title": "လောလောဆယ် ဖွင့်၍မရသေးပါ",
+  "admin.teachers.statusLock.desc": "ဆရာထည့်သွင်းပြီးနောက် \"သင်ကြားနိုင်သည့်သင်တန်း\" နှင့် \"သင်ကြားနိုင်သည့်အချိန်\" သတ်မှတ်မှုပြီးမြောက်မှသာ အကောင့်ကို ဖွင့်ပါ၊ သတ်မှတ်မပြီးသေးသော ဆရာကို ကျောင်းသားများ မမြင်စေရန်။"
 }

@@ -156,5 +156,57 @@
   "lessons.completeConfirm.title": "Mark this lesson as complete?",
   "lessons.recordInfo.title": "Showing Up to 60 Days of Lessons",
   "lessons.recordInfo.desc": "Lesson records older than 60 days from today will no longer be shown.",
-  "lessons.error.updateFailed": "Update failed, please try again later"
+  "lessons.error.updateFailed": "Update failed, please try again later",
+
+  "admin.dash.bookings.title": "Booking Records",
+  "admin.dash.bookings.desc": "View all students' booking overview",
+  "admin.dash.students.title": "Student Management",
+  "admin.dash.students.desc": "View and manage student account information",
+  "admin.dash.teachers.title": "Teacher Management",
+  "admin.dash.teachers.desc": "View and manage teacher account information",
+  "admin.dash.courses.title": "Course Management",
+  "admin.dash.courses.desc": "Set up course items and booking rules",
+
+  "admin.common.clearSearch": "Clear search",
+  "admin.common.disabled": "Disabled",
+
+  "admin.students.searchPlaceholder": "Search name／phone／email",
+  "admin.students.noMatch": "No matching students found",
+  "admin.students.addNew": "Add Student",
+
+  "admin.teachers.noMatch": "No matching teachers found",
+  "admin.teachers.addNew": "Add Teacher",
+
+  "admin.courses.searchPlaceholder": "Search course name",
+  "admin.courses.noMatch": "No matching courses found",
+  "admin.courses.addNew": "Add Course",
+
+  "admin.common.random": "Random",
+  "admin.common.enabled": "Enabled",
+  "admin.common.add": "Add",
+  "admin.common.fillRequired": "Please fill in all required fields",
+  "admin.common.invalidEmail": "Invalid email format",
+  "admin.common.unsavedFormDesc": "The information you entered will not be saved.",
+
+  "admin.field.name": "Name",
+  "admin.field.namePlaceholder": "Enter name",
+  "admin.field.phone": "Phone",
+  "admin.field.phonePlaceholder": "Enter phone number",
+  "admin.field.emailPlaceholder": "Enter email",
+  "admin.field.timezone": "Timezone",
+  "admin.field.selectTimezone": "Select Timezone",
+  "admin.field.teamsLink": "Teams Meeting Link",
+  "admin.field.teamsLinkPlaceholder": "Enter Teams meeting link",
+
+  "admin.students.statusLock.title": "Can't Enable Yet",
+  "admin.students.statusLock.desc": "Please add this student first, then set up their purchased courses on the student detail page before enabling the account.",
+  "admin.students.addSuccess": "Student Added",
+
+  "admin.teachers.field.specialty": "Specialty",
+  "admin.teachers.field.specialtyPlaceholder": "e.g. Conversational Japanese, 5 years teaching experience",
+  "admin.teachers.field.motto": "Motto",
+  "admin.teachers.field.mottoPlaceholder": "e.g. Let's learn and grow together.",
+  "admin.teachers.addSuccess": "Teacher Added",
+  "admin.teachers.statusLock.title": "Can't Enable Yet",
+  "admin.teachers.statusLock.desc": "After adding a teacher, please finish setting up their Available Courses and Available Teaching Hours before enabling the account, so students don't see a teacher who isn't fully set up yet."
 }

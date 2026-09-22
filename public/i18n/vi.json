@@ -156,5 +156,57 @@
   "lessons.completeConfirm.title": "Đánh dấu buổi học này là hoàn thành?",
   "lessons.recordInfo.title": "Chỉ hiển thị lớp học trong 60 ngày",
   "lessons.recordInfo.desc": "Tính từ hôm nay trở về trước 60 ngày, các bản ghi cũ hơn sẽ không còn hiển thị.",
-  "lessons.error.updateFailed": "Cập nhật thất bại, vui lòng thử lại sau"
+  "lessons.error.updateFailed": "Cập nhật thất bại, vui lòng thử lại sau",
+
+  "admin.dash.bookings.title": "Lịch sử đặt lịch",
+  "admin.dash.bookings.desc": "Xem tổng quan đặt lịch của tất cả học viên",
+  "admin.dash.students.title": "Quản lý học viên",
+  "admin.dash.students.desc": "Xem và quản lý thông tin tài khoản học viên",
+  "admin.dash.teachers.title": "Quản lý giáo viên",
+  "admin.dash.teachers.desc": "Xem và quản lý thông tin tài khoản giáo viên",
+  "admin.dash.courses.title": "Quản lý khóa học",
+  "admin.dash.courses.desc": "Thiết lập các mục khóa học và quy tắc đặt lịch",
+
+  "admin.common.clearSearch": "Xóa tìm kiếm",
+  "admin.common.disabled": "Vô hiệu hóa",
+
+  "admin.students.searchPlaceholder": "Tìm theo tên／số điện thoại／email",
+  "admin.students.noMatch": "Không tìm thấy học viên phù hợp",
+  "admin.students.addNew": "Thêm học viên",
+
+  "admin.teachers.noMatch": "Không tìm thấy giáo viên phù hợp",
+  "admin.teachers.addNew": "Thêm giáo viên",
+
+  "admin.courses.searchPlaceholder": "Tìm theo tên khóa học",
+  "admin.courses.noMatch": "Không tìm thấy khóa học phù hợp",
+  "admin.courses.addNew": "Thêm khóa học",
+
+  "admin.common.random": "Ngẫu nhiên",
+  "admin.common.enabled": "Kích hoạt",
+  "admin.common.add": "Thêm",
+  "admin.common.fillRequired": "Vui lòng điền đầy đủ thông tin",
+  "admin.common.invalidEmail": "Định dạng Email không đúng",
+  "admin.common.unsavedFormDesc": "Thông tin đang nhập sẽ không được lưu.",
+
+  "admin.field.name": "Họ tên",
+  "admin.field.namePlaceholder": "Nhập họ tên",
+  "admin.field.phone": "Số điện thoại",
+  "admin.field.phonePlaceholder": "Nhập số điện thoại",
+  "admin.field.emailPlaceholder": "Nhập Email",
+  "admin.field.timezone": "Múi giờ",
+  "admin.field.selectTimezone": "Chọn múi giờ",
+  "admin.field.teamsLink": "Liên kết phòng họp Teams",
+  "admin.field.teamsLinkPlaceholder": "Nhập liên kết phòng họp Teams",
+
+  "admin.students.statusLock.title": "Chưa thể kích hoạt",
+  "admin.students.statusLock.desc": "Vui lòng thêm học viên này trước, sau đó thiết lập khóa học đã mua ở trang chi tiết học viên rồi mới kích hoạt tài khoản.",
+  "admin.students.addSuccess": "Đã thêm học viên",
+
+  "admin.teachers.field.specialty": "Chuyên môn",
+  "admin.teachers.field.specialtyPlaceholder": "VD: Hội thoại tiếng Nhật, 5 năm kinh nghiệm giảng dạy",
+  "admin.teachers.field.motto": "Phương châm",
+  "admin.teachers.field.mottoPlaceholder": "VD: Hãy cùng nhau học tập và phát triển.",
+  "admin.teachers.addSuccess": "Đã thêm giáo viên",
+  "admin.teachers.statusLock.title": "Chưa thể kích hoạt",
+  "admin.teachers.statusLock.desc": "Sau khi thêm giáo viên, vui lòng hoàn tất thiết lập \"Khóa học có thể dạy\" và \"Khung giờ có thể dạy\" trước khi kích hoạt tài khoản, để tránh học viên nhìn thấy giáo viên chưa thiết lập xong."
 }

@@ -132,11 +132,11 @@
 <div class="page">
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>課程管理</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2 data-i18n="admin.dash.courses.title">課程管理</h2></div>
     <div class="search-box">
       <i class="fa-solid fa-fw fa-magnifying-glass"></i>
-      <input type="text" id="course-search" placeholder="搜尋課程名稱">
-      <button type="button" class="search-clear-btn" id="course-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+      <input type="text" id="course-search" data-i18n-placeholder="admin.courses.searchPlaceholder" placeholder="搜尋課程名稱">
+      <button type="button" class="search-clear-btn" id="course-search-clear" hidden data-i18n-aria-label="admin.common.clearSearch" aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
     </div>
     <div id="course-cards"></div>
   </section>
@@ -150,6 +150,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const SEARCH_KEY = 'admin-course-search';
 
   // 課程是真正的 D1 資料（見 /api/courses），這裡整頁只在載入時抓一次，
@@ -201,10 +205,10 @@
       document.getElementById('course-cards'),
       document.getElementById('course-pagination'),
       coursePageState,
-      '<div class="course-list-card-empty">找不到符合的課程</div>',
+      `<div class="course-list-card-empty">${t('admin.courses.noMatch')}</div>`,
       (containerEl) => {
         if (query) {
-          containerEl.insertAdjacentHTML('beforeend', '<div class="course-add-card" id="course-add-card"><img class="add-icon" src="/assets/icons/plus.png" alt="">新增課程</div>');
+          containerEl.insertAdjacentHTML('beforeend', `<div class="course-add-card" id="course-add-card"><img class="add-icon" src="/assets/icons/plus.png" alt="">${t('admin.courses.addNew')}</div>`);
           document.getElementById('course-add-card').addEventListener('click', () => {
             window.location.href = 'course-add.html';
           });

@@ -92,10 +92,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要登出嗎？</h3>
+    <h3 data-i18n="dashboard.logoutConfirm.title">確定要登出嗎？</h3>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 登出</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="dashboard.logout">登出</span></button>
     </div>
   </div>
 </div>
@@ -106,29 +106,29 @@
     <button type="button" class="dash-card" data-action="bookings">
       <span class="dash-card-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
       <span>
-        <h3>預約紀錄</h3>
-        <p>查看所有學生的預約總覽</p>
+        <h3 data-i18n="admin.dash.bookings.title">預約紀錄</h3>
+        <p data-i18n="admin.dash.bookings.desc">查看所有學生的預約總覽</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="students">
       <span class="dash-card-icon"><img src="../assets/icons/write-student.png" alt=""></span>
       <span>
-        <h3>學生管理</h3>
-        <p>查看與管理學生帳號資料</p>
+        <h3 data-i18n="admin.dash.students.title">學生管理</h3>
+        <p data-i18n="admin.dash.students.desc">查看與管理學生帳號資料</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="teachers">
       <span class="dash-card-icon"><img src="../assets/icons/write-teacher.png" alt=""></span>
       <span>
-        <h3>老師管理</h3>
-        <p>查看與管理老師帳號資料</p>
+        <h3 data-i18n="admin.dash.teachers.title">老師管理</h3>
+        <p data-i18n="admin.dash.teachers.desc">查看與管理老師帳號資料</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="courses">
       <span class="dash-card-icon"><img src="../assets/icons/blackboard.png" alt=""></span>
       <span>
-        <h3>課程管理</h3>
-        <p>設定課程項目與預約規則</p>
+        <h3 data-i18n="admin.dash.courses.title">課程管理</h3>
+        <p data-i18n="admin.dash.courses.desc">設定課程項目與預約規則</p>
       </span>
     </button>
   </div>
@@ -138,12 +138,19 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
-  // 管理者帳號（admins 資料表）目前沒有 language 欄位——管理端頁面的翻譯
-  // 還沒做，這裡先跟登入頁一樣只存 localStorage，等管理端頁面開始翻譯時
-  // 再補資料庫欄位讓它跨裝置同步。
-  const lang = getCurrentLang();
+  // 帳號的 language 欄位才是真相；登入後這裡負責把它同步進 localStorage，
+  // 也讓管理者隨時能在這頁換語言（換的當下也存回帳號，換裝置登入才會一致）。
+  const me = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const lang = (me && me.language) || getCurrentLang();
+  setCurrentLang(lang);
   await initI18n(lang);
-  renderLangSwitch(document.getElementById('lang-switch'), lang);
+  renderLangSwitch(document.getElementById('lang-switch'), lang, (newLang) => {
+    fetch('/api/me/language', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: newLang }),
+    });
+  });
 })();
 
   document.querySelector('[data-action="students"]').addEventListener('click', () => {
