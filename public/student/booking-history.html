@@ -204,6 +204,7 @@
 
 <script src="../script.js"></script>
 <script>
+(async () => {
   const STATUS_MAP = {
     pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
     absent:    { cls: 'tone-navy', icon: 'question.png',       label: '缺席' },
@@ -220,8 +221,9 @@
   };
 
   // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給學生看時，依管理者在學生資料設定的時區（+8／+9）換算顯示
-  function getSession() { try { return JSON.parse(sessionStorage.getItem('session')); } catch { return null; } }
-  const session = getSession();
+  // 這個頁面本身已經由後端依 session cookie 擋過（非登入學生連頁面都進不來），
+  // 這裡另外打 /api/session 只是為了拿到「是哪一位學生」，取代舊版可被竄改的 sessionStorage。
+  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
   const students = session ? loadStudents() : [];
   const currentStudent = session ? students.find((s) => s.email === session.email) : null;
   const STUDENT_TIMEZONE_LABEL = (currentStudent && currentStudent.timezone) || '(UTC+8) 台北';
@@ -436,6 +438,7 @@
     renderHistoryCards();
     renderTodayGroup();
   });
+})();
 </script>
 
 </body>

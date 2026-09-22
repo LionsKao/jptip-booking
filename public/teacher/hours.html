@@ -336,18 +336,24 @@
 
 <script src="../script.js"></script>
 <script>
+(async () => {
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teacher_availability(teacher_id, day_of_week, start_time, end_time)
   const HOURS_KEY = 'teacher-hours';
 
   function loadAllHours() { return JSON.parse(localStorage.getItem(HOURS_KEY) || '{}'); } // TODO: 之後改接真正的 D1/API
   function saveAllHours(all) { localStorage.setItem(HOURS_KEY, JSON.stringify(all)); } // TODO: 之後改接真正的 D1/API
 
-  const adminTeacherId = new URLSearchParams(window.location.search).get('teacherId');
-  const DEMO_SELF_TEACHER_ID = '1'; // TODO: 之後改接真正的教師登入 session
-  const currentTeacherId = adminTeacherId || DEMO_SELF_TEACHER_ID;
+  // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
+  // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
+  // 忽略網址上可能被竄改的 teacherId，避免老師改網址去動到別的老師的時段。
+  const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
+  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
+  const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
+  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
 
   // 時段統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
-  const currentTeacherRecord = loadTeachers().find((t) => t.id === Number(currentTeacherId));
+  const currentTeacherRecord = loadTeachers().find((t) => t.id === currentTeacherId);
   const TEACHER_TZ_OFFSET = (currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone || '').includes('+9') ? 9 : 8;
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
 
@@ -361,7 +367,7 @@
   const allHours = loadAllHours();
   let availability = allHours[currentTeacherId];
   if (!availability) {
-    availability = currentTeacherId === DEMO_SELF_TEACHER_ID ? [
+    availability = currentTeacherId === 1 ? [
       { id: 1, day: '星期一', start: '09:00', end: '12:00' },
       { id: 2, day: '星期三', start: '14:00', end: '18:00' },
       { id: 3, day: '星期五', start: '09:00', end: '11:30' },
@@ -443,13 +449,14 @@
     renderHoursTable();
   });
 
-  if (adminTeacherId) {
+  if (viewingAsAdmin) {
     document.getElementById('back-btn').innerHTML = '<i class="fa-solid fa-fw fa-arrow-left"></i>';
   }
 
   document.getElementById('back-btn').addEventListener('click', () => {
-    window.location.href = adminTeacherId ? `../admin/teacher-detail.html?id=${adminTeacherId}` : 'index.html';
+    window.location.href = viewingAsAdmin ? `../admin/teacher-detail.html?id=${teacherIdParam}` : 'index.html';
   });
+})();
 </script>
 
 </body>

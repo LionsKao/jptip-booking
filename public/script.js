@@ -49,7 +49,7 @@ function loadTeachers() {
     id: i + 1,
     name,
     phone: `09${String(20 + i).padStart(2, '0')}${String(300 + i * 7).padStart(3, '0')}${String(400 + i * 3).padStart(3, '0')}`,
-    email: `teacher${i + 1}@example.com`,
+    email: i < 3 ? `teacher${i + 1}@jptip.co.jp` : `teacher${i + 1}@example.com`, // 前 3 位對齊 D1 種子登入帳號，讓登入的老師能對到自己的 mock 資料
     avatar: AVATAR_LIST[i % AVATAR_LIST.length],
     specialty: SPECIALTIES[i] || '',
     motto: MOTTOS[i] || '',
@@ -577,7 +577,9 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         submitBtn.disabled = false;
         return;
       }
-      sessionStorage.setItem('session', JSON.stringify({ role: card.dataset.role, email: emailInput.value.trim() }));
+      // The server already set the real (HttpOnly) session cookie on this
+      // response — that cookie, not anything client-readable, is what every
+      // protected page/API now checks.
       window.location.href = `${card.dataset.role}/`;
     } catch {
       showLoginAlert('網路錯誤，請稍後再試', 'error');

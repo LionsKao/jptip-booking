@@ -141,7 +141,7 @@
   document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));
 
   document.getElementById('logout-confirm-btn').addEventListener('click', () => {
-    window.location.href = '../';
+    fetch('/api/logout', { method: 'POST' }).finally(() => { window.location.href = '../'; });
   });
 </script>
 

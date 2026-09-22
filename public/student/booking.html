@@ -461,7 +461,9 @@
   function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
   function loadTeacherHours() { return JSON.parse(localStorage.getItem('teacher-hours') || '{}'); } // TODO: 之後改接真正的 D1/API
   function loadTeacherLeave() { return JSON.parse(localStorage.getItem('teacher-leave') || '{}'); } // TODO: 之後改接真正的 D1/API
-  function getSession() { try { return JSON.parse(sessionStorage.getItem('session')); } catch { return null; } }
+  // 這個頁面本身已經由後端依 session cookie 擋過（非登入學生連頁面都進不來），
+  // 這裡另外打 /api/session 只是為了拿到「是哪一位學生」，取代舊版可被竄改的 sessionStorage。
+  const sessionPromise = fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
 
   // 預約編號規則：上課日期(8碼) + 上課時間(4碼) + 同時段流水序號(2碼)，方便學生口頭告知管理者快速查找
   function generateBookingCode(dateISO, timeStr) {
@@ -609,9 +611,9 @@
     return m ? `var(--level-j${m[1]})` : 'var(--color-steel)';
   }
 
-  function renderCourseCards() {
+  async function renderCourseCards() {
     const courses = loadCourses();
-    const session = getSession();
+    const session = await sessionPromise;
     const student = session ? loadStudents().find((s) => s.email === session.email) : null;
     const container = document.querySelector('.booking-step[data-step="2"] .grid-cards-lg');
 
@@ -724,8 +726,8 @@
     document.getElementById('bookingAlertModal').classList.add('open');
   }
 
-  document.getElementById('submit-booking').addEventListener('click', () => {
-    const session = getSession();
+  document.getElementById('submit-booking').addEventListener('click', async () => {
+    const session = await sessionPromise;
     if (!session) { showBookingAlert('請重新登入'); return; }
     const students = loadStudents();
     const student = students.find((s) => s.email === session.email);

@@ -28,6 +28,74 @@ function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+// ==========================================================================
+// Sessions — issued by handleOtpVerify, checked by getSession() on every
+// protected page/API request via the `session` HttpOnly cookie. Replaces the
+// old client-only sessionStorage flag, which the server never verified.
+// ==========================================================================
+interface Session {
+  role: string;
+  userId: number;
+  email: string;
+}
+
+const SESSION_COOKIE = 'session';
+const SESSION_DAYS = 7;
+
+function randomToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getCookie(request: Request, name: string): string | null {
+  const header = request.headers.get('Cookie');
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === name) return decodeURIComponent(part.slice(eq + 1).trim());
+  }
+  return null;
+}
+
+// `Secure` only works over HTTPS — local `wrangler dev` serves plain HTTP,
+// so it's dropped there (matched on the request's own scheme, not an env
+// flag) and only applied for the real deployment.
+function sessionCookieHeader(request: Request, token: string, maxAgeSeconds: number): string {
+  const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+}
+
+function clearSessionCookieHeader(request: Request): string {
+  const secure = new URL(request.url).protocol === 'https:' ? ' Secure;' : '';
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=0`;
+}
+
+async function getSession(request: Request, env: Env): Promise<Session | null> {
+  const token = getCookie(request, SESSION_COOKIE);
+  if (!token) return null;
+  const row = await env.DB.prepare(
+    `SELECT role, user_id, email FROM sessions WHERE token = ? AND expires_at > datetime('now', '+8 hours')`
+  ).bind(token).first<{ role: string; user_id: number; email: string }>();
+  if (!row) return null;
+  return { role: row.role, userId: row.user_id, email: row.email };
+}
+
+async function handleSessionInfo(request: Request, env: Env): Promise<Response> {
+  const session = await getSession(request, env);
+  if (!session) return Response.json({ error: '未登入' }, { status: 401 });
+  return Response.json(session);
+}
+
+async function handleLogout(request: Request, env: Env): Promise<Response> {
+  const token = getCookie(request, SESSION_COOKIE);
+  if (token) {
+    await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
+  }
+  return Response.json({ ok: true }, { headers: { 'Set-Cookie': clearSessionCookieHeader(request) } });
+}
+
 async function sendToTeams(env: Env, role: string, email: string, code: string): Promise<void> {
   if (!env.TEAMS_WEBHOOK_URL) return;
   try {
@@ -129,7 +197,18 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
   // No account-creation fallback here: handleOtpRequest already refuses to
   // send a code for an email that isn't in the role's table, so by the time
   // a code is verified the account is guaranteed to already exist.
-  return Response.json({ ok: true });
+  const account = await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ?`).bind(email).first<{ id: number }>();
+  if (!account) {
+    return Response.json({ error: '帳號不存在' }, { status: 400 });
+  }
+
+  const token = randomToken();
+  const maxAgeSeconds = SESSION_DAYS * 24 * 60 * 60;
+  await env.DB.prepare(
+    `INSERT INTO sessions (token, role, user_id, email, expires_at) VALUES (?, ?, ?, ?, datetime('now', '+8 hours', ?))`
+  ).bind(token, role, account.id, email, `+${SESSION_DAYS} days`).run();
+
+  return Response.json({ ok: true }, { headers: { 'Set-Cookie': sessionCookieHeader(request, token, maxAgeSeconds) } });
 }
 
 // Only these two roles have a `photo_path` column (see migrations 0004 / 0007).
@@ -247,17 +326,60 @@ export default {
     if (url.pathname === '/api/otp/verify' && request.method === 'POST') {
       return handleOtpVerify(request, env);
     }
-    if (url.pathname === '/api/avatar/upload' && request.method === 'PUT') {
-      return handleAvatarUpload(request, env);
+    if (url.pathname === '/api/session' && request.method === 'GET') {
+      return handleSessionInfo(request, env);
+    }
+    if (url.pathname === '/api/logout' && request.method === 'POST') {
+      return handleLogout(request, env);
     }
     if ((url.pathname.startsWith('/avatars/') || url.pathname.startsWith('/courses/')) && request.method === 'GET') {
       return handleAvatarGet(request, env, url.pathname.slice(1));
     }
-    if (url.pathname === '/api/recently-viewed' && request.method === 'PUT') {
-      return handleRecentlyViewedMark(request, env);
+
+    // email.html / ui.html are internal design/preview pages, not part of the
+    // product — never served on the real deployment (ALLOW_ANY_OTP unset
+    // there), only on local/test. html_handling drops the .html extension,
+    // so both forms need covering.
+    const DEV_ONLY_PAGES = new Set(['/email', '/email.html', '/ui', '/ui.html']);
+    if (DEV_ONLY_PAGES.has(url.pathname) && env.ALLOW_ANY_OTP !== 'true') {
+      return new Response('Not found', { status: 404 });
     }
-    if (url.pathname === '/api/recently-viewed' && request.method === 'GET') {
-      return handleRecentlyViewedList(request, env);
+
+    // Everything below here needs a real, server-verified session — avatar
+    // uploads and the recently-viewed list are both admin-only tools (see the
+    // call sites in public/admin/*.html), and the admin/teacher/student
+    // static pages must never render for a visitor who never logged in.
+    if (url.pathname === '/api/avatar/upload' && request.method === 'PUT') {
+      const session = await getSession(request, env);
+      if (!session || session.role !== 'admin') {
+        return Response.json({ error: '未授權' }, { status: 401 });
+      }
+      return handleAvatarUpload(request, env);
+    }
+    if (url.pathname === '/api/recently-viewed' && (request.method === 'PUT' || request.method === 'GET')) {
+      const session = await getSession(request, env);
+      if (!session || session.role !== 'admin') {
+        return Response.json({ error: '未授權' }, { status: 401 });
+      }
+      return request.method === 'PUT' ? handleRecentlyViewedMark(request, env) : handleRecentlyViewedList(request, env);
+    }
+
+    // Admin also needs into /teacher/* — admin/teacher-detail.html links there
+    // (with a ?teacherId= param) to manage a teacher's hours/leave/lessons on
+    // their behalf.
+    const ALLOWED_SESSION_ROLES: Record<string, readonly string[]> = {
+      admin: ['admin'],
+      teacher: ['teacher', 'admin'],
+      student: ['student'],
+    };
+    const protectedRole = (['admin', 'teacher', 'student'] as const).find(
+      (role) => url.pathname === `/${role}` || url.pathname.startsWith(`/${role}/`)
+    );
+    if (protectedRole) {
+      const session = await getSession(request, env);
+      if (!session || !ALLOWED_SESSION_ROLES[protectedRole].includes(session.role)) {
+        return Response.redirect(new URL('/', request.url).toString(), 302);
+      }
     }
 
     return env.ASSETS.fetch(request);

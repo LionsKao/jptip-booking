@@ -134,7 +134,7 @@
 <script src="../script.js"></script>
 <script>
   document.getElementById('logout-confirm-btn').addEventListener('click', () => {
-    window.location.href = '../';
+    fetch('/api/logout', { method: 'POST' }).finally(() => { window.location.href = '../'; });
   });
 
   // TODO: 之後管理者為學生設定專屬會議室連結後,改成開啟該連結

@@ -212,11 +212,17 @@
 
 <script src="../script.js"></script>
 <script>
+(async () => {
   // 未來資料庫對應（此階段僅前端 mock，尚未實作）：lessons(course, date, time, student_name, status)
   // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
-  const adminTeacherId = new URLSearchParams(window.location.search).get('teacherId');
-  const DEMO_SELF_TEACHER_ID = '1'; // TODO: 之後改接真正的教師登入 session
-  const currentTeacherId = Number(adminTeacherId || DEMO_SELF_TEACHER_ID);
+  // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
+  // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
+  // 忽略網址上可能被竄改的 teacherId，避免老師改網址去看到別的老師的課程。
+  const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
+  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
+  const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
+  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
   const currentTeacher = loadTeachers().find((t) => t.id === currentTeacherId);
   const TEACHER_TIMEZONE_LABEL = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone) || '(UTC+8) 台北';
   const TEACHER_TZ_OFFSET = TEACHER_TIMEZONE_LABEL.includes('+9') ? 9 : 8;
@@ -375,7 +381,7 @@
   renderTodayGroup();
   renderLessonsCards();
 
-  if (adminTeacherId) {
+  if (viewingAsAdmin) {
     document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-arrow-left';
   }
 
@@ -384,7 +390,7 @@
       hideLessonDetail();
       return;
     }
-    window.location.href = adminTeacherId ? `../admin/teacher-detail.html?id=${adminTeacherId}` : 'index.html';
+    window.location.href = viewingAsAdmin ? `../admin/teacher-detail.html?id=${teacherIdParam}` : 'index.html';
   });
 
   // ==========================================================================
@@ -423,7 +429,7 @@
     activeLessonId = null;
     document.getElementById('lesson-detail-view').hidden = true;
     document.getElementById('lessons-list-view').hidden = false;
-    document.getElementById('back-btn-icon').className = adminTeacherId ? 'fa-solid fa-fw fa-arrow-left' : 'fa-solid fa-fw fa-house';
+    document.getElementById('back-btn-icon').className = viewingAsAdmin ? 'fa-solid fa-fw fa-arrow-left' : 'fa-solid fa-fw fa-house';
   }
 
   function lessonEndTime(lesson) {
@@ -463,6 +469,7 @@
     renderTodayGroup();
     renderLessonsCards();
   });
+})();
 </script>
 
 </body>
