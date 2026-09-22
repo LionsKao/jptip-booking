@@ -1,0 +1,23 @@
+{
+  "login.role.student.title": "Student Login",
+  "login.role.student.desc": "Book lessons and start your learning journey",
+  "login.role.teacher.title": "Teacher Login",
+  "login.role.teacher.desc": "Manage your lessons and booking hours",
+  "login.role.admin.title": "Admin Login",
+  "login.role.admin.desc": "Manage teachers, courses, and system settings",
+  "login.back": "Back",
+  "login.emailPlaceholder": "Email",
+  "login.sendCode": "Get Verification Code",
+  "login.resendCode": "Resend Code",
+  "login.otpGroupLabel": "6-digit verification code",
+  "login.otpDigitLabel": "Digit {{n}}",
+  "login.submit": "Log In",
+  "login.error.sendFailed": "Failed to send, please try again later",
+  "login.success.codeSent": "Verification code sent, please check your inbox",
+  "login.error.network": "Network error, please try again later",
+  "login.warning.cooldown": "You can resend the code in {{seconds}}s",
+  "login.error.invalidEmail": "Please enter a valid email address",
+  "login.warning.incompleteOtp": "Please enter the full 6-digit code",
+  "login.error.invalidOtp": "Incorrect or expired verification code",
+  "common.ok": "OK"
+}

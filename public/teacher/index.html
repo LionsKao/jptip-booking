@@ -86,6 +86,8 @@
   <button type="button" class="back-btn" id="logout-btn" data-modal-open="logoutConfirmModal"><i class="fa-solid fa-fw fa-arrow-right-from-bracket"></i></button>
 </div>
 
+<div id="lang-switch"></div>
+
 <div class="modal-overlay" id="logoutConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -128,6 +130,26 @@
 
 <script src="../script.js"></script>
 <script>
+(async () => {
+  // 帳號的 language 欄位才是真相；登入後這裡負責把它同步進 localStorage，
+  // 也讓老師隨時能在這頁換語言（換的當下也存回帳號，換裝置登入才會一致）。
+  // 老師自己的資料沒有獨立的 /me 端點，跟其他老師頁面一樣用 session email
+  // 反查 /api/teachers 全清單來找到自己那筆。
+  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const teachers = session ? await fetch('/api/teachers').then((res) => (res.ok ? res.json() : [])).catch(() => []) : [];
+  const selfTeacher = session ? teachers.find((t) => t.email === session.email) : null;
+  const lang = (selfTeacher && selfTeacher.language) || getCurrentLang();
+  setCurrentLang(lang);
+  await initI18n(lang);
+  renderLangSwitch(document.getElementById('lang-switch'), lang, (newLang) => {
+    fetch('/api/me/language', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: newLang }),
+    });
+  });
+})();
+
   document.querySelector('[data-action="lessons"]').addEventListener('click', () => {
     window.location.href = 'lessons.html';
   });

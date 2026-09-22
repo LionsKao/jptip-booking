@@ -86,6 +86,8 @@
   <button type="button" class="back-btn" id="logout-btn" data-modal-open="logoutConfirmModal"><i class="fa-solid fa-fw fa-arrow-right-from-bracket"></i></button>
 </div>
 
+<div id="lang-switch"></div>
+
 <div class="modal-overlay" id="logoutConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -101,6 +103,13 @@
 <div class="page">
 
   <div class="dash-cards">
+    <button type="button" class="dash-card" data-action="bookings">
+      <span class="dash-card-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
+      <span>
+        <h3>預約紀錄</h3>
+        <p>查看所有學生的預約總覽</p>
+      </span>
+    </button>
     <button type="button" class="dash-card" data-action="students">
       <span class="dash-card-icon"><img src="../assets/icons/write-student.png" alt=""></span>
       <span>
@@ -128,11 +137,23 @@
 
 <script src="../script.js"></script>
 <script>
+(async () => {
+  // 管理者帳號（admins 資料表）目前沒有 language 欄位——管理端頁面的翻譯
+  // 還沒做，這裡先跟登入頁一樣只存 localStorage，等管理端頁面開始翻譯時
+  // 再補資料庫欄位讓它跨裝置同步。
+  const lang = getCurrentLang();
+  await initI18n(lang);
+  renderLangSwitch(document.getElementById('lang-switch'), lang);
+})();
+
   document.querySelector('[data-action="students"]').addEventListener('click', () => {
     window.location.href = 'students.html';
   });
   document.querySelector('[data-action="teachers"]').addEventListener('click', () => {
     window.location.href = 'teachers.html';
+  });
+  document.querySelector('[data-action="bookings"]').addEventListener('click', () => {
+    window.location.href = 'bookings.html';
   });
   document.querySelector('[data-action="courses"]').addEventListener('click', () => {
     window.location.href = 'courses.html';

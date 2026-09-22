@@ -1,6 +1,5 @@
 // ==========================================================================
-// 共用 mock 資料存取（admin-teachers / admin-students，localStorage）
-// TODO: 之後改接真正的 D1/API
+// 共用頭像/課程圖工具
 // ==========================================================================
 const AVATAR_LIST = [
   '001-bear.png', '002-rabbit.png', '003-cow.png', '004-puffer-fish.png', '005-owl.png',
@@ -30,112 +29,6 @@ function courseImageSrc(image) {
   if (image.startsWith('courses/')) return `/${image}`; // R2 上傳的真實課程圖，經 Worker /courses/:key 讀取
   return `../assets/avatars/${image}`; // 隨機圖示（沿用跟老師/學生一樣的動物圖示集）
 }
-
-function loadTeachers() {
-  const raw = localStorage.getItem('admin-teachers');
-  if (raw) return JSON.parse(raw);
-
-  const now = Date.now();
-  const DAY = 86400000;
-  const NAMES = ['田中老師', '佐藤老師', '鈴木老師', '山田老師', '高橋老師', '中村老師', '小林老師', '渡辺老師', '伊藤老師', '加藤老師', '吉田老師', '山本老師', '松本老師'];
-  const VIEW_OFFSETS = [4, 11, 0, 8, 2, 10, 6, 1, 9, 3, 7, 12, 5];
-  // 對應 student/booking.html 靜態老師卡片原本就有的專長/座右銘文字（僅前 8 位老師有對應資料）
-  const SPECIALTIES = ['日文會話・5 年教學經驗', '商用日文・JLPT N1', '日文文法・JLPT 檢定專攻', '動漫日文・流行文化會話', '會話練習・生活日文', '聽力訓練・新聞日文', '文法解析・句型整理', '作文指導・寫作技巧'];
-  const MOTTOS = ['一緒に学び、共に成長していきましょう。', '失敗を恐れず、新しい世界へ踏み出そう！', '毎日の小さな積み重ねが、大きな力になる。', '臭豆腐の美味しさがわかる人は、もう私の仲間です。', '授業よりも、放課後の台湾夜市グルメが本番です。', '私の体の半分は、タピオカミルクティーとルーロー飯でできています。', '質問は大歓迎！でもパクチーは大盛りでよろしく。', '私の体の半分は、タピオカミルクティーとルーロー飯でできています。'];
-
-  const INACTIVE_IDS = [4, 9, 13];
-
-  const seed = NAMES.map((name, i) => ({
-    id: i + 1,
-    name,
-    phone: `09${String(20 + i).padStart(2, '0')}${String(300 + i * 7).padStart(3, '0')}${String(400 + i * 3).padStart(3, '0')}`,
-    email: i < 3 ? `teacher${i + 1}@jptip.co.jp` : `teacher${i + 1}@example.com`, // 前 3 位對齊 D1 種子登入帳號，讓登入的老師能對到自己的 mock 資料
-    avatar: AVATAR_LIST[i % AVATAR_LIST.length],
-    specialty: SPECIALTIES[i] || '',
-    motto: MOTTOS[i] || '',
-    lastViewedAt: now - VIEW_OFFSETS[i] * DAY,
-    status: INACTIVE_IDS.includes(i + 1) ? 'inactive' : 'active',
-  }));
-
-  localStorage.setItem('admin-teachers', JSON.stringify(seed));
-  return seed;
-}
-function saveTeachers(list) { localStorage.setItem('admin-teachers', JSON.stringify(list)); }
-
-const COURSE_NAME_FIX = { 'N4 綜合日本語 J1': 'N4 綜合日本語 J4', 'N4 綜合日本語 J2': 'N4 綜合日本語 J5' };
-
-function loadStudents() {
-  const raw = localStorage.getItem('admin-students');
-  if (raw) {
-    const list = JSON.parse(raw);
-    let patched = false;
-    list.forEach((s) => {
-      if (!s.avatar) { s.avatar = randomAvatar(); patched = true; }
-      (s.courses || []).forEach((c) => {
-        if (COURSE_NAME_FIX[c.name]) { c.name = COURSE_NAME_FIX[c.name]; patched = true; }
-      });
-      (s.bookings || []).forEach((b) => {
-        if (COURSE_NAME_FIX[b.course]) { b.course = COURSE_NAME_FIX[b.course]; patched = true; }
-      });
-    });
-    if (patched) saveStudents(list);
-    return list;
-  }
-
-  const now = Date.now();
-  const DAY = 86400000;
-  const NAMES = ['陳靜怡', '王大明', '李美芳', '張凱文', '林佳穎', '黃俊傑', '吳雅婷', '劉建宏', '蔡欣怡', '楊子軒', '鄭雅雯', '許志明', '謝佩珊'];
-  const VIEW_OFFSETS = [5, 12, 1, 9, 3, 11, 0, 7, 4, 10, 2, 8, 6];
-  const TEACHERS = ['田中老師', '佐藤老師', '山本老師', '鈴木老師', '渡辺老師'];
-  const COURSES = ['N5 綜合日本語 J1', 'N5 綜合日本語 J2', 'N5 綜合日本語 J3', 'N4 綜合日本語 J4', 'N4 綜合日本語 J5', 'N4 綜合日本語 J6', 'N3 綜合日本語 J7', 'N3 綜合日本語 J8', 'N3 綜合日本語 J9', 'N2 綜合日本語 J10', 'N2 綜合日本語 J11', 'N2 綜合日本語 J12', 'N2 綜合日本語 J13', '商務日文 基礎會話篇', '商務日文 應用會話篇'];
-  // 對應 admin-courses / admin-teachers 種子資料的 id（同名同序），讓種子預約也帶有真正的 courseId/teacherId 可供比對
-  const COURSE_ID_MAP = Object.fromEntries(COURSES.map((name, idx) => [name, idx + 1]));
-  const TEACHER_ID_MAP = { '田中老師': 1, '佐藤老師': 2, '鈴木老師': 3, '山田老師': 4, '高橋老師': 5, '中村老師': 6, '小林老師': 7, '渡辺老師': 8, '伊藤老師': 9, '加藤老師': 10, '吉田老師': 11, '山本老師': 12, '松本老師': 13 };
-
-  const seed = NAMES.map((name, i) => {
-    const id = i + 1;
-    const hasCourse = i % 3 !== 2;
-    const courses = [];
-    if (hasCourse) {
-      courses.push({ id: id * 100 + 1, name: COURSES[i % COURSES.length], status: 'ongoing', attended: `${i % 10}/16`, booked: `${(i % 10) + 1}/16` });
-    }
-    if (i % 4 === 0) {
-      courses.push({ id: id * 100 + 2, name: COURSES[(i + 2) % COURSES.length], status: 'completed', attended: '16/16', booked: '16/16' });
-    }
-    const bookings = [];
-    if (hasCourse) {
-      const bookingCount = 1 + (i % 3);
-      for (let b = 0; b < bookingCount; b++) {
-        const day = 1 + ((i * 3 + b * 5) % 27);
-        const dateStr = `2026-09-${String(day).padStart(2, '0')}`;
-        const timeStr = `${10 + ((i + b) % 8)}:00`;
-        const teacherName = TEACHERS[(i + b) % TEACHERS.length];
-        bookings.push({
-          id: id * 1000 + b,
-          bookingCode: `${dateStr.replace(/-/g, '')}-${timeStr.replace(':', '')}-${String((id + b) % 100).padStart(2, '0')}`,
-          course: courses[0].name, courseId: COURSE_ID_MAP[courses[0].name],
-          teacher: teacherName, teacherId: TEACHER_ID_MAP[teacherName],
-          date: dateStr,
-          time: timeStr,
-          status: b === 0 ? 'upcoming' : (b % 2 === 0 ? 'attended' : 'cancelled'),
-        });
-      }
-    }
-    return {
-      id, name,
-      phone: `09${String(10 + i).padStart(2, '0')}${String(100 + i * 7).padStart(3, '0')}${String(200 + i * 3).padStart(3, '0')}`,
-      email: id <= 4 ? `student${id}@jptip.co.jp` : `student${id}@example.com`, // 前 4 位對齊 D1 種子登入帳號，讓登入快選按鈕能找到對應的學生資料
-      teamsLink: '',
-      avatar: AVATAR_LIST[i % AVATAR_LIST.length],
-      lastViewedAt: now - VIEW_OFFSETS[i] * DAY,
-      courses, bookings,
-    };
-  });
-
-  localStorage.setItem('admin-students', JSON.stringify(seed));
-  return seed;
-}
-function saveStudents(list) { localStorage.setItem('admin-students', JSON.stringify(list)); }
 
 // ==========================================================================
 // 分頁（列表 + 分頁按鈕）
@@ -510,20 +403,20 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       });
       const data = await res.json();
       if (!res.ok) {
-        showLoginAlert(data.error || '發送失敗，請稍後再試', 'error');
+        showLoginAlert(data.error || t('login.error.sendFailed'), 'error');
         return;
       }
       otpBoxes.forEach((b) => { b.disabled = false; b.value = ''; b.classList.remove('filled', 'error'); });
       submitBtn.disabled = false;
       card.dataset.step = '2';
-      sendBtn.innerHTML = '<i class="fa-solid fa-fw fa-rotate-right"></i> 重新取得驗證碼';
+      sendBtn.innerHTML = `<i class="fa-solid fa-fw fa-rotate-right"></i> ${t('login.resendCode')}`;
       sendBtn.classList.remove('blue');
       sendBtn.classList.add('outline');
       startCountdown();
       otpBoxes[0].focus();
-      showLoginAlert('已寄出驗證碼，請查看信箱', 'success');
+      showLoginAlert(t('login.success.codeSent'), 'success');
     } catch {
-      showLoginAlert('網路錯誤，請稍後再試', 'error');
+      showLoginAlert(t('login.error.network'), 'error');
     } finally {
       isRequesting = false;
     }
@@ -532,27 +425,54 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
   sendBtn.addEventListener('click', () => {
     if (isRequesting) return;
     if (cooldownRemaining > 0) {
-      showLoginAlert(`還可在 ${cooldownRemaining} 秒後重新取得驗證碼`, 'warning');
+      showLoginAlert(t('login.warning.cooldown', { seconds: cooldownRemaining }), 'warning');
       return;
     }
     const email = emailInput.value.trim();
     if (!isValidEmail(email)) {
       emailField.classList.add('error');
-      showLoginAlert('請輸入有效的 Email 格式', 'error');
+      showLoginAlert(t('login.error.invalidEmail'), 'error');
       return;
     }
     emailField.classList.remove('error');
     requestCode(email);
   });
 
+  // 貼上信件裡複製的 6 碼驗證碼：不管貼在哪一格，都把數字拆開依序填滿
+  // 6 格，並讓最後一格拿到焦點；純打字（每格只會收到 1 碼）則完全不受影響。
+  function fillOtpFromDigits(digits, startIndex) {
+    const chars = digits.split('');
+    let i = startIndex;
+    while (chars.length && i < otpBoxes.length) {
+      otpBoxes[i].value = chars.shift();
+      otpBoxes[i].classList.add('filled');
+      otpBoxes[i].classList.remove('error');
+      i += 1;
+    }
+    const lastFilledIndex = Math.min(i, otpBoxes.length) - 1;
+    otpBoxes[Math.max(lastFilledIndex, startIndex)].focus();
+    // 六碼都到齊了，不用再多按一次「登入」——貼上/打完最後一碼就直接送出。
+    if (otpBoxes.every((b) => b.value) && !submitBtn.disabled) submitBtn.click();
+  }
+
   otpBoxes.forEach((box, i) => {
     box.addEventListener('input', () => {
       box.value = box.value.replace(/[^0-9]/g, '').slice(0, 1);
       box.classList.toggle('filled', box.value !== '');
+      box.classList.remove('error');
       if (box.value && otpBoxes[i + 1]) otpBoxes[i + 1].focus();
+      if (box.value && i === otpBoxes.length - 1 && otpBoxes.every((b) => b.value) && !submitBtn.disabled) {
+        submitBtn.click();
+      }
     });
     box.addEventListener('keydown', (e) => {
       if (e.key === 'Backspace' && !box.value && otpBoxes[i - 1]) otpBoxes[i - 1].focus();
+    });
+    box.addEventListener('paste', (e) => {
+      const digits = (e.clipboardData?.getData('text') || '').replace(/[^0-9]/g, '').slice(0, 6);
+      if (!digits) return;
+      e.preventDefault();
+      fillOtpFromDigits(digits, 0);
     });
   });
 
@@ -560,7 +480,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
     const code = otpBoxes.map((b) => b.value).join('');
     if (code.length < 6) {
       otpBoxes.forEach((b) => { if (!b.value) b.classList.add('error'); });
-      showLoginAlert('請輸入完整 6 碼驗證碼', 'warning');
+      showLoginAlert(t('login.warning.incompleteOtp'), 'warning');
       return;
     }
     otpBoxes.forEach((b) => b.classList.remove('error'));
@@ -573,7 +493,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       });
       const data = await res.json();
       if (!res.ok) {
-        showLoginAlert(data.error || '驗證碼錯誤或已過期', 'error');
+        showLoginAlert(data.error || t('login.error.invalidOtp'), 'error');
         submitBtn.disabled = false;
         return;
       }
@@ -582,7 +502,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       // protected page/API now checks.
       window.location.href = `${card.dataset.role}/`;
     } catch {
-      showLoginAlert('網路錯誤，請稍後再試', 'error');
+      showLoginAlert(t('login.error.network'), 'error');
       submitBtn.disabled = false;
     }
   });
@@ -660,7 +580,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       emailField.classList.remove('error');
       otpBoxes.forEach((b) => { b.disabled = true; b.value = ''; b.classList.remove('filled', 'error'); });
       submitBtn.disabled = true;
-      sendBtn.innerHTML = '<i class="fa-solid fa-fw fa-paper-plane"></i> 取得驗證碼';
+      sendBtn.innerHTML = `<i class="fa-solid fa-fw fa-paper-plane"></i> ${t('login.sendCode')}`;
       sendBtn.classList.remove('outline');
       sendBtn.classList.add('blue');
     }
@@ -858,3 +778,157 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
     if (backBtn) backBtn.addEventListener('click', showEntryView);
   }
 })();
+
+// ==========================================================================
+// 多語系（i18n）——語言字典由 /i18n/{lang}.json 抓取，套用到帶
+// data-i18n / data-i18n-placeholder / data-i18n-aria-label 屬性的元素；
+// 帳號登入後的「真相」存在資料庫的 language 欄位（見 src/index.ts 的
+// /api/me/language），這裡的 localStorage 只是登入前、或 API 回應前的
+// 暫存/預設值，避免畫面閃一下才套用正確語言。
+// ==========================================================================
+const SUPPORTED_LANGUAGES = ['zh-Hant', 'ja', 'en', 'vi', 'my'];
+const LANG_LABELS = {
+  'zh-Hant': '繁體中文',
+  ja: '日本語',
+  en: 'English',
+  vi: 'Tiếng Việt',
+  my: 'မြန်မာဘာသာ',
+};
+const LANG_STORAGE_KEY = 'lang';
+
+function getCurrentLang() {
+  try {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    return SUPPORTED_LANGUAGES.includes(stored) ? stored : 'zh-Hant';
+  } catch {
+    return 'zh-Hant';
+  }
+}
+function setCurrentLang(lang) {
+  try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch {}
+}
+
+let i18nDict = {};
+let i18nLang = null;
+
+async function loadI18nDict(lang) {
+  if (i18nLang === lang) return;
+  const res = await fetch(`/i18n/${lang}.json`).catch(() => null);
+  i18nDict = res && res.ok ? await res.json() : {};
+  i18nLang = lang;
+}
+
+// {{name}} 佔位符做簡單字串替換（例如「還可在 {{seconds}} 秒後...」）。
+function t(key, params) {
+  let text = i18nDict[key] || key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replaceAll(`{{${k}}}`, v);
+    }
+  }
+  return text;
+}
+
+function applyTranslations(root = document) {
+  root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  root.querySelectorAll('[data-i18n-aria-label]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel)); });
+}
+
+async function initI18n(lang) {
+  await loadI18nDict(lang);
+  document.documentElement.lang = lang;
+  applyTranslations();
+}
+
+// 語言切換元件：把 🌐 圖示鈕 + 下拉選單畫進 container，選了新語言就更新
+// localStorage、重新套用翻譯，並透過 onChange 讓呼叫端決定要不要連帶存回帳號。
+function renderLangSwitch(container, currentLang, onChange) {
+  container.classList.add('lang-switch');
+  container.innerHTML = `
+    <button type="button" class="lang-switch-trigger" aria-label="Language"><i class="fa-solid fa-fw fa-globe"></i></button>
+    <ul class="lang-switch-menu">
+      ${SUPPORTED_LANGUAGES.map((code) => `<li data-value="${code}" class="${code === currentLang ? 'selected' : ''}">${LANG_LABELS[code]}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('')}
+    </ul>`;
+
+  container.querySelector('.lang-switch-trigger').addEventListener('click', (e) => {
+    e.stopPropagation();
+    container.classList.toggle('open');
+  });
+  container.querySelectorAll('.lang-switch-menu li').forEach((li) => {
+    li.addEventListener('click', async () => {
+      const lang = li.dataset.value;
+      container.classList.remove('open');
+      if (lang === i18nLang) return;
+      container.querySelectorAll('.lang-switch-menu li').forEach((l) => l.classList.remove('selected'));
+      li.classList.add('selected');
+      setCurrentLang(lang);
+      await initI18n(lang);
+      if (onChange) onChange(lang);
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target)) container.classList.remove('open');
+  });
+}
+
+// ==========================================================================
+// 多語系日期格式——用 Intl.DateTimeFormat 依語言自動套用當地慣用的日期
+// 順序/標點，而不是每個語言各自手刻規則。時間一律用 24 小時制 HH:mm，
+// 這點在所有語言下順序都一樣，不需要另外處理。
+// ==========================================================================
+const DATE_LOCALE_MAP = {
+  'zh-Hant': 'zh-TW',
+  ja: 'ja-JP',
+  en: 'en-GB',
+  vi: 'vi-VN',
+  my: 'my-MM-u-nu-latn', // 緬甸文用阿拉伯數字（0-9），比原生緬甸數字更符合當地數位產品慣例
+};
+// 短格式的星期縮寫要各語言分開挑：中/日/越用 narrow（單字不重複、看得出差異）；
+// 英文 narrow 會有 T=Tuesday/Thursday 撞字問題，緬甸文 narrow 週日/週一也會撞字，兩者改用 short。
+const WEEKDAY_SHORT_STYLE_MAP = { 'zh-Hant': 'narrow', ja: 'narrow', en: 'short', vi: 'narrow', my: 'short' };
+
+// ==========================================================================
+// 老師／學生「時區」欄位（例：'(UTC+6:30) 仰光'）— 從標籤字串解析出實際小時
+// 差，統一在這裡處理，courses/hours/lessons/booking-history 等頁面都共用，
+// 才不用每個頁面各自寫一份、又漏掉緬甸這種非整數小時的時區。
+// ==========================================================================
+function parseUtcOffset(label) {
+  const m = /UTC([+-]\d+)(?::(\d+))?/.exec(label || '');
+  if (!m) return 8; // 沒有設定時區時，跟資料庫時間基準（UTC+8）一致
+  const hours = Number(m[1]);
+  const minutes = m[2] ? Number(m[2]) / 60 : 0;
+  return hours < 0 ? hours - minutes : hours + minutes;
+}
+
+// ISO 8601 風格的固定寬度格式（"+08:00"、"+06:30"），所有時區長度一致，
+// 不會有的補 0、有的沒補（"+8" 跟 "+6:30" 混用）這種不一致的寫法。
+function formatUtcOffset(offsetHours) {
+  const sign = offsetHours < 0 ? '-' : '+';
+  const abs = Math.abs(offsetHours);
+  const h = Math.floor(abs);
+  const m = Math.round((abs - h) * 60);
+  return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function parseYmd(dateInput) {
+  return dateInput instanceof Date ? dateInput : new Date(String(dateInput).replaceAll('/', '-'));
+}
+
+function formatDateLong(dateInput, lang = getCurrentLang()) {
+  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(parseYmd(dateInput));
+}
+
+function formatDateShort(dateInput, lang = getCurrentLang()) {
+  const d = parseYmd(dateInput);
+  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+  // 繁體中文用 ASCII 括號 + 單字星期（例：2026/09/22(二)），跟其他語言的
+  // locale 預設組合輸出（例：Tue, 22/09/2026）故意做成不同排法。
+  if (lang === 'zh-Hant') {
+    const datePart = new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(d);
+    return `${datePart}(${weekday})`;
+  }
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit', weekday: WEEKDAY_SHORT_STYLE_MAP[lang] || 'short' }).format(d);
+}

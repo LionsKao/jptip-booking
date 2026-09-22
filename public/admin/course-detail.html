@@ -295,12 +295,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, description, image, status, durationMinutes, bufferBeforeMinutes, bufferAfterMinutes, scheduleIncrement, minLeadHours)
-  const COURSES_KEY = 'admin-courses';
-
-  function loadCourses() { return JSON.parse(localStorage.getItem(COURSES_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
-  function saveCourses(list) { localStorage.setItem(COURSES_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
-
+(async () => {
   function courseBadge(name) {
     const match = name.match(/J(\d+)/);
     if (match) return { label: `J${match[1]}`, color: `var(--level-j${match[1]})` };
@@ -308,14 +303,12 @@
   }
 
   const courseId = Number(new URLSearchParams(window.location.search).get('id'));
-  const courses = loadCourses();
+  const courses = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
   const course = courses.find((c) => c.id === courseId);
 
   if (!course) {
     window.location.href = 'courses.html';
   } else {
-    course.lastViewedAt = Date.now();
-    saveCourses(courses);
     // 「最近點擊」要讓所有管理者共用，寫進 D1（失敗就算了，不影響本頁瀏覽）
     fetch(`/api/recently-viewed?type=course&id=${course.id}`, { method: 'PUT' }).catch(() => {});
 
@@ -461,33 +454,47 @@
       document.getElementById('basicInfoAlertModal').classList.add('open');
     }
 
-    document.getElementById('basic-submit-btn').addEventListener('click', () => {
+    async function patchCourse(fields) {
+      const res = await fetch(`/api/courses?id=${course.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      if (res.ok) Object.assign(course, fields);
+      return res.ok;
+    }
+
+    document.getElementById('basic-submit-btn').addEventListener('click', async () => {
       const name = document.getElementById('edit-course-name').value.trim();
       if (!name) {
         showBasicAlert('請填寫課程名稱');
         return;
       }
 
-      course.name = name;
-      course.description = document.getElementById('edit-course-description').value.trim();
-      course.image = currentImage;
-      course.status = document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive';
+      const ok = await patchCourse({
+        name,
+        description: document.getElementById('edit-course-description').value.trim(),
+        image: currentImage,
+        status: document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive',
+      });
+      if (!ok) { showBasicAlert('儲存失敗，請稍後再試'); return; }
 
-      saveCourses(courses);
       renderHeader();
       document.getElementById('editSuccessModal').classList.add('open');
       initialSnapshot = getFormSnapshot();
     });
 
-    document.getElementById('schedule-submit-btn').addEventListener('click', () => {
-      course.durationMinutes = Number(document.getElementById('duration-hours').value || 0) * 60 + Number(document.getElementById('duration-minutes').value || 0);
-      course.bufferBeforeMinutes = Number(document.getElementById('buffer-before-hours').value || 0) * 60 + Number(document.getElementById('buffer-before-minutes').value || 0);
-      course.bufferAfterMinutes = Number(document.getElementById('buffer-after-hours').value || 0) * 60 + Number(document.getElementById('buffer-after-minutes').value || 0);
-      course.scheduleIncrement = getDropdownValue('schedule-increment-dropdown');
-      course.minLeadHours = Number(document.getElementById('min-lead-hours').value || 0);
-      course.maxLeadDays = Number(document.getElementById('max-lead-days').value || 0);
+    document.getElementById('schedule-submit-btn').addEventListener('click', async () => {
+      const ok = await patchCourse({
+        durationMinutes: Number(document.getElementById('duration-hours').value || 0) * 60 + Number(document.getElementById('duration-minutes').value || 0),
+        bufferBeforeMinutes: Number(document.getElementById('buffer-before-hours').value || 0) * 60 + Number(document.getElementById('buffer-before-minutes').value || 0),
+        bufferAfterMinutes: Number(document.getElementById('buffer-after-hours').value || 0) * 60 + Number(document.getElementById('buffer-after-minutes').value || 0),
+        scheduleIncrement: getDropdownValue('schedule-increment-dropdown'),
+        minLeadHours: Number(document.getElementById('min-lead-hours').value || 0),
+        maxLeadDays: Number(document.getElementById('max-lead-days').value || 0),
+      });
+      if (!ok) { showBasicAlert('儲存失敗，請稍後再試'); return; }
 
-      saveCourses(courses);
       document.getElementById('editSuccessModal').classList.add('open');
       initialSnapshot = getFormSnapshot();
     });
@@ -528,6 +535,7 @@
       window.location.href = 'courses.html';
     });
   }
+})();
 </script>
 
 </body>

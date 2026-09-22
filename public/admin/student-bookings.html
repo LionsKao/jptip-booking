@@ -222,12 +222,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="bookingsTimezoneModal">
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
     <h3>課程時間顯示時區</h3>
-    <p class="text-small">管理者一律以 (UTC+8) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
+    <p class="text-small">管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
     </div>
@@ -236,14 +247,23 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：student_bookings(student_id, course, teacher, date, time, status, booking_code)
+(async () => {
+  // 課程是真的 D1 資料，這裡先抓一次存起來給下面 computeDisplayParts() 用。
+  const coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
+  function loadCourses() { return coursesCache; }
+
   const studentId = Number(new URLSearchParams(window.location.search).get('id'));
-  const students = loadStudents();
+  const students = await fetch('/api/students').then((res) => (res.ok ? res.json() : []));
   const student = students.find((s) => s.id === studentId);
 
   if (!student) {
     window.location.href = 'students.html';
+    return;
   }
+
+  // 這個學生的預約紀錄是真正的 D1 資料（見 /api/bookings?studentId=），這裡在
+  // 載入時抓一次存進 student.bookings，之後標記狀態都直接改這份記憶體副本再重繪。
+  student.bookings = await fetch(`/api/bookings?studentId=${studentId}`).then((res) => (res.ok ? res.json() : []));
 
   const STATUS_MAP = {
     pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
@@ -259,36 +279,6 @@
     cancelled: { tone: 'tone-red',    label: '取消' },
     attended:  { tone: 'tone-green',  label: '完成' },
   };
-
-  // 學生還沒有任何預約紀錄時，先產生幾筆示範資料方便管理者預覽介面
-  function generateFakeBookings(seedId, courseName) {
-    const TEACHERS = ['田中老師', '佐藤老師', '山本老師', '鈴木老師', '渡辺老師'];
-    const count = 3 + (seedId % 3);
-    const bookings = [];
-    for (let b = 0; b < count; b++) {
-      const day = 1 + ((seedId * 3 + b * 5) % 27);
-      const dateStr = `2026-09-${String(day).padStart(2, '0')}`;
-      const timeStr = `${10 + ((seedId + b) % 8)}:00`;
-      bookings.push({
-        id: seedId * 1000 + b,
-        bookingCode: `${dateStr.replace(/-/g, '')}-${timeStr.replace(':', '')}-${String((seedId + b) % 100).padStart(2, '0')}`,
-        course: courseName,
-        teacher: TEACHERS[(seedId + b) % TEACHERS.length],
-        date: dateStr,
-        time: timeStr,
-        status: b === 0 ? 'upcoming' : (b % 2 === 0 ? 'attended' : 'cancelled'),
-      });
-    }
-    return bookings;
-  }
-
-  if (student && (!student.bookings || student.bookings.length === 0)) {
-    const courseName = (student.courses && student.courses[0]) ? student.courses[0].name : 'N5 綜合日本語 J1';
-    student.bookings = generateFakeBookings(student.id, courseName);
-    saveStudents(students);
-  }
-
-  function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
 
   function endTimeStr(timeStr, durationMinutes) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -382,7 +372,7 @@
     renderBookings();
   });
 
-  if (student) renderBookings();
+  renderBookings();
 
   document.querySelectorAll('#bookings-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
 
@@ -400,7 +390,7 @@
     document.getElementById('detail-teacher').textContent = booking.teacher;
     const parts = computeDisplayParts(booking);
     document.getElementById('detail-datetime').textContent = parts.dateLabel;
-    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+8`;
+    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+08:00`;
     document.getElementById('detail-booking-code').textContent = booking.bookingCode || '—';
     document.getElementById('bookings-list-view').hidden = true;
     document.getElementById('bookings-detail-view').hidden = false;
@@ -422,25 +412,31 @@
     document.getElementById('bookings-list-view').hidden = false;
   }
 
-  // 取消會把預約次數還給學生；從取消改回其他狀態則要重新扣掉次數（其餘狀態之間互轉不影響次數）
-  function adjustQuotaForStatusChange(courseName, oldStatus, newStatus) {
-    if (oldStatus === newStatus) return;
-    const wasCancelled = oldStatus === 'cancelled';
-    const willBeCancelled = newStatus === 'cancelled';
-    if (wasCancelled === willBeCancelled) return;
-    const course = (student.courses || []).find((c) => c.name === courseName);
-    if (!course) return;
-    const [num, den] = (course.booked || '0/16').split('/').map(Number);
-    const delta = willBeCancelled ? -1 : 1;
-    course.booked = `${Math.min(Math.max(num + delta, 0), den)}/${den}`;
+  function showBookingAlert(message) {
+    document.getElementById('basicInfoAlertText').textContent = message;
+    document.getElementById('basicInfoAlertModal').classList.add('open');
   }
 
-  function setBookingStatus(newStatus) {
+  // 狀態變更後，課程堂數（已預約／已上課）由伺服器在同一次請求裡自動調整
+  // （轉入/轉出 cancelled 會影響已預約，轉入/轉出 attended 會影響已上課），
+  // 前端不用也不該自己再算一次。
+  async function setBookingStatus(newStatus) {
     const booking = student.bookings.find((b) => b.id === activeBookingId);
     if (!booking) return;
-    adjustQuotaForStatusChange(booking.course, booking.status, newStatus);
-    booking.status = newStatus;
-    saveStudents(students);
+
+    const res = await fetch(`/api/bookings?id=${booking.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showBookingAlert(data.error || '更新失敗，請稍後再試');
+      return;
+    }
+
+    const updated = await res.json();
+    Object.assign(booking, updated);
     hideBookingDetail();
     renderBookings();
   }
@@ -484,6 +480,7 @@
     }
     window.location.href = `student-detail.html?id=${studentId}`;
   });
+})();
 </script>
 
 </body>

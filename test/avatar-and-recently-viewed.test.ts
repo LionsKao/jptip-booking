@@ -36,11 +36,20 @@ describe('PUT /api/avatar/upload', () => {
     expect(new Uint8Array(await stored!.arrayBuffer())).toEqual(FAKE_JPEG);
   });
 
-  it('uploads a course cover without touching any D1 row (courses have no table yet)', async ({ expect }) => {
+  it('uploads a course cover and updates the course row\'s photo_path in D1', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
-    const res = await fetchWorker('/api/avatar/upload?role=course&id=7', uploadInit(cookie, FAKE_JPEG, 'image/png'));
+    const created = await fetchWorker('/api/courses', withCookie(cookie, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'N5 綜合日本語 J1' }),
+    })).then((res) => res.json() as Promise<{ id: number }>);
+
+    const res = await fetchWorker(`/api/avatar/upload?role=course&id=${created.id}`, uploadInit(cookie, FAKE_JPEG, 'image/png'));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ path: 'courses/course-7.png' });
+    expect(await res.json()).toEqual({ path: `courses/course-${created.id}.png` });
+
+    const row = await env.DB.prepare(`SELECT photo_path FROM courses WHERE id = ?`).bind(created.id).first<{ photo_path: string }>();
+    expect(row?.photo_path).toBe(`courses/course-${created.id}.png`);
   });
 
   it('rejects an invalid role even for an admin', async ({ expect }) => {

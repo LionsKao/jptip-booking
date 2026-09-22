@@ -1,0 +1,23 @@
+{
+  "login.role.student.title": "ကျောင်းသား လော့ဂ်အင်",
+  "login.role.student.desc": "သင်တန်းကို ချက်ချင်းမှာယူပြီး သင်ယူမှုခရီးကို စတင်ပါ",
+  "login.role.teacher.title": "ဆရာ/ဆရာမ လော့ဂ်အင်",
+  "login.role.teacher.desc": "သင့်သင်ခန်းစာများနှင့် ဘွတ်ကင်အချိန်များကို စီမံပါ",
+  "login.role.admin.title": "စီမံခန့်ခွဲသူ လော့ဂ်အင်",
+  "login.role.admin.desc": "ဆရာများ၊ သင်တန်းများနှင့် စနစ်ဆက်တင်များကို စီမံပါ",
+  "login.back": "နောက်သို့",
+  "login.emailPlaceholder": "Email",
+  "login.sendCode": "အတည်ပြုကုဒ် ရယူရန်",
+  "login.resendCode": "အတည်ပြုကုဒ် ပြန်ပို့ရန်",
+  "login.otpGroupLabel": "ဂဏန်း ၆ လုံးပါ အတည်ပြုကုဒ်",
+  "login.otpDigitLabel": "{{n}} လုံးမြောက်",
+  "login.submit": "လော့ဂ်အင် ဝင်ရန်",
+  "login.error.sendFailed": "ပို့ဆောင်မှု မအောင်မြင်ပါ၊ နောက်မှ ထပ်စမ်းကြည့်ပါ",
+  "login.success.codeSent": "အတည်ပြုကုဒ် ပို့ပြီးပါပြီ၊ သင့်အီးမေးလ်ကို စစ်ဆေးပါ",
+  "login.error.network": "ကွန်ရက်အမှားရှိသည်၊ နောက်မှ ထပ်စမ်းကြည့်ပါ",
+  "login.warning.cooldown": "{{seconds}} စက္ကန့်အကြာတွင် ကုဒ်ကို ပြန်လည်ပို့နိုင်ပါသည်",
+  "login.error.invalidEmail": "မှန်ကန်သော Email ပုံစံကို ထည့်သွင်းပါ",
+  "login.warning.incompleteOtp": "ဂဏန်း ၆ လုံးစလုံးကို ထည့်သွင်းပါ",
+  "login.error.invalidOtp": "အတည်ပြုကုဒ် မှားနေသည် သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ",
+  "common.ok": "OK"
+}

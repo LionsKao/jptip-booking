@@ -458,20 +458,27 @@
   // ------------------------------------------------------------------------
   // 資料讀取（每頁各自內嵌一份，比照專案慣例）
   // ------------------------------------------------------------------------
-  function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
-  function loadTeacherHours() { return JSON.parse(localStorage.getItem('teacher-hours') || '{}'); } // TODO: 之後改接真正的 D1/API
-  function loadTeacherLeave() { return JSON.parse(localStorage.getItem('teacher-leave') || '{}'); } // TODO: 之後改接真正的 D1/API
+  // 課程現在是真的 D1 資料，renderCourseCards() 在畫面一開始就會把它抓進這個
+  // 快取；等使用者真的選到課程、進到後面步驟時，這裡一定已經有值了。
+  let coursesCache = [];
+  function loadCourses() { return coursesCache; }
+  // 老師名單不受課程/老師選擇影響，一開始就先抓一次，等使用者真的進到第 3 步時通常已經有值了。
+  const teachersPromise = fetch('/api/teachers').then((res) => (res.ok ? res.json() : [])).catch(() => []);
   // 這個頁面本身已經由後端依 session cookie 擋過（非登入學生連頁面都進不來），
   // 這裡另外打 /api/session 只是為了拿到「是哪一位學生」，取代舊版可被竄改的 sessionStorage。
   const sessionPromise = fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
 
-  // 預約編號規則：上課日期(8碼) + 上課時間(4碼) + 同時段流水序號(2碼)，方便學生口頭告知管理者快速查找
-  function generateBookingCode(dateISO, timeStr) {
-    const sameSlotCount = loadStudents()
-      .flatMap((s) => s.bookings || [])
-      .filter((b) => b.date === dateISO && b.time === timeStr).length;
-    const seq = String(sameSlotCount + 1).padStart(2, '0');
-    return `${dateISO.replace(/-/g, '')}-${timeStr.replace(':', '')}-${seq}`;
+  // 選定老師的每週時段／請假／既有預約：使用者選好老師、進到第 4 步才需要，
+  // 且只在換了一位不同的老師時才重新打 API，切換日曆月份不用重抓。
+  let scheduleCache = { teacherId: null, hours: [], leave: [], bookings: [] };
+  async function ensureScheduleCache(teacherId) {
+    if (!teacherId || scheduleCache.teacherId === teacherId) return;
+    const [hours, leave, bookings] = await Promise.all([
+      fetch(`/api/teachers/hours?teacherId=${teacherId}`).then((res) => (res.ok ? res.json() : [])),
+      fetch(`/api/teachers/leave?teacherId=${teacherId}`).then((res) => (res.ok ? res.json() : [])),
+      fetch(`/api/bookings?teacherId=${teacherId}`).then((res) => (res.ok ? res.json() : [])),
+    ]);
+    scheduleCache = { teacherId, hours, leave, bookings };
   }
 
   // ------------------------------------------------------------------------
@@ -479,6 +486,12 @@
   // ------------------------------------------------------------------------
   function timeToMinutes(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; }
   function minutesToTime(mins) { return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`; }
+  // 現實中不會有課排在這個區間以外（凌晨），所以不管老師實際設定的時段多寬，能
+  // 預約的時間一律夾在這個範圍內——日曆判斷某天是否還有空位、跟右側時間格子的
+  // 顯示，都要用同一個範圍，不然會出現「日曆說這天還有空位，但格子一個都不能按」
+  // 的不一致。
+  const DISPLAY_HOUR_START = 8;
+  const DISPLAY_HOUR_END = 23;
   const WEEKDAY_KEYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
   function getWeekdayKey(dateISO) { return WEEKDAY_KEYS[new Date(`${dateISO}T00:00:00`).getDay()]; }
 
@@ -489,19 +502,25 @@
     return [start - course.bufferBeforeMinutes, start + course.durationMinutes + course.bufferAfterMinutes];
   }
 
-  // 目前沒有全域預約索引表，只能掃描所有學生的 bookings（demo 規模沒有效能問題）
-  function findTeacherBookingsOnDate(teacherId, dateISO) {
-    return loadStudents().flatMap((s) => (s.bookings || [])
-      .filter((b) => b.teacherId === teacherId && b.date === dateISO && b.status !== 'cancelled'));
+  function collidesWithRanges(startMin, course, ranges) {
+    const rangeStart = startMin - course.bufferBeforeMinutes;
+    const rangeEnd = startMin + course.durationMinutes + course.bufferAfterMinutes;
+    return ranges.some(([s, e]) => rangeStart < e && rangeEnd > s);
+  }
+
+  // scheduleCache 已經是「這位老師」自己的預約（ensureScheduleCache 是用 teacherId 去打
+  // GET /api/bookings?teacherId= 抓的），這裡只要照日期篩就好，不用再比對 teacherId。
+  function findTeacherBookingsOnDate(dateISO) {
+    return scheduleCache.bookings.filter((b) => b.date === dateISO && b.status !== 'cancelled');
   }
 
   function getBookableSlotsForDate(course, teacherId, dateISO) {
-    const allHours = loadTeacherHours();
-    const weeklyWindows = (allHours[teacherId] || []).filter((h) => h.day === getWeekdayKey(dateISO));
+    if (scheduleCache.teacherId !== teacherId) return [];
+    const weeklyWindows = scheduleCache.hours.filter((h) => h.day === getWeekdayKey(dateISO));
     if (!weeklyWindows.length) return [];
 
     const incrementMinutes = course.scheduleIncrement === '30 分鐘' ? 30 : 60;
-    const existingRanges = findTeacherBookingsOnDate(teacherId, dateISO).map(occupiedRangeForBooking);
+    const existingRanges = findTeacherBookingsOnDate(dateISO).map(occupiedRangeForBooking);
     const nowMs = Date.now();
 
     const candidates = [];
@@ -514,10 +533,8 @@
     });
 
     return candidates.filter((startMin) => {
-      const rangeStart = startMin - course.bufferBeforeMinutes;
-      const rangeEnd = startMin + course.durationMinutes + course.bufferAfterMinutes;
-      const collides = existingRanges.some(([s, e]) => rangeStart < e && rangeEnd > s);
-      if (collides) return false;
+      if (startMin < DISPLAY_HOUR_START * 60 || startMin > DISPLAY_HOUR_END * 60) return false;
+      if (collidesWithRanges(startMin, course, existingRanges)) return false;
       const slotDateTime = new Date(`${dateISO}T${minutesToTime(startMin)}:00`);
       if (slotDateTime.getTime() - nowMs < course.minLeadHours * 3600 * 1000) return false;
       return true;
@@ -557,8 +574,8 @@
     const teacherId = getSelectedTeacherId();
     const buttons = document.querySelectorAll('.datepicker-grid button:not(.muted)');
     buttons.forEach((btn) => btn.classList.remove('disabled'));
-    if (!course || !teacherId) return;
-    const leaveDates = (loadTeacherLeave()[teacherId] || []).map((l) => l.date);
+    if (!course || !teacherId || scheduleCache.teacherId !== teacherId) return;
+    const leaveDates = scheduleCache.leave.map((l) => l.date);
     const today0 = new Date(); today0.setHours(0, 0, 0, 0);
     const maxDate = new Date(today0); maxDate.setDate(maxDate.getDate() + course.maxLeadDays);
     buttons.forEach((btn) => {
@@ -573,19 +590,42 @@
     });
   }
 
+  // 固定顯示 08:00–23:00 這個範圍，讓還沒選日期時右側就能先出現一整排格子（灰階、
+  // 不可選），而不是一片空白，也讓版面固定是一個整齊的方格；選了日期之後，同一批
+  // 格子裡屬於當天可預約的時段會「亮起來」，其餘的維持灰階，而不是整個重新排版，
+  // 畫面才不會感覺是憑空冒出來的。是否真的可預約仍然由 getBookableSlotsForDate()
+  // 判斷（該函式也夾在同一個範圍內，不然會出現日曆說這天有空位、格子卻一個都點不動
+  // 的不一致），這裡只負責固定要畫出哪些格子。
+  function getDisplaySlotMinutes(course) {
+    const incrementMinutes = course.scheduleIncrement === '30 分鐘' ? 30 : 60;
+    const minutes = [];
+    for (let t = DISPLAY_HOUR_START * 60; t <= DISPLAY_HOUR_END * 60; t += incrementMinutes) {
+      minutes.push(t);
+    }
+    return minutes;
+  }
+
   function renderTimeSlotsForSelectedDate() {
     const course = getSelectedCourse();
     const teacherId = getSelectedTeacherId();
     const dateISO = getSelectedDateISO();
     const container = document.querySelector('.time-slots');
-    if (!course || !teacherId || !dateISO) { container.innerHTML = ''; return; }
-    const slots = getBookableSlotsForDate(course, teacherId, dateISO);
-    container.innerHTML = slots.length
-      ? slots.map((m) => `<div class="time-slot">${minutesToTime(m)}</div>`).join('')
-      : `<p class="text-small" style="color:var(--text-muted);">此日期無可預約時段</p>`;
+    if (!course || !teacherId) { container.innerHTML = ''; return; }
+
+    const allSlots = getDisplaySlotMinutes(course);
+    const bookableSlots = dateISO ? new Set(getBookableSlotsForDate(course, teacherId, dateISO)) : new Set();
+    container.innerHTML = allSlots.map((m) => {
+      const bookable = dateISO && bookableSlots.has(m);
+      return `<div class="time-slot${bookable ? '' : ' disabled'}">${minutesToTime(m)}</div>`;
+    }).join('');
+    if (dateISO && bookableSlots.size === 0) {
+      container.insertAdjacentHTML('beforeend', `<p class="text-small" style="color:var(--text-muted); grid-column:1/-1;">此日期無可預約時段</p>`);
+    }
+
     container.querySelectorAll('.time-slot').forEach((slot) => {
       applyTiltEffect(slot, 28);
       slot.addEventListener('click', () => {
+        if (slot.classList.contains('disabled')) return;
         container.querySelectorAll('.time-slot').forEach((s) => s.classList.remove('selected'));
         slot.classList.add('selected');
         refreshNextButtonState(4);
@@ -612,13 +652,14 @@
   }
 
   async function renderCourseCards() {
+    coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
     const courses = loadCourses();
     const session = await sessionPromise;
-    const student = session ? loadStudents().find((s) => s.email === session.email) : null;
+    const studentCourses = session ? await fetch('/api/students/courses').then((res) => (res.ok ? res.json() : [])) : [];
     const container = document.querySelector('.booking-step[data-step="2"] .grid-cards-lg');
 
     container.innerHTML = courses.map((course) => {
-      const owned = student ? (student.courses || []).find((c) => c.name === course.name) : null;
+      const owned = studentCourses.find((c) => c.name === course.name);
       const isCompleted = !!owned && owned.status === 'completed';
       const isNotPurchased = !owned;
       let quotaExhausted = false;
@@ -665,16 +706,20 @@
     refreshNextButtonState(2);
   }
 
-  function renderTeacherCards() {
+  async function renderTeacherCards() {
     const course = getSelectedCourse();
-    const teachers = course
-      ? loadTeachers().filter((t) => t.status === 'active' && (t.courses || []).includes(course.name))
-      : [];
+    const allTeachers = course ? await teachersPromise : [];
+    // 全部老師都要顯示，能開這門課的排前面、可以選；不能開這門課的（停課/沒開這門課）
+    // 排到後面、灰階不能選 —— 不是直接不顯示這位老師。
+    const isBookable = (t) => t.status === 'active' && (t.courses || []).includes(course && course.name);
+    const teachers = [...allTeachers].sort((a, b) => Number(isBookable(b)) - Number(isBookable(a)));
     const container = document.querySelector('#teachers .grid-cards');
     const emptyState = document.querySelector('.teacher-empty-state');
 
-    container.innerHTML = teachers.map((t) => `
-      <div class="tilt-card teacher-card" data-group="teacher" data-teacher-id="${t.id}">
+    container.innerHTML = teachers.map((t) => {
+      const bookable = isBookable(t);
+      return `
+      <div class="tilt-card teacher-card${bookable ? '' : ' locked'}" data-group="teacher" data-teacher-id="${t.id}">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
         <div class="teacher-avatar" style="background-image: url('${avatarSrc(t.avatar)}');"></div>
         <div class="teacher-info">
@@ -682,7 +727,8 @@
           <p class="text-small">${t.specialty || ''}</p>
         </div>
         ${t.motto ? `<p class="text-caption teacher-motto">「${t.motto}」</p>` : ''}
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     emptyState.style.display = teachers.length ? 'none' : '';
 
@@ -690,7 +736,7 @@
       bindSelectableCard(card, '#teachers .teacher-card', () => refreshNextButtonState(3));
     });
 
-    const availableCards = [...container.querySelectorAll('.teacher-card')];
+    const availableCards = [...container.querySelectorAll('.teacher-card:not(.locked)')];
     if (availableCards.length === 1) availableCards[0].classList.add('selected');
     refreshNextButtonState(3);
   }
@@ -729,39 +775,38 @@
   document.getElementById('submit-booking').addEventListener('click', async () => {
     const session = await sessionPromise;
     if (!session) { showBookingAlert('請重新登入'); return; }
-    const students = loadStudents();
-    const student = students.find((s) => s.email === session.email);
-    if (!student) { showBookingAlert('找不到學生資料'); return; }
 
     const course = getSelectedCourse();
     const teacherId = getSelectedTeacherId();
-    const teacher = loadTeachers().find((t) => t.id === teacherId);
     const dateISO = getSelectedDateISO();
     const timeStr = document.querySelector('.time-slot.selected')?.textContent;
-    if (!course || !teacher || !dateISO || !timeStr) { showBookingAlert('請完成所有步驟'); return; }
+    if (!course || !teacherId || !dateISO || !timeStr) { showBookingAlert('請完成所有步驟'); return; }
 
-    // 先約先贏：送出前再檢查一次這個時段是否還可預約，避免使用者在確認畫面停留太久、時段被搶走
-    const stillAvailable = getBookableSlotsForDate(course, teacherId, dateISO).includes(timeToMinutes(timeStr));
-    if (!stillAvailable) {
+    // 先約先贏：送出前再檢查一次這個時段是否還可預約，避免使用者在確認畫面停留太久、時段被搶走。
+    // 這裡只是即時 UX 回饋，真正權威的檢查是下面 POST /api/bookings 回傳的 409。
+    const freshBookings = await fetch(`/api/bookings?teacherId=${teacherId}&date=${dateISO}`).then((res) => (res.ok ? res.json() : []));
+    const freshRanges = freshBookings.filter((b) => b.status !== 'cancelled').map(occupiedRangeForBooking);
+    if (collidesWithRanges(timeToMinutes(timeStr), course, freshRanges)) {
       showStep(4, false);
       showBookingAlert('這個時段剛被預約走了，請重新選擇');
       return;
     }
 
-    student.bookings = student.bookings || [];
-    student.bookings.push({
-      id: Date.now(),
-      bookingCode: generateBookingCode(dateISO, timeStr),
-      course: course.name, courseId: course.id,
-      teacher: teacher.name, teacherId: teacher.id,
-      date: dateISO, time: timeStr, status: 'upcoming',
+    const res = await fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId: course.id, teacherId, date: dateISO, time: timeStr }),
     });
-    const ownedCourse = (student.courses || []).find((c) => c.name === course.name);
-    if (ownedCourse) {
-      const [num, den] = ownedCourse.booked.split('/').map(Number);
-      ownedCourse.booked = `${Math.min(num + 1, den)}/${den}`;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409) {
+        showStep(4, false);
+        showBookingAlert(data.error || '這個時段剛被預約走了，請重新選擇');
+      } else {
+        showBookingAlert(data.error || '預約失敗，請稍後再試');
+      }
+      return;
     }
-    saveStudents(students);
 
     const current = steps.find((s) => !s.hidden);
     transitionPanels(current, successStep, true);
@@ -778,7 +823,7 @@
   });
 
   document.querySelectorAll('[data-wizard-next]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const currentStep = btn.closest('.booking-step');
       const stepNum = currentStep ? Number(currentStep.dataset.step) : null;
       const rule = REQUIRED_SELECTION_STEPS.find((r) => r.step === stepNum);
@@ -789,8 +834,13 @@
       const next = Number(btn.dataset.wizardNext);
       const nextStep = steps.find((s) => Number(s.dataset.step) === next);
       if (nextStep) {
-        if (next === 3) renderTeacherCards();
-        if (next === 4) { refreshDayDisabledStates(); renderTimeSlotsForSelectedDate(); refreshNextButtonState(4); }
+        if (next === 3) await renderTeacherCards();
+        if (next === 4) {
+          await ensureScheduleCache(getSelectedTeacherId());
+          refreshDayDisabledStates();
+          renderTimeSlotsForSelectedDate();
+          refreshNextButtonState(4);
+        }
         if (next === 5) populateConfirmStep();
         showStep(next, true);
       }

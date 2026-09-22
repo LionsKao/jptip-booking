@@ -72,14 +72,12 @@
   iframe.email-frame {
     display: block;
     width: 100%;
-    height: 720px;
     border: none;
     background: transparent;
   }
 
   @media (max-width: 640px) {
     body.email-page .page { padding-top: calc(var(--space-3) + var(--space-3)); }
-    iframe.email-frame { height: 860px; }
   }
 </style>
 </head>
@@ -120,7 +118,10 @@
   // ==========================================================================
   // iconSrc 需為完整網址（部署後改成 https://lionbooking.xxx.workers.dev/assets/icons/...），
   // 這裡先用相對路徑在本機預覽（email.html 跟 assets/ 同層，iframe srcdoc 會沿用外層網址解析）。
-  function emailShell(iconSrc, bodyHtml) {
+  // 頂部橫幅顏色依信件「性質」區分，不再全部都是紅色，一眼就能分辨這是驗證信、
+  // 預約成功、還是取消——跟站內其他地方（預約狀態 pill）用的顏色語意一致：
+  // 藍＝中性通知、綠＝成功、珊瑚紅＝取消。
+  function emailShell(iconSrc, bodyHtml, bannerColor = '#3AA0C9') {
     return `<!doctype html>
 <html><head><meta charset="UTF-8">
 <style>
@@ -132,13 +133,13 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8EC;">
     <tr><td align="center" style="padding:32px 16px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:24px;border:3px solid #F0E6D8;overflow:hidden;font-family:'Manrope','Noto Sans TC',sans-serif;">
-        <tr><td style="background:#e41f13;padding:28px 32px;text-align:center;">
+        <tr><td style="background:${bannerColor};padding:28px 32px;text-align:center;">
           <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 10px;">
             <tr><td width="56" height="56" style="background:#ffffff;border-radius:50%;text-align:center;vertical-align:middle;">
               <img src="${iconSrc}" width="32" height="32" alt="" style="display:inline-block;vertical-align:middle;">
             </td></tr>
           </table>
-          <div style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:.02em;">JPTIP 日文一對一</div>
+          <div style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:.02em;">JPTIP 線上一對一</div>
         </td></tr>
         <tr><td style="padding:32px;">
           ${bodyHtml}
@@ -162,7 +163,7 @@
   const TEMPLATES = {
     otp: {
       subject: '【JPTIP】您的登入驗證碼',
-      from: 'JPTIP 系統通知 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 系統通知 <flow@jptip.co.jp>',
       to: 'student1@jptip.co.jp',
       html: emailShell('assets/icons/key.png', `
         <div style="font-size:15px;color:#454545;margin-bottom:20px;">您好，</div>
@@ -170,17 +171,17 @@
           您正在登入 JPTIP 預約系統，請於 <strong>5 分鐘內</strong>輸入以下驗證碼完成登入：
         </div>
         <div style="text-align:center;margin-bottom:28px;">
-          <span style="display:inline-block;font-size:32px;font-weight:800;letter-spacing:.3em;color:#e41f13;background:#FDEAE9;border-radius:16px;padding:16px 28px;">123456</span>
+          <span style="display:inline-block;font-size:32px;font-weight:800;letter-spacing:.3em;color:#1F6E8C;background:#E3F4FA;border-radius:16px;padding:16px 28px;">123456</span>
         </div>
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           驗證碼將於 5 分鐘後失效，請勿將驗證碼提供給任何人。<br>
           如果這不是您本人的操作，請忽略這封信件即可，不會影響您的帳號安全。
         </div>
-      `),
+      `, '#3AA0C9'),
     },
     'booking-student': {
       subject: '【JPTIP】預約成功通知',
-      from: 'JPTIP 預約系統 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 預約系統 <flow@jptip.co.jp>',
       to: 'student3@jptip.co.jp',
       html: emailShell('assets/icons/thumbs-up.png', `
         <div style="font-size:15px;color:#454545;margin-bottom:8px;">李美芳 同學，您好：</div>
@@ -193,16 +194,16 @@
           ${infoRow('時間', '2026 年 09 月 20 日 星期日 15:00（UTC+8 台北）')}
         </table>
         <div style="text-align:center;margin-bottom:24px;">
-          <a href="#" style="display:inline-block;background:#e41f13;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;border-radius:14px;padding:14px 32px;">加入會議室</a>
+          <a href="#" style="display:inline-block;background:#5FA346;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;border-radius:14px;padding:14px 32px;">加入會議室</a>
         </div>
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           如需取消或更改預約，請於課程開始前 48 小時完成操作，逾時將視同完成該堂課程。
         </div>
-      `),
+      `, '#5FA346'),
     },
     'booking-teacher': {
       subject: '【JPTIP】新課程預約通知',
-      from: 'JPTIP 預約系統 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 預約系統 <flow@jptip.co.jp>',
       to: 'teacher1@example.com',
       html: emailShell('assets/icons/teacher.png', `
         <div style="font-size:15px;color:#454545;margin-bottom:8px;">田中 老師，您好：</div>
@@ -215,16 +216,16 @@
           ${infoRow('時間', '2026 年 09 月 20 日 星期日 15:00（UTC+8 台北）')}
         </table>
         <div style="text-align:center;margin-bottom:24px;">
-          <a href="#" style="display:inline-block;background:#e41f13;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;border-radius:14px;padding:14px 32px;">查看我的課程</a>
+          <a href="#" style="display:inline-block;background:#5FA346;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;border-radius:14px;padding:14px 32px;">查看我的課程</a>
         </div>
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           請於課程開始前 10 分鐘進入會議室，並確認麥克風與鏡頭運作正常。
         </div>
-      `),
+      `, '#5FA346'),
     },
     'booking-admin': {
       subject: '【JPTIP】新預約通知（管理者）',
-      from: 'JPTIP 系統通知 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 系統通知 <flow@jptip.co.jp>',
       to: 'admin@jptip.co.jp',
       html: emailShell('assets/icons/clipboard.png', `
         <div style="font-size:15px;color:#454545;line-height:1.8;margin-bottom:24px;">
@@ -241,11 +242,11 @@
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           此信件僅供紀錄與通知，無需回覆。
         </div>
-      `),
+      `, '#5FA346'),
     },
     'cancel-student': {
       subject: '【JPTIP】預約取消通知',
-      from: 'JPTIP 預約系統 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 預約系統 <flow@jptip.co.jp>',
       to: 'student3@jptip.co.jp',
       html: emailShell('assets/icons/close.png', `
         <div style="font-size:15px;color:#454545;margin-bottom:8px;">李美芳 同學，您好：</div>
@@ -258,16 +259,16 @@
           ${infoRow('原時間', '2026 年 09 月 20 日 星期日 15:00（UTC+8 台北）')}
         </table>
         <div style="text-align:center;margin-bottom:24px;">
-          <a href="#" style="display:inline-block;background:#e41f13;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;border-radius:14px;padding:14px 32px;">重新預約課程</a>
+          <a href="#" style="display:inline-block;background:#E0526C;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;border-radius:14px;padding:14px 32px;">重新預約課程</a>
         </div>
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           若此次取消非您本人操作，或有任何疑問，請聯繫客服協助處理。
         </div>
-      `),
+      `, '#E0526C'),
     },
     'cancel-teacher': {
       subject: '【JPTIP】課程預約已取消',
-      from: 'JPTIP 預約系統 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 預約系統 <flow@jptip.co.jp>',
       to: 'teacher1@example.com',
       html: emailShell('assets/icons/close.png', `
         <div style="font-size:15px;color:#454545;margin-bottom:8px;">田中 老師，您好：</div>
@@ -282,11 +283,11 @@
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           您無需採取任何動作，這個時段已自動恢復為可預約狀態。
         </div>
-      `),
+      `, '#E0526C'),
     },
     'cancel-admin': {
       subject: '【JPTIP】預約取消通知（管理者）',
-      from: 'JPTIP 系統通知 <no-reply@jptip.co.jp>',
+      from: 'JPTIP 系統通知 <flow@jptip.co.jp>',
       to: 'admin@jptip.co.jp',
       html: emailShell('assets/icons/close.png', `
         <div style="font-size:15px;color:#454545;line-height:1.8;margin-bottom:24px;">
@@ -303,7 +304,7 @@
         <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">
           此信件僅供紀錄與通知，無需回覆。
         </div>
-      `),
+      `, '#E0526C'),
     },
   };
 
@@ -312,7 +313,14 @@
     document.getElementById('email-subject').textContent = t.subject;
     document.getElementById('email-from').textContent = t.from;
     document.getElementById('email-to').textContent = t.to;
-    document.getElementById('email-frame').srcdoc = t.html;
+
+    const frame = document.getElementById('email-frame');
+    // 高度撐開成內容實際高度，不要在 iframe 裡面出現自己的捲軸——srcdoc 是同源，
+    // 讀得到裡面的 document 高度。
+    frame.addEventListener('load', () => {
+      frame.style.height = `${frame.contentDocument.documentElement.scrollHeight}px`;
+    }, { once: true });
+    frame.srcdoc = t.html;
 
     document.querySelectorAll('.email-tab').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.template === key);

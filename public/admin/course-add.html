@@ -143,12 +143,6 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, image)
-  const COURSES_KEY = 'admin-courses';
-
-  function loadCourses() { return JSON.parse(localStorage.getItem(COURSES_KEY) || '[]'); } // TODO: 之後改接真正的 D1/API
-  function saveCourses(list) { localStorage.setItem(COURSES_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
-
   let currentImage = randomAvatar(); // 新增課程時先隨機給一個動物頭像
 
   function setCourseImage(newImage) {
@@ -183,7 +177,7 @@
     document.getElementById('courseAddAlertModal').classList.add('open');
   }
 
-  document.getElementById('add-submit-btn').addEventListener('click', () => {
+  document.getElementById('add-submit-btn').addEventListener('click', async () => {
     const name = document.getElementById('add-course-name').value.trim();
 
     if (!name) {
@@ -191,17 +185,21 @@
       return;
     }
 
-    const id = Date.now();
-
-    const courses = loadCourses();
-    courses.push({
-      id,
-      name,
-      description: document.getElementById('add-course-description').value.trim(),
-      image: currentImage,
-      status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
+    const res = await fetch('/api/courses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        description: document.getElementById('add-course-description').value.trim(),
+        image: currentImage,
+        status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
+      }),
     });
-    saveCourses(courses);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showAddAlert(data.error || '新增失敗，請稍後再試');
+      return;
+    }
     document.getElementById('courseAddSuccessModal').classList.add('open');
   });
 

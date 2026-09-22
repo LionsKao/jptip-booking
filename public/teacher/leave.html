@@ -250,11 +250,7 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teacher_leave(teacher_id, date)
-  const LEAVE_KEY = 'teacher-leave';
-
-  function loadAllLeave() { return JSON.parse(localStorage.getItem(LEAVE_KEY) || '{}'); } // TODO: 之後改接真正的 D1/API
-  function saveAllLeave(all) { localStorage.setItem(LEAVE_KEY, JSON.stringify(all)); } // TODO: 之後改接真正的 D1/API
+  // 資料庫對應：teacher_leave(teacher_id, date)，經 /api/teachers/leave 讀寫
 
   // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
   // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
@@ -262,30 +258,23 @@
   const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
   const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
   const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
+  const teachersCache = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
+  function loadTeachers() { return teachersCache; }
   const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
   const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
 
-  const allLeave = loadAllLeave();
-  let leaveDays = allLeave[currentTeacherId];
-  if (!leaveDays) {
-    leaveDays = currentTeacherId === 1 ? [
-      { id: 1, date: '2026-08-05' },
-      { id: 2, date: '2026-08-14' },
-      { id: 3, date: '2026-08-21' },
-      { id: 4, date: '2026-09-01' },
-      { id: 5, date: '2026-09-20' },
-      { id: 6, date: '2026-09-27' },
-      { id: 7, date: '2026-10-05' },
-      { id: 8, date: '2026-10-12' },
-    ] : [];
-    allLeave[currentTeacherId] = leaveDays;
-    saveAllLeave(allLeave);
+  function showInfoModal(title) {
+    document.getElementById('leaveInfoModalTitle').textContent = title;
+    document.getElementById('leaveInfoModal').classList.add('open');
   }
-  let nextLeaveId = leaveDays.reduce((max, l) => Math.max(max, l.id), 0) + 1;
 
-  function persistLeaveDays() {
-    allLeave[currentTeacherId] = leaveDays;
-    saveAllLeave(allLeave);
+  let leaveDays = [];
+  try {
+    const res = await fetch(`/api/teachers/leave?teacherId=${currentTeacherId}`);
+    if (!res.ok) throw new Error('load failed');
+    leaveDays = await res.json();
+  } catch {
+    showInfoModal('無法載入休假資料，請重新整理頁面');
   }
 
   const leavePageState = { page: 1 };
@@ -356,11 +345,6 @@
   let pendingAddDate = null;
   let pendingDeleteId = null;
 
-  function showInfoModal(title) {
-    document.getElementById('leaveInfoModalTitle').textContent = title;
-    document.getElementById('leaveInfoModal').classList.add('open');
-  }
-
   document.getElementById('leave-add-btn').addEventListener('click', () => {
     const dateISO = getSelectedDateISO();
     if (!dateISO) {
@@ -376,23 +360,42 @@
     document.getElementById('leaveAddConfirmModal').classList.add('open');
   });
 
-  document.getElementById('leave-add-confirm-btn').addEventListener('click', () => {
+  document.getElementById('leave-add-confirm-btn').addEventListener('click', async () => {
     if (!pendingAddDate) return;
-    leaveDays.push({ id: nextLeaveId++, date: pendingAddDate });
-    persistLeaveDays();
+    const dateToAdd = pendingAddDate;
     pendingAddDate = null;
+    document.getElementById('leaveAddConfirmModal').classList.remove('open');
+
+    const res = await fetch(`/api/teachers/leave?teacherId=${currentTeacherId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: dateToAdd }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showInfoModal(data.error || '新增失敗，請稍後再試');
+      return;
+    }
+    const created = await res.json();
+    leaveDays.push(created);
     document.querySelectorAll('.datepicker-grid button.selected').forEach((b) => b.classList.remove('selected'));
     resetDateLabel();
-    document.getElementById('leaveAddConfirmModal').classList.remove('open');
     renderLeaveTable();
   });
 
-  document.getElementById('leave-delete-confirm-btn').addEventListener('click', () => {
+  document.getElementById('leave-delete-confirm-btn').addEventListener('click', async () => {
     if (pendingDeleteId === null) return;
-    leaveDays = leaveDays.filter((l) => l.id !== pendingDeleteId);
-    persistLeaveDays();
+    const idToDelete = pendingDeleteId;
     pendingDeleteId = null;
     document.getElementById('leaveDeleteConfirmModal').classList.remove('open');
+
+    const res = await fetch(`/api/teachers/leave?teacherId=${currentTeacherId}&id=${idToDelete}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showInfoModal(data.error || '刪除失敗，請稍後再試');
+      return;
+    }
+    leaveDays = leaveDays.filter((l) => l.id !== idToDelete);
     renderLeaveTable();
   });
 

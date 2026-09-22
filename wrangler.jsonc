@@ -24,5 +24,13 @@
       "binding": "AVATARS",
       "bucket_name": "lionbooking-avatars"
     }
-  ]
+  ],
+  // Not secrets — tenant/client IDs and the sender mailbox are identifiers,
+  // not credentials. The actual credential (MS_CLIENT_SECRET) is a Worker
+  // secret instead (`wrangler secret put`), never committed here.
+  "vars": {
+    "MS_TENANT_ID": "f1aafcf0-78cb-42c9-93ec-c460da98aaaa",
+    "MS_CLIENT_ID": "8cadde49-f29b-44cc-9c5c-4b8c99e8e6e5",
+    "MS_SENDER_EMAIL": "flow@jptip.co.jp"
+  }
 }

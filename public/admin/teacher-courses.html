@@ -43,7 +43,6 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-3);
   }
   .course-cap-row {
     display: flex;
@@ -60,8 +59,17 @@
     transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
   }
   .course-cap-row:hover { border-color: var(--color-blue); }
-  .course-cap-row h4 { margin: 0; font-size: 1.0625rem; }
-  #course-cap-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+  .course-cap-row h4 {
+    margin: 0;
+    font-size: 1.0625rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .course-cap-row button { flex-shrink: 0; }
+  #course-cap-list { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
 
   .booking-card-empty { min-height: 80px; }
 
@@ -96,23 +104,7 @@
     <div class="course-add-row">
       <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
         <button type="button" class="dropdown-trigger"><span class="label">選擇課程</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
-        <ul class="dropdown-menu" id="add-course-menu">
-          <li data-value="N5 綜合日本語 J1">N5 綜合日本語 J1<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N5 綜合日本語 J2">N5 綜合日本語 J2<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N5 綜合日本語 J3">N5 綜合日本語 J3<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J4">N4 綜合日本語 J4<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J5">N4 綜合日本語 J5<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J6">N4 綜合日本語 J6<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J7">N3 綜合日本語 J7<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J8">N3 綜合日本語 J8<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J9">N3 綜合日本語 J9<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J10">N2 綜合日本語 J10<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J11">N2 綜合日本語 J11<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J12">N2 綜合日本語 J12<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J13">N2 綜合日本語 J13<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="商務日文 基礎會話篇">商務日文 基礎會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="商務日文 應用會話篇">商務日文 應用會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-        </ul>
+        <ul class="dropdown-menu" id="add-course-menu"></ul>
       </div>
       <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增可教課程</button>
     </div>
@@ -164,28 +156,67 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
-
+(async () => {
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
-  const teachers = loadTeachers();
+  // 課程下拉選單原本是寫死的 15 門課程，現在改成抓真正的課程總表（/api/courses），
+  // 這樣新課程開課後老師這邊也能立刻選到，不用再改這個頁面的程式碼。
+  const [teachers, courses] = await Promise.all([
+    fetch('/api/teachers').then((res) => (res.ok ? res.json() : [])),
+    fetch('/api/courses').then((res) => (res.ok ? res.json() : [])),
+  ]);
   const teacher = teachers.find((t) => t.id === teacherId);
 
   if (!teacher) {
     window.location.href = 'teachers.html';
   } else {
-    teacher.courses = teacher.courses || [];
+    function showBasicAlert(message) {
+      document.getElementById('basicInfoAlertText').textContent = message;
+      document.getElementById('basicInfoAlertModal').classList.add('open');
+    }
+
+    // 「新增可教課程」下拉選單的選項是動態長出來的（不是頁面載入時就固定在 HTML
+    // 裡的 <li>），所以沒辦法靠 script.js 開場時對既有 .dropdown li 綁的那份點擊
+    // 事件——這裡自己補一份一模一樣的單選邏輯（selected/label/收合選單）。
+    const courseDropdown = document.getElementById('add-course-dropdown');
+    const courseMenu = document.getElementById('add-course-menu');
+    const courseDropdownLabel = courseDropdown.querySelector('.dropdown-trigger .label');
+    courseMenu.innerHTML = courses.map((c) => `<li data-value="${c.name}">${c.name}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('');
+    courseMenu.querySelectorAll('li').forEach((li) => {
+      li.addEventListener('click', () => {
+        courseMenu.querySelectorAll('li').forEach((l) => l.classList.remove('selected'));
+        li.classList.add('selected');
+        courseDropdownLabel.textContent = li.dataset.value;
+        courseDropdown.classList.remove('open');
+      });
+    });
 
     function resetCourseDropdown() {
-      const dropdown = document.getElementById('add-course-dropdown');
-      dropdown.querySelectorAll('.dropdown-menu li.selected').forEach((li) => li.classList.remove('selected'));
-      dropdown.querySelector('.dropdown-trigger .label').textContent = '選擇課程';
+      courseMenu.querySelectorAll('li.selected').forEach((li) => li.classList.remove('selected'));
+      courseDropdownLabel.textContent = '選擇課程';
     }
 
     function updateCourseDropdownOptions() {
       const added = new Set(teacher.courses);
-      document.querySelectorAll('#add-course-menu li').forEach((li) => {
+      courseMenu.querySelectorAll('li').forEach((li) => {
         li.hidden = added.has(li.dataset.value);
       });
+    }
+
+    // PATCH /api/teachers/courses 回傳的是老師目前完整的可教課程清單，直接拿來
+    // 當作最新狀態即可，不用自己在本機 push/filter 陣列去猜結果。
+    async function patchTeacherCourse(courseName, action) {
+      const res = await fetch(`/api/teachers/courses?teacherId=${teacher.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseName, action }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { ok: false, error: data.error || '儲存失敗，請稍後再試' };
+      }
+      const data = await res.json();
+      teacher.courses = data.courses;
+      return { ok: true };
     }
 
     function renderCourseCaps() {
@@ -213,8 +244,7 @@
     document.getElementById('add-course-btn').addEventListener('click', () => {
       const value = getDropdownValue('add-course-dropdown');
       if (!value) {
-        document.getElementById('basicInfoAlertText').textContent = '請先選擇課程';
-        document.getElementById('basicInfoAlertModal').classList.add('open');
+        showBasicAlert('請先選擇課程');
         return;
       }
       pendingCourseName = value;
@@ -222,22 +252,28 @@
       document.getElementById('addCourseConfirmModal').classList.add('open');
     });
 
-    document.getElementById('add-course-confirm-btn').addEventListener('click', () => {
+    document.getElementById('add-course-confirm-btn').addEventListener('click', async () => {
       if (!pendingCourseName) return;
-      teacher.courses.push(pendingCourseName);
-      saveTeachers(teachers);
+      const result = await patchTeacherCourse(pendingCourseName, 'add');
       pendingCourseName = null;
       document.getElementById('addCourseConfirmModal').classList.remove('open');
+      if (!result.ok) {
+        showBasicAlert(result.error);
+        return;
+      }
       resetCourseDropdown();
       renderCourseCaps();
     });
 
-    document.getElementById('delete-course-confirm-btn').addEventListener('click', () => {
+    document.getElementById('delete-course-confirm-btn').addEventListener('click', async () => {
       if (!pendingDeleteCourseName) return;
-      teacher.courses = teacher.courses.filter((n) => n !== pendingDeleteCourseName);
-      saveTeachers(teachers);
+      const result = await patchTeacherCourse(pendingDeleteCourseName, 'remove');
       pendingDeleteCourseName = null;
       document.getElementById('deleteCourseConfirmModal').classList.remove('open');
+      if (!result.ok) {
+        showBasicAlert(result.error);
+        return;
+      }
       renderCourseCaps();
     });
 
@@ -247,6 +283,7 @@
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = `teacher-detail.html?id=${teacherId}`;
   });
+})();
 </script>
 
 </body>

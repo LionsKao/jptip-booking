@@ -27,57 +27,76 @@ export async function login(page: Page, role: 'student' | 'teacher' | 'admin', e
   await page.waitForURL(`**/${role}/`);
 }
 
-// Seeds the mock course catalog + a bookable weekly window for teacher id 1,
-// matching the shapes public/script.js and student/booking.html expect.
-// Nothing in this project auto-seeds courses (unlike teachers/students), so
-// booking-flow tests need this before they can select anything.
-export async function seedBookableCourse(page: Page) {
-  await page.addInitScript(() => {
-    // addInitScript re-runs on every navigation in this test, not just the
-    // first — without this guard it would re-seed (and so wipe out) the
-    // booking that was just created by a later step in the same test.
-    if (window.localStorage.getItem('e2e-seeded')) return;
-    window.localStorage.setItem('e2e-seeded', '1');
+// Teachers/students/courses/hours/bookings are all real D1 data now — this
+// seeds everything a booking test needs via the real API (as admin), then
+// logs out so the caller's own login (whichever role the test is actually
+// about) starts from scratch. The course name is unique per call: the local
+// dev D1 isn't reset between runs, so a fixed name would pile up duplicate
+// courses across runs and break the "only one course card" assumption
+// booking-flow tests rely on.
+export async function seedBookableCourse(page: Page): Promise<{ courseName: string }> {
+  const courseName = `E2E 測試課程 ${Date.now()}`;
 
-    const course = {
-      id: 1,
-      name: 'N5 綜合日本語 J1',
-      description: '入門日文會話與文法',
-      status: 'active',
-      durationMinutes: 60,
-      bufferBeforeMinutes: 0,
-      bufferAfterMinutes: 0,
-      scheduleIncrement: '60 分鐘',
-      minLeadHours: 0,
-      maxLeadDays: 60,
-    };
-    window.localStorage.setItem('admin-courses', JSON.stringify([course]));
+  await login(page, 'admin', SEEDED.admin.email);
 
-    // Teacher id 1 (田中老師) must offer this course and have a weekly slot.
-    const teachers = [{
-      id: 1,
-      name: '田中老師',
-      email: 'teacher1@jptip.co.jp',
-      avatar: '001-bear.png',
-      specialty: '日文會話',
-      motto: '',
-      status: 'active',
-      courses: [course.name],
-    }];
-    window.localStorage.setItem('admin-teachers', JSON.stringify(teachers));
+  // The local dev D1 isn't reset between runs and may carry extra rows from
+  // earlier manual testing (e.g. a real account added ahead of the seeded
+  // quick-login ones) — never assume "student1@jptip.co.jp is id 1", always
+  // resolve the real id by email.
+  const [course, teacherId, studentId] = await page.evaluate(async ({ name, teacherEmail, studentEmail }) => {
+    // POST /api/courses only accepts the fields course-add.html's form has
+    // (name/description/image/status) — duration/buffer/increment/lead-time
+    // stay at their DB defaults (100min, 20min after-buffer, 1hr increment,
+    // 48hr min lead, 30 day max), same as a real admin creating a course
+    // would get before visiting course-detail.html to tune them. That's a
+    // perfectly bookable config on its own, no need to also PATCH it here.
+    const course = await fetch('/api/courses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: '入門日文會話與文法', status: 'active' }),
+    }).then((res) => res.json()) as { id: number; name: string };
 
-    const weekday = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][new Date().getDay()];
-    window.localStorage.setItem('teacher-hours', JSON.stringify({
-      1: [{ id: 1, day: weekday, start: '00:00', end: '23:30' }],
-    }));
+    const teachers = await fetch('/api/teachers').then((res) => res.json()) as { id: number; email: string }[];
+    const teacherId = teachers.find((t) => t.email === teacherEmail)!.id;
 
-    // The student must already own the course with unused booking quota,
-    // matching how public/script.js's own loadStudents() seed shapes it.
-    const students = [{
-      id: 1, name: '王品硯', phone: '', email: 'student1@jptip.co.jp', avatar: '002-rabbit.png',
-      courses: [{ id: 101, name: course.name, status: 'ongoing', attended: '0/16', booked: '0/16' }],
-      bookings: [],
-    }];
-    window.localStorage.setItem('admin-students', JSON.stringify(students));
-  });
+    const students = await fetch('/api/students').then((res) => res.json()) as { id: number; email: string }[];
+    const studentId = students.find((s) => s.email === studentEmail)!.id;
+
+    return [course, teacherId, studentId] as const;
+  }, { name: courseName, teacherEmail: SEEDED.teacher.email, studentEmail: SEEDED.student.email });
+
+  await page.evaluate(({ name, teacherId }) => fetch(`/api/teachers/courses?teacherId=${teacherId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ courseName: name, action: 'add' }),
+  }), { name: courseName, teacherId });
+
+  // The seeded teacher needs a bookable slot on every weekday — a slot must
+  // still be later than "now" to be bookable, so if the suite runs late in
+  // the evening today may have nothing left; the booking test picks
+  // whichever day in the calendar actually comes back enabled instead of
+  // assuming "today". Clear any hours left over from a previous run first
+  // so they don't pile up indefinitely across local dev runs.
+  await page.evaluate(async (teacherId) => {
+    const existing = await fetch(`/api/teachers/hours?teacherId=${teacherId}`).then((res) => res.json()) as { id: number }[];
+    await Promise.all(existing.map((h) => fetch(`/api/teachers/hours?teacherId=${teacherId}&id=${h.id}`, { method: 'DELETE' })));
+
+    const ALL_WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    await Promise.all(ALL_WEEKDAYS.map((day) => fetch(`/api/teachers/hours?teacherId=${teacherId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ day, start: '00:00', end: '23:30' }),
+    })));
+  }, teacherId);
+
+  // The student must already own the course with unused booking quota.
+  await page.evaluate(({ name, studentId }) => fetch(`/api/students/courses?studentId=${studentId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ courseName: name, totalSessions: 16 }),
+  }), { name: courseName, studentId });
+
+  await page.evaluate(() => fetch('/api/logout', { method: 'POST' }));
+
+  return { courseName: course.name };
 }

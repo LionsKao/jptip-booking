@@ -1,0 +1,23 @@
+{
+  "login.role.student.title": "學生登入",
+  "login.role.student.desc": "立即預約課程，開始學習之旅",
+  "login.role.teacher.title": "老師登入",
+  "login.role.teacher.desc": "管理你的課程與預約時段",
+  "login.role.admin.title": "管理者登入",
+  "login.role.admin.desc": "管理老師、課程與系統設定",
+  "login.back": "返回",
+  "login.emailPlaceholder": "Email",
+  "login.sendCode": "取得驗證碼",
+  "login.resendCode": "重新取得驗證碼",
+  "login.otpGroupLabel": "6 位數驗證碼",
+  "login.otpDigitLabel": "第 {{n}} 碼",
+  "login.submit": "登入",
+  "login.error.sendFailed": "發送失敗，請稍後再試",
+  "login.success.codeSent": "已寄出驗證碼，請查看信箱",
+  "login.error.network": "網路錯誤，請稍後再試",
+  "login.warning.cooldown": "還可在 {{seconds}} 秒後重新取得驗證碼",
+  "login.error.invalidEmail": "請輸入有效的 Email 格式",
+  "login.warning.incompleteOtp": "請輸入完整 6 碼驗證碼",
+  "login.error.invalidOtp": "驗證碼錯誤或已過期",
+  "common.ok": "好"
+}

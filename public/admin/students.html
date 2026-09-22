@@ -139,14 +139,18 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students(id, name, phone, email, teams_link), student_courses, student_bookings
+(async () => {
   const SEARCH_KEY = 'admin-student-search';
+
+  // 學生是真正的 D1 資料（見 /api/students），這裡整頁只在載入時抓一次，
+  // 之後搜尋/分頁都是在這份記憶體內的副本上做，不用每次都重打 API。
+  const students = await fetch('/api/students').then((res) => (res.ok ? res.json() : []));
 
   const studentPageState = { page: 1 };
 
   function formatPhoneDisplay(digits) {
     const clean = (digits || '').replace(/\D/g, '');
-    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : digits;
+    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : (digits || '');
   }
 
   function renderStudentCard(s) {
@@ -177,11 +181,10 @@
   function renderStudents() {
     const query = searchInput.value.trim().toLowerCase();
     const queryDigits = query.replace(/-/g, '');
-    const all = loadStudents();
     const filtered = query
-      ? all.filter((s) => [s.name, s.email].some((f) => f.toLowerCase().includes(query))
-          || (queryDigits && s.phone.includes(queryDigits)))
-      : all;
+      ? students.filter((s) => [s.name, s.email].some((f) => f.toLowerCase().includes(query))
+          || (queryDigits && (s.phone || '').includes(queryDigits)))
+      : students;
     const sorted = filtered.slice().sort((a, b) => {
       const aInactive = a.status === 'inactive' ? 1 : 0;
       const bInactive = b.status === 'inactive' ? 1 : 0;
@@ -206,15 +209,15 @@
   }
 
   // 「最近點擊」是所有管理者共用的排序依據，存在 D1；背景同步完再重繪一次即可，
-  // 不用讓使用者等，也不影響第一次渲染的速度。
+  // 不用讓使用者等，也不影響第一次渲染的速度。這裡只是把時間戳記合併進記憶體
+  // 內的 students 副本，不用寫回任何地方——D1 的 recently_viewed 本身就是真相來源。
   fetch('/api/recently-viewed?type=student').then((res) => (res.ok ? res.json() : {})).then((sharedMap) => {
-    const all = loadStudents();
     let changed = false;
-    all.forEach((s) => {
+    students.forEach((s) => {
       const shared = sharedMap[s.id];
       if (shared != null && shared > (s.lastViewedAt || 0)) { s.lastViewedAt = shared; changed = true; }
     });
-    if (changed) { saveStudents(all); renderStudents(); }
+    if (changed) renderStudents();
   }).catch(() => {});
 
   const searchInput = document.getElementById('student-search');
@@ -247,6 +250,7 @@
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
   });
+})();
 </script>
 
 </body>

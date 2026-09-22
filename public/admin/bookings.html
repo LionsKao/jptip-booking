@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 預約紀錄</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1048px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .booking-card.is-clickable { cursor: pointer; }
+
+  .wizard-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: 550px;
+    margin: var(--space-6) auto 0;
+  }
+  .wizard-nav-row {
+    display: flex;
+    gap: var(--space-4);
+  }
+  .wizard-nav .btn { flex: 1 1 0; min-width: 0; }
+
+  #card-bookings {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .booking-card-empty { min-height: 160px; }
+
+  #all-bookings-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+  .booking-card-info {
+    gap: 3px;
+  }
+  .booking-card-code {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .booking-card-info .booking-card-datetime {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+  .booking-card-info h4,
+  .booking-card-info .booking-card-course {
+    margin: 0;
+    line-height: 1.6;
+  }
+  @keyframes bookingCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #all-bookings-cards .booking-card,
+  #all-bookings-cards .booking-card-empty {
+    animation: bookingCardIn .3s ease backwards;
+  }
+  #all-bookings-cards .booking-card:nth-child(2n) {
+    animation-delay: .04s;
+  }
+  #card-bookings .booking-card:has(.pill.info) { cursor: default; }
+  #card-bookings .booking-card:hover { border-color: var(--color-blue); }
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #all-bookings-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <div id="bookings-list-view">
+
+    <section class="section" id="card-bookings">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/icon-calendar.png" alt=""><h2>預約紀錄</h2><button type="button" class="info-btn" data-modal-open="bookingsTimezoneModal" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
+      <div class="search-box">
+        <i class="fa-solid fa-fw fa-magnifying-glass"></i>
+        <input type="text" id="bookings-search" placeholder="搜尋預約編號／課程／學生／老師">
+        <button type="button" class="search-clear-btn" id="bookings-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+      </div>
+      <div id="all-bookings-cards"></div>
+    </section>
+
+    <div class="page-nav">
+      <div class="pagination" id="all-bookings-pagination"></div>
+    </div>
+
+  </div>
+
+  <div id="bookings-detail-view" hidden>
+    <section class="section">
+      <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>課程詳情</h2></div>
+      <div class="confirm-summary">
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
+          <span><p>預約編號</p><h3 id="detail-booking-code">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span><p>課程</p><h3 id="detail-course">—</h3></span>
+        </div>
+        <div class="confirm-highlight-row">
+          <div class="confirm-highlight">
+            <span class="confirm-highlight-icon"><img src="../assets/icons/student.png" alt=""></span>
+            <span><p>學生</p><h3 id="detail-student">—</h3></span>
+          </div>
+          <div class="confirm-highlight">
+            <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
+            <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+          </div>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
+          <span><p>日期</p><h3 id="detail-datetime">—</h3></span>
+        </div>
+        <div class="confirm-highlight">
+          <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
+          <span><p>時間</p><h3 id="detail-time">—</h3></span>
+        </div>
+      </div>
+    </section>
+    <div class="wizard-nav" id="admin-action-nav">
+      <div class="wizard-nav-row">
+        <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> 取消預約</button>
+        <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> 缺席</button>
+        <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> 需處理</button>
+      </div>
+      <div class="wizard-nav-row">
+        <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> 完成課程</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="markAttendedConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
+    <h3>確定要標記為完成課程嗎？</h3>
+    <p class="text-small">適用於老師忘記標記完成的情況。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn green" id="confirm-mark-attended-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="markAbsentConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon navy"><i class="fa-solid fa-question"></i></div>
+    <h3>確定要標記為缺席嗎？</h3>
+    <p class="text-small">學生的預約次數不會退還。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn navy" id="confirm-mark-absent-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="markPendingConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3>確定要標記為需處理嗎？</h3>
+    <p class="text-small">適用於這堂課程有爭議、需要進一步確認的情況。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn orange" id="confirm-mark-pending-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="markCancelledConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-fw fa-xmark"></i></div>
+    <h3>確定要取消這筆預約嗎？</h3>
+    <p class="text-small">學生的預約次數將會退還一次。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
+      <button class="btn red" id="confirm-mark-cancelled-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bookingsTimezoneModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
+    <h3>課程時間顯示時區</h3>
+    <p class="text-small">管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+(async () => {
+  // 課程是真的 D1 資料，這裡先抓一次存起來給下面 computeDisplayParts() 用。
+  const coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
+  function loadCourses() { return coursesCache; }
+
+  // 不像 student-bookings.html 是單一學生的預約，這裡是全部學生的預約總覽——
+  // GET /api/bookings 不帶 studentId/teacherId 參數，管理者身分會拿到全部資料。
+  let bookings = await fetch('/api/bookings').then((res) => (res.ok ? res.json() : []));
+
+  const STATUS_MAP = {
+    pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
+    absent:    { cls: 'tone-navy', icon: 'question.png',       label: '缺席' },
+    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', label: '預約' },
+    cancelled: { cls: 'cancelled', icon: 'close.png',          label: '取消' },
+    attended:  { cls: 'confirmed', icon: 'check.png',          label: '完成' },
+  };
+  const RIBBON_TONE_MAP = {
+    pending:   { tone: 'tone-orange', label: '需處理' },
+    absent:    { tone: 'tone-navy',   label: '缺席' },
+    upcoming:  { tone: 'tone-blue',   label: '預約' },
+    cancelled: { tone: 'tone-red',    label: '取消' },
+    attended:  { tone: 'tone-green',  label: '完成' },
+  };
+
+  function endTimeStr(timeStr, durationMinutes) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const totalMinutes = h * 60 + m + durationMinutes;
+    const endH = Math.floor(totalMinutes / 60) % 24;
+    const endM = totalMinutes % 60;
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  }
+
+  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+  function durationLabelStr(durationMinutes) {
+    const h = Math.floor(durationMinutes / 60);
+    const m = durationMinutes % 60;
+    if (h && m) return `${h} 時 ${m} 分`;
+    if (h) return `${h} 時`;
+    return `${m} 分`;
+  }
+
+  // 管理者一律看 UTC+8（台灣時間），不依老師/學生個人時區換算顯示，也不需要另外標示時區
+  function computeDisplayParts(b) {
+    const course = loadCourses().find((c) => (b.courseId != null && c.id === b.courseId) || c.name === b.course);
+    const durationMinutes = (course && course.durationMinutes) || 60;
+    const timeLabel = `${b.time} - ${endTimeStr(b.time, durationMinutes)}`;
+    const [y, m, d] = b.date.split('-');
+    const weekday = WEEKDAY_NAMES[new Date(b.date).getDay()];
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    const dateLabel = isMobile ? `${y}/${m}/${d} ${weekday}` : `${y} 年 ${m} 月 ${d} 日 星期${weekday}`;
+    const durationLabel = durationLabelStr(durationMinutes);
+    return { dateLabel, timeLabel, startTimeLabel: b.time, durationLabel };
+  }
+
+  function formatBookingDateTime(b) {
+    const { dateLabel, startTimeLabel } = computeDisplayParts(b);
+    return `${dateLabel} ${startTimeLabel}`;
+  }
+
+  function renderBookingCard(b) {
+    const s = STATUS_MAP[b.status];
+    return `<div class="booking-card is-clickable" data-id="${b.id}">
+      <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+      <div class="booking-card-info">
+        ${b.bookingCode ? `<p class="booking-card-code">${b.bookingCode}</p>` : ''}
+        <p class="booking-card-course">${b.course}</p>
+        <h4>${b.studentName} ／ ${b.teacher}</h4>
+        <p class="booking-card-datetime">${formatBookingDateTime(b)}</p>
+      </div>
+    </div>`;
+  }
+
+  const bookingsPageState = { page: 1 };
+  const bookingsSearchInput = document.getElementById('bookings-search');
+  const bookingsSearchClearBtn = document.getElementById('bookings-search-clear');
+
+  function renderBookings() {
+    const query = bookingsSearchInput.value.trim().toLowerCase();
+    const filtered = query
+      ? bookings.filter((b) => [b.course, b.teacher, b.studentName, b.bookingCode].some((f) => (f || '').toLowerCase().includes(query)))
+      : bookings;
+    const sorted = filtered.slice().sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    paginate(sorted, 10, renderBookingCard,
+      document.getElementById('all-bookings-cards'),
+      document.getElementById('all-bookings-pagination'),
+      bookingsPageState,
+      `<div class="booking-card-empty">${query ? '找不到符合的預約紀錄' : '沒有預約紀錄'}</div>`,
+      (containerEl) => {
+        containerEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
+        containerEl.querySelectorAll('.booking-card').forEach((card) => {
+          applyTiltEffect(card);
+          card.addEventListener('click', () => showBookingDetail(Number(card.dataset.id)));
+        });
+      });
+  }
+
+  let bookingsSearchDebounce = null;
+  bookingsSearchInput.addEventListener('input', () => {
+    bookingsSearchClearBtn.hidden = bookingsSearchInput.value === '';
+    clearTimeout(bookingsSearchDebounce);
+    bookingsSearchDebounce = setTimeout(() => {
+      bookingsPageState.page = 1;
+      renderBookings();
+    }, 500);
+  });
+
+  bookingsSearchClearBtn.addEventListener('click', () => {
+    clearTimeout(bookingsSearchDebounce);
+    bookingsSearchInput.value = '';
+    bookingsSearchClearBtn.hidden = true;
+    bookingsSearchInput.focus();
+    bookingsPageState.page = 1;
+    renderBookings();
+  });
+
+  renderBookings();
+
+  document.querySelectorAll('#bookings-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
+
+  // ==========================================================================
+  // 課程詳情：管理者可標記完成 / 缺席 / 需處理 / 取消（取消會退還學生的預約次數）
+  // ==========================================================================
+  let activeBookingId = null;
+
+  function showBookingDetail(id) {
+    const booking = bookings.find((b) => b.id === id);
+    if (!booking) return;
+    activeBookingId = id;
+    document.getElementById('detail-course').textContent = booking.course;
+    document.getElementById('detail-student').textContent = booking.studentName;
+    document.getElementById('detail-teacher').textContent = booking.teacher;
+    const parts = computeDisplayParts(booking);
+    document.getElementById('detail-datetime').textContent = parts.dateLabel;
+    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+08:00`;
+    document.getElementById('detail-booking-code').textContent = booking.bookingCode || '—';
+    document.getElementById('bookings-list-view').hidden = true;
+    document.getElementById('bookings-detail-view').hidden = false;
+
+    const ribbon = RIBBON_TONE_MAP[booking.status];
+    document.getElementById('detail-status-ribbon').hidden = !ribbon;
+    if (ribbon) {
+      const ribbonText = document.getElementById('detail-status-ribbon-text');
+      ribbonText.textContent = ribbon.label;
+      ribbonText.className = `course-ribbon ${ribbon.tone}`;
+    }
+
+    window.scrollTo(0, 0);
+  }
+
+  function hideBookingDetail() {
+    activeBookingId = null;
+    document.getElementById('bookings-detail-view').hidden = true;
+    document.getElementById('bookings-list-view').hidden = false;
+  }
+
+  function showBookingAlert(message) {
+    document.getElementById('basicInfoAlertText').textContent = message;
+    document.getElementById('basicInfoAlertModal').classList.add('open');
+  }
+
+  // 狀態變更後，課程堂數（已預約／已上課）由伺服器在同一次請求裡自動調整
+  // （轉入/轉出 cancelled 會影響已預約，轉入/轉出 attended 會影響已上課），
+  // 前端不用也不該自己再算一次。
+  async function setBookingStatus(newStatus) {
+    const booking = bookings.find((b) => b.id === activeBookingId);
+    if (!booking) return;
+
+    const res = await fetch(`/api/bookings?id=${booking.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showBookingAlert(data.error || '更新失敗，請稍後再試');
+      return;
+    }
+
+    const updated = await res.json();
+    Object.assign(booking, updated);
+    hideBookingDetail();
+    renderBookings();
+  }
+
+  document.getElementById('mark-attended-btn').addEventListener('click', () => {
+    document.getElementById('markAttendedConfirmModal').classList.add('open');
+  });
+  document.getElementById('confirm-mark-attended-btn').addEventListener('click', () => {
+    document.getElementById('markAttendedConfirmModal').classList.remove('open');
+    setBookingStatus('attended');
+  });
+
+  document.getElementById('mark-absent-btn').addEventListener('click', () => {
+    document.getElementById('markAbsentConfirmModal').classList.add('open');
+  });
+  document.getElementById('confirm-mark-absent-btn').addEventListener('click', () => {
+    document.getElementById('markAbsentConfirmModal').classList.remove('open');
+    setBookingStatus('absent');
+  });
+
+  document.getElementById('mark-pending-btn').addEventListener('click', () => {
+    document.getElementById('markPendingConfirmModal').classList.add('open');
+  });
+  document.getElementById('confirm-mark-pending-btn').addEventListener('click', () => {
+    document.getElementById('markPendingConfirmModal').classList.remove('open');
+    setBookingStatus('pending');
+  });
+
+  document.getElementById('mark-cancelled-btn').addEventListener('click', () => {
+    document.getElementById('markCancelledConfirmModal').classList.add('open');
+  });
+  document.getElementById('confirm-mark-cancelled-btn').addEventListener('click', () => {
+    document.getElementById('markCancelledConfirmModal').classList.remove('open');
+    setBookingStatus('cancelled');
+  });
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (!document.getElementById('bookings-detail-view').hidden) {
+      hideBookingDetail();
+      return;
+    }
+    window.location.href = 'index.html';
+  });
+})();
+</script>
+
+</body>
+</html>

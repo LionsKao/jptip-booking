@@ -234,6 +234,8 @@
 </head>
 <body class="home">
 
+<div id="lang-switch"></div>
+
 <div class="page">
 
   <div class="entry-view" id="entry-view">
@@ -241,22 +243,22 @@
       <button type="button" class="entry-card entry-card-primary" data-role="student">
         <span class="entry-card-icon"><img src="assets/icons/student.png" alt=""></span>
         <span>
-          <h3>學生登入</h3>
-          <p>立即預約課程，開始學習之旅</p>
+          <h3 data-i18n="login.role.student.title">學生登入</h3>
+          <p data-i18n="login.role.student.desc">立即預約課程，開始學習之旅</p>
         </span>
       </button>
       <button type="button" class="entry-card entry-card-primary" data-role="teacher">
         <span class="entry-card-icon"><img src="assets/icons/laptop.png" alt=""></span>
         <span>
-          <h3>老師登入</h3>
-          <p>管理你的課程與預約時段</p>
+          <h3 data-i18n="login.role.teacher.title">老師登入</h3>
+          <p data-i18n="login.role.teacher.desc">管理你的課程與預約時段</p>
         </span>
       </button>
       <button type="button" class="entry-card entry-card-primary" data-role="admin">
         <span class="entry-card-icon"><img src="assets/icons/admin.png" alt=""></span>
         <span>
-          <h3>管理者登入</h3>
-          <p>管理老師、課程與系統設定</p>
+          <h3 data-i18n="login.role.admin.title">管理者登入</h3>
+          <p data-i18n="login.role.admin.desc">管理老師、課程與系統設定</p>
         </span>
       </button>
     </div>
@@ -265,21 +267,21 @@
 
       <div class="login-card" data-login data-role="">
 
-        <button type="button" class="back-link back-btn" data-login-back aria-label="返回"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+        <button type="button" class="back-link back-btn" data-login-back data-i18n-aria-label="login.back" aria-label="返回"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
 
         <div class="login-card-body">
           <div class="row" style="align-items:flex-start;">
             <div class="field" data-login-email-field>
               <div class="field-float">
-                <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+                <input type="email" id="login-email" data-i18n-placeholder="login.emailPlaceholder" placeholder="Email" autocomplete="email">
               </div>
             </div>
           </div>
-          <button type="button" class="btn blue" data-login-send><i class="fa-solid fa-fw fa-paper-plane"></i> 取得驗證碼</button>
+          <button type="button" class="btn blue" data-login-send><i class="fa-solid fa-fw fa-paper-plane"></i> <span data-i18n="login.sendCode">取得驗證碼</span></button>
 
           <div class="login-step-2">
 
-            <div class="otp-row" role="group" aria-label="6 位數驗證碼">
+            <div class="otp-row" role="group" data-i18n-aria-label="login.otpGroupLabel" aria-label="6 位數驗證碼">
               <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 1 碼" disabled>
               <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 2 碼" disabled>
               <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 3 碼" disabled>
@@ -288,7 +290,7 @@
               <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="第 6 碼" disabled>
             </div>
 
-            <button type="button" class="btn green" data-login-submit disabled><i class="fa-solid fa-fw fa-right-to-bracket"></i> 登入</button>
+            <button type="button" class="btn green" data-login-submit disabled><i class="fa-solid fa-fw fa-right-to-bracket"></i> <span data-i18n="login.submit">登入</span></button>
           </div>
         </div>
 
@@ -307,11 +309,24 @@
     <div class="modal-icon" id="login-alert-icon"><i class="fa-solid fa-fw" id="login-alert-icon-inner"></i></div>
     <h3 id="login-alert-text"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
 
 <script src="script.js"></script>
+<script>
+(async () => {
+  const lang = getCurrentLang();
+  await initI18n(lang);
+  document.querySelectorAll('.otp-box').forEach((box, i) => {
+    box.setAttribute('aria-label', t('login.otpDigitLabel', { n: i + 1 }));
+  });
+
+  // 登入頁還沒有帳號可以存語言設定，只能先存 localStorage；帳號真正的
+  // language 欄位要等登入成功、進到學生/老師/管理主頁後才會同步。
+  renderLangSwitch(document.getElementById('lang-switch'), lang);
+})();
+</script>
 </body>
 </html>

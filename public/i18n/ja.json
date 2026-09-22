@@ -1,0 +1,23 @@
+{
+  "login.role.student.title": "生徒ログイン",
+  "login.role.student.desc": "今すぐ授業を予約して、学びの旅を始めましょう",
+  "login.role.teacher.title": "講師ログイン",
+  "login.role.teacher.desc": "授業と予約時間を管理する",
+  "login.role.admin.title": "管理者ログイン",
+  "login.role.admin.desc": "講師・コース・システム設定を管理する",
+  "login.back": "戻る",
+  "login.emailPlaceholder": "Email",
+  "login.sendCode": "認証コードを取得",
+  "login.resendCode": "認証コードを再送信",
+  "login.otpGroupLabel": "6桁の認証コード",
+  "login.otpDigitLabel": "{{n}}桁目",
+  "login.submit": "ログイン",
+  "login.error.sendFailed": "送信に失敗しました。しばらくしてから再度お試しください",
+  "login.success.codeSent": "認証コードを送信しました。メールをご確認ください",
+  "login.error.network": "ネットワークエラーです。しばらくしてから再度お試しください",
+  "login.warning.cooldown": "あと{{seconds}}秒で認証コードを再送信できます",
+  "login.error.invalidEmail": "有効なEmail形式を入力してください",
+  "login.warning.incompleteOtp": "6桁の認証コードをすべて入力してください",
+  "login.error.invalidOtp": "認証コードが正しくないか、期限切れです",
+  "common.ok": "OK"
+}

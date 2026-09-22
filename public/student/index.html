@@ -77,6 +77,20 @@
   <button type="button" class="back-btn" id="logout-btn" data-modal-open="logoutConfirmModal"><i class="fa-solid fa-fw fa-arrow-right-from-bracket"></i></button>
 </div>
 
+<div id="lang-switch"></div>
+
+<div class="modal-overlay" id="meetingRoomAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-fw fa-exclamation"></i></div>
+    <h3>尚未設定會議室連結</h3>
+    <p class="text-small">請聯繫管理者為你設定專屬的會議室連結。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="logoutConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -133,13 +147,33 @@
 
 <script src="../script.js"></script>
 <script>
+(async () => {
+  // 帳號的 language 欄位才是真相；登入後這裡負責把它同步進 localStorage，
+  // 也讓學生隨時能在這頁換語言（換的當下也存回帳號，換裝置登入才會一致）。
+  const me = await fetch('/api/students/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const lang = (me && me.language) || getCurrentLang();
+  setCurrentLang(lang);
+  await initI18n(lang);
+  renderLangSwitch(document.getElementById('lang-switch'), lang, (newLang) => {
+    fetch('/api/me/language', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: newLang }),
+    });
+  });
+})();
+
   document.getElementById('logout-confirm-btn').addEventListener('click', () => {
     fetch('/api/logout', { method: 'POST' }).finally(() => { window.location.href = '../'; });
   });
 
-  // TODO: 之後管理者為學生設定專屬會議室連結後,改成開啟該連結
-  document.querySelector('[data-action="meeting-room"]').addEventListener('click', () => {
-    window.open('https://www.google.com', '_blank');
+  document.querySelector('[data-action="meeting-room"]').addEventListener('click', async () => {
+    const me = await fetch('/api/students/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+    if (me && me.teamsLink) {
+      window.open(me.teamsLink, '_blank');
+    } else {
+      document.getElementById('meetingRoomAlertModal').classList.add('open');
+    }
   });
 
   document.querySelector('[data-action="new-booking"]').addEventListener('click', () => {

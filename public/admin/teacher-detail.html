@@ -117,17 +117,14 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
-
+(async () => {
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
-  const teachers = loadTeachers();
+  const teachers = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
   const teacher = teachers.find((t) => t.id === teacherId);
 
   if (!teacher) {
     window.location.href = 'teachers.html';
   } else {
-    teacher.lastViewedAt = Date.now();
-    saveTeachers(teachers);
     // 「最近點擊」要讓所有管理者共用，寫進 D1（失敗就算了，不影響本頁瀏覽）
     fetch(`/api/recently-viewed?type=teacher&id=${teacher.id}`, { method: 'PUT' }).catch(() => {});
 
@@ -157,6 +154,7 @@
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = 'teachers.html';
   });
+})();
 </script>
 
 </body>

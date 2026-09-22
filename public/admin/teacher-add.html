@@ -97,8 +97,10 @@
         <div class="dropdown" id="add-timezone-dropdown" data-placeholder="選擇時區">
           <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
-            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+07:00) 河內、胡志明市">(UTC+07:00) 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+06:30) 仰光">(UTC+06:30) 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
       </div>
@@ -170,8 +172,6 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, specialty, motto)
-
   let currentAvatar = randomAvatar(); // 新增老師時先隨機給一個動物頭像
 
   function setAvatar(newAvatar) {
@@ -201,7 +201,7 @@
     setAvatar(randomAvatar());
   });
 
-  setDropdownValue('add-timezone-dropdown', '(UTC+9) 大阪、札幌、東京');
+  setDropdownValue('add-timezone-dropdown', '(UTC+09:00) 大阪、札幌、東京');
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -210,7 +210,7 @@
     document.getElementById('teacherAddAlertModal').classList.add('open');
   }
 
-  document.getElementById('add-submit-btn').addEventListener('click', () => {
+  document.getElementById('add-submit-btn').addEventListener('click', async () => {
     const name = document.getElementById('add-name').value.trim();
     const phone = document.getElementById('add-phone').value.trim();
     const email = document.getElementById('add-email').value.trim();
@@ -224,20 +224,25 @@
       return;
     }
 
-    const teachers = loadTeachers();
-    teachers.push({
-      id: Date.now(),
-      name,
-      phone: phone.replace(/\D/g, ''),
-      email,
-      avatar: currentAvatar,
-      specialty: document.getElementById('add-specialty').value.trim(),
-      motto: document.getElementById('add-motto').value.trim(),
-      status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
-      receipt: { timezone: getDropdownValue('add-timezone-dropdown') },
-      lastViewedAt: Date.now(),
+    const res = await fetch('/api/teachers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        phone: phone.replace(/\D/g, ''),
+        email,
+        avatar: currentAvatar,
+        specialty: document.getElementById('add-specialty').value.trim(),
+        motto: document.getElementById('add-motto').value.trim(),
+        status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
+        receipt: { timezone: getDropdownValue('add-timezone-dropdown') },
+      }),
     });
-    saveTeachers(teachers);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showAddAlert(data.error || '新增失敗，請稍後再試');
+      return;
+    }
     document.getElementById('teacherAddSuccessModal').classList.add('open');
   });
 

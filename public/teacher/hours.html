@@ -337,11 +337,7 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teacher_availability(teacher_id, day_of_week, start_time, end_time)
-  const HOURS_KEY = 'teacher-hours';
-
-  function loadAllHours() { return JSON.parse(localStorage.getItem(HOURS_KEY) || '{}'); } // TODO: 之後改接真正的 D1/API
-  function saveAllHours(all) { localStorage.setItem(HOURS_KEY, JSON.stringify(all)); } // TODO: 之後改接真正的 D1/API
+  // 資料庫對應：teacher_hours(teacher_id, day_of_week, start_time, end_time)，經 /api/teachers/hours 讀寫
 
   // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
   // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
@@ -349,12 +345,14 @@
   const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
   const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
   const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
+  const teachersCache = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
+  function loadTeachers() { return teachersCache; }
   const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
   const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
 
   // 時段統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
   const currentTeacherRecord = loadTeachers().find((t) => t.id === currentTeacherId);
-  const TEACHER_TZ_OFFSET = (currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone || '').includes('+9') ? 9 : 8;
+  const TEACHER_TZ_OFFSET = parseUtcOffset(currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone);
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
 
   function shiftHourString(hhmm, deltaHours) {
@@ -364,25 +362,18 @@
     return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
   }
 
-  const allHours = loadAllHours();
-  let availability = allHours[currentTeacherId];
-  if (!availability) {
-    availability = currentTeacherId === 1 ? [
-      { id: 1, day: '星期一', start: '09:00', end: '12:00' },
-      { id: 2, day: '星期三', start: '14:00', end: '18:00' },
-      { id: 3, day: '星期五', start: '09:00', end: '11:30' },
-      { id: 4, day: '星期一', start: '08:00', end: '09:00' },
-      { id: 5, day: '星期一', start: '10:00', end: '11:00' },
-      { id: 6, day: '星期一', start: '13:00', end: '14:00' },
-    ] : [];
-    allHours[currentTeacherId] = availability;
-    saveAllHours(allHours);
+  function showHoursAlert(message) {
+    document.getElementById('hoursAlertText').textContent = message;
+    document.getElementById('hoursAlertModal').classList.add('open');
   }
-  let nextHoursId = availability.reduce((max, h) => Math.max(max, h.id), 0) + 1;
 
-  function persistAvailability() {
-    allHours[currentTeacherId] = availability;
-    saveAllHours(allHours);
+  let availability = [];
+  try {
+    const res = await fetch(`/api/teachers/hours?teacherId=${currentTeacherId}`);
+    if (!res.ok) throw new Error('load failed');
+    availability = await res.json();
+  } catch {
+    showHoursAlert('無法載入時段資料，請重新整理頁面');
   }
 
   const WEEKDAYS = [
@@ -402,7 +393,7 @@
       const container = document.getElementById(`hours-day-${wd.key}`);
       const slots = availability.filter((h) => h.day === wd.key).sort((a, b) => a.start.localeCompare(b.start));
       container.innerHTML = slots.length
-        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)} (UTC+${TEACHER_TZ_OFFSET})</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button></div>`).join('')
+        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)} (UTC${formatUtcOffset(TEACHER_TZ_OFFSET)})</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button></div>`).join('')
         : `<p class="hours-day-empty">無設定</p>`;
       container.querySelectorAll('.hours-slot-row, .hours-day-empty').forEach((card) => applyTiltEffect(card));
       container.querySelectorAll('button[data-id]').forEach((btn) => {
@@ -418,33 +409,49 @@
 
   renderHoursTable();
 
-  document.getElementById('hours-delete-confirm-btn').addEventListener('click', () => {
-    availability = availability.filter((h) => h.id !== pendingDeleteId);
-    persistAvailability();
+  document.getElementById('hours-delete-confirm-btn').addEventListener('click', async () => {
+    const idToDelete = pendingDeleteId;
     pendingDeleteId = null;
     document.getElementById('hoursDeleteConfirmModal').classList.remove('open');
+
+    const res = await fetch(`/api/teachers/hours?teacherId=${currentTeacherId}&id=${idToDelete}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showHoursAlert(data.error || '刪除失敗，請稍後再試');
+      return;
+    }
+    availability = availability.filter((h) => h.id !== idToDelete);
     renderHoursTable();
   });
 
-  document.getElementById('hours-add-btn').addEventListener('click', () => {
+  document.getElementById('hours-add-btn').addEventListener('click', async () => {
     const day = getDropdownValue('hours-day-dropdown');
     const start = getDropdownValue('hours-start-dropdown');
     const end = getDropdownValue('hours-end-dropdown');
 
     if (!day || !start || !end || start >= end) {
-      document.getElementById('hoursAlertText').textContent = '選擇的時間不對';
-      document.getElementById('hoursAlertModal').classList.add('open');
+      showHoursAlert('選擇的時間不對');
       return;
     }
     const overlaps = availability.some((h) => h.day === day && start < h.end && end > h.start);
     if (overlaps) {
-      document.getElementById('hoursAlertText').textContent = '時間有重疊到';
-      document.getElementById('hoursAlertModal').classList.add('open');
+      showHoursAlert('時間有重疊到');
       return;
     }
-    availability.push({ id: nextHoursId++, day, start, end });
+
+    const res = await fetch(`/api/teachers/hours?teacherId=${currentTeacherId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ day, start, end }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showHoursAlert(data.error || '新增失敗，請稍後再試');
+      return;
+    }
+    const created = await res.json();
+    availability.push(created);
     availability.sort((a, b) => a.day.localeCompare(b.day) || a.start.localeCompare(b.start));
-    persistAvailability();
     document.getElementById('hoursAddSuccessModal').classList.add('open');
     renderHoursTable();
   });

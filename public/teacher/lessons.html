@@ -186,6 +186,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="lessonsAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="lessonsAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="lessonsRecordInfoModal">
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -213,7 +224,7 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：lessons(course, date, time, student_name, status)
+  // 資料庫對應：bookings(booking_code, student_id, course_id, teacher_id, date, time, status)，經 /api/bookings 讀寫
   // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
   // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
   // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
@@ -221,51 +232,70 @@
   const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
   const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
   const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
+  const teachersCache = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
+  function loadTeachers() { return teachersCache; }
   const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
   const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
   const currentTeacher = loadTeachers().find((t) => t.id === currentTeacherId);
-  const TEACHER_TIMEZONE_LABEL = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone) || '(UTC+8) 台北';
-  const TEACHER_TZ_OFFSET = TEACHER_TIMEZONE_LABEL.includes('+9') ? 9 : 8;
+  const TEACHER_TIMEZONE_LABEL = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone) || '(UTC+08:00) 台北';
+  const TEACHER_TZ_OFFSET = parseUtcOffset(TEACHER_TIMEZONE_LABEL);
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
   document.getElementById('lessons-timezone-note').textContent = `所有課程時間皆為 ${TEACHER_TIMEZONE_LABEL} 時間`;
 
   function shiftToTeacherTz(dateStr, timeStr) {
     if (!TEACHER_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
     const dt = new Date(`${dateStr.replace(/\//g, '-')}T${timeStr}:00`);
-    dt.setHours(dt.getHours() + TEACHER_TZ_DELTA_HOURS);
+    // setHours() 會把非整數小時直接截斷，緬甸 +6:30 這種半小時時區要改用分鐘計算。
+    dt.setMinutes(dt.getMinutes() + TEACHER_TZ_DELTA_HOURS * 60);
     const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, '0'), day = String(dt.getDate()).padStart(2, '0');
     const hh = String(dt.getHours()).padStart(2, '0'), mm = String(dt.getMinutes()).padStart(2, '0');
     return { date: `${y}/${m}/${day}`, time: `${hh}:${mm}` };
   }
 
-  function loadTeacherLessons(teacherId) {
-    return loadStudents().flatMap((s) => (s.bookings || [])
-      .filter((b) => b.teacherId === teacherId)
-      .map((b) => ({
-        id: b.id,
-        course: b.course,
-        courseId: b.courseId,
-        date: b.date.replace(/-/g, '/'),
-        time: b.time,
-        student: s.name,
-        studentEmail: s.email,
-        status: b.status,
-        bookingCode: b.bookingCode,
-      })));
+  function showLessonsAlert(message) {
+    document.getElementById('lessonsAlertText').textContent = message;
+    document.getElementById('lessonsAlertModal').classList.add('open');
   }
-  const lessons = loadTeacherLessons(currentTeacherId);
+
+  function bookingToLesson(b) {
+    return {
+      id: b.id,
+      course: b.course,
+      courseId: b.courseId,
+      date: b.date.replace(/-/g, '/'),
+      time: b.time,
+      student: b.studentName,
+      status: b.status,
+      bookingCode: b.bookingCode,
+    };
+  }
+
+  let lessons = [];
+  try {
+    // 老師本人不用帶 teacherId，後端會依登入身分自動只回傳自己的預約；
+    // 管理者代管老師時才需要明確帶 teacherId，查看該老師的預約。
+    const bookingsQs = viewingAsAdmin ? `?teacherId=${currentTeacherId}` : '';
+    const res = await fetch(`/api/bookings${bookingsQs}`);
+    if (!res.ok) throw new Error('load failed');
+    const rows = await res.json();
+    lessons = rows.map(bookingToLesson);
+  } catch {
+    showLessonsAlert('無法載入課程資料，請重新整理頁面');
+  }
   const LESSON_DURATION_MINUTES = 100;
   const STATUS_MAP = {
     upcoming:  { cls: 'pill info has-icon',      icon: 'icon-hourglass.png', label: '預約' },
     attended:  { cls: 'pill confirmed has-icon', icon: 'check.png',          label: '完成' },
     cancelled: { cls: 'pill cancelled has-icon', icon: 'close.png',          label: '取消' },
     absent:    { cls: 'pill tone-navy has-icon', icon: 'question.png',       label: '缺席' },
+    pending:   { cls: 'pill pending has-icon',   icon: 'icon-alert.png',     label: '需處理' },
   };
   const RIBBON_TONE_MAP = {
-    upcoming:  { tone: 'tone-blue',  label: '預約' },
-    attended:  { tone: 'tone-green', label: '完成' },
-    cancelled: { tone: 'tone-red',   label: '取消' },
-    absent:    { tone: 'tone-navy',  label: '缺席' },
+    upcoming:  { tone: 'tone-blue',   label: '預約' },
+    attended:  { tone: 'tone-green',  label: '完成' },
+    cancelled: { tone: 'tone-red',    label: '取消' },
+    absent:    { tone: 'tone-navy',   label: '缺席' },
+    pending:   { tone: 'tone-orange', label: '需處理' },
   };
 
   // 只保留 60 天內的紀錄，上課日期超過 60 天的舊紀錄不再顯示
@@ -277,7 +307,8 @@
 
   document.querySelectorAll('#lesson-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card));
 
-  function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
+  const coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
+  function loadCourses() { return coursesCache; }
 
   function endTimeStr(timeStr, durationMinutes) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -316,7 +347,7 @@
     const shifted = shiftToTeacherTz(dateStr, timeStr);
     const d = new Date(shifted.date.replace(/\//g, '-'));
     const weekday = WEEKDAY_NAMES[d.getDay()];
-    const tzTag = showTz ? `<span class="tz-tag">(UTC+${TEACHER_TZ_OFFSET})</span>` : '';
+    const tzTag = showTz ? `<span class="tz-tag">(UTC${formatUtcOffset(TEACHER_TZ_OFFSET)})</span>` : '';
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     if (isMobile) return `${shifted.date} ${weekday} ${shifted.time} ${tzTag}`;
     const [y, m, day] = shifted.date.split('/');
@@ -407,7 +438,7 @@
     document.getElementById('detail-teacher').textContent = currentTeacher.name;
     const parts = computeDisplayParts(lesson);
     document.getElementById('detail-datetime').textContent = parts.dateLabel;
-    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+${TEACHER_TZ_OFFSET}`;
+    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC${formatUtcOffset(TEACHER_TZ_OFFSET)}`;
     document.getElementById('detail-booking-code').textContent = lesson.bookingCode || '—';
     document.getElementById('lessons-list-view').hidden = true;
     document.getElementById('lesson-detail-view').hidden = false;
@@ -452,19 +483,22 @@
     document.getElementById('completeConfirmModal').classList.add('open');
   });
 
-  document.getElementById('confirm-complete-btn').addEventListener('click', () => {
+  document.getElementById('confirm-complete-btn').addEventListener('click', async () => {
     const lesson = lessons.find((l) => l.id === activeLessonId);
-    if (lesson) {
-      lesson.status = 'attended';
-      const students = loadStudents();
-      const student = students.find((s) => s.email === lesson.studentEmail);
-      const booking = student && (student.bookings || []).find((b) => b.id === lesson.id);
-      if (booking) {
-        booking.status = 'attended';
-        saveStudents(students);
-      }
-    }
     document.getElementById('completeConfirmModal').classList.remove('open');
+    if (!lesson) return;
+
+    const res = await fetch(`/api/bookings?id=${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'attended' }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showLessonsAlert(data.error || '更新失敗，請稍後再試');
+      return;
+    }
+    lesson.status = 'attended';
     hideLessonDetail();
     renderTodayGroup();
     renderLessonsCards();

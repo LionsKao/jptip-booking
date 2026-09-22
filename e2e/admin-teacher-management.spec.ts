@@ -1,8 +1,31 @@
 import { expect, test } from '@playwright/test';
 import { login, SEEDED } from './helpers';
 
+// Both tests below seed teacher id 1's hours — run serially so they can't
+// race each other's clear-then-write under Playwright's default parallel
+// workers (one test's DELETE landing between the other's DELETE and POST
+// would silently wipe out the slot it just wrote).
+test.describe.configure({ mode: 'serial' });
+
+// Teacher hours are real D1 data now (no more client-seeded mock default),
+// so each test seeds exactly what it needs via the real API — clearing any
+// leftover rows from a previous run first, since the local dev D1 isn't
+// reset between runs.
+async function setTeacherHours(page: import('@playwright/test').Page, teacherId: number, slots: { day: string; start: string; end: string }[]) {
+  await page.evaluate(async ({ teacherId, slots }) => {
+    const existing = await fetch(`/api/teachers/hours?teacherId=${teacherId}`).then((res) => res.json()) as { id: number }[];
+    await Promise.all(existing.map((h) => fetch(`/api/teachers/hours?teacherId=${teacherId}&id=${h.id}`, { method: 'DELETE' })));
+    await Promise.all(slots.map((slot) => fetch(`/api/teachers/hours?teacherId=${teacherId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(slot),
+    })));
+  }, { teacherId, slots });
+}
+
 test('admin can drill from the teacher list into a teacher\'s hours page', async ({ page }) => {
   await login(page, 'admin', SEEDED.admin.email);
+  await setTeacherHours(page, 1, [{ day: '星期一', start: '09:00', end: '12:00' }]);
 
   // Workers Assets drops the .html extension on the way through, so these
   // patterns match the canonical (extensionless) URLs it redirects to.
@@ -33,6 +56,8 @@ test('the same teacher, viewed by two different logged-in teachers, shows differ
 
     await login(page1, 'teacher', 'teacher1@jptip.co.jp');
     await login(page2, 'teacher', 'teacher2@jptip.co.jp');
+    await setTeacherHours(page1, 1, [{ day: '星期一', start: '09:00', end: '12:00' }]);
+    await setTeacherHours(page2, 2, []);
 
     await page1.goto('/teacher/hours.html');
     await page2.goto('/teacher/hours.html');

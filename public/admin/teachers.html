@@ -137,8 +137,12 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status)
+(async () => {
   const SEARCH_KEY = 'admin-teacher-search';
+
+  // 老師是真正的 D1 資料（見 /api/teachers），這裡整頁只在載入時抓一次，
+  // 之後搜尋/分頁都是在這份記憶體內的副本上做，不用每次都重打 API。
+  const teachers = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
 
   const teacherPageState = { page: 1 };
 
@@ -166,11 +170,10 @@
   function renderTeachers() {
     const query = searchInput.value.trim().toLowerCase();
     const queryDigits = query.replace(/-/g, '');
-    const all = loadTeachers();
     const filtered = query
-      ? all.filter((t) => [t.name, t.email].some((f) => f.toLowerCase().includes(query))
-          || (queryDigits && t.phone.includes(queryDigits)))
-      : all;
+      ? teachers.filter((t) => [t.name, t.email].some((f) => f.toLowerCase().includes(query))
+          || (queryDigits && t.phone && t.phone.includes(queryDigits)))
+      : teachers;
     const sorted = filtered.slice().sort((a, b) => {
       const aInactive = a.status === 'inactive' ? 1 : 0;
       const bInactive = b.status === 'inactive' ? 1 : 0;
@@ -195,15 +198,15 @@
   }
 
   // 「最近點擊」是所有管理者共用的排序依據，存在 D1；背景同步完再重繪一次即可，
-  // 不用讓使用者等，也不影響第一次渲染的速度。
+  // 不用讓使用者等，也不影響第一次渲染的速度。這裡只是把時間戳記合併進記憶體
+  // 內的 teachers 副本，不用寫回任何地方——D1 的 recently_viewed 本身就是真相來源。
   fetch('/api/recently-viewed?type=teacher').then((res) => (res.ok ? res.json() : {})).then((sharedMap) => {
-    const all = loadTeachers();
     let changed = false;
-    all.forEach((t) => {
+    teachers.forEach((t) => {
       const shared = sharedMap[t.id];
       if (shared != null && shared > (t.lastViewedAt || 0)) { t.lastViewedAt = shared; changed = true; }
     });
-    if (changed) { saveTeachers(all); renderTeachers(); }
+    if (changed) renderTeachers();
   }).catch(() => {});
 
   const searchInput = document.getElementById('teacher-search');
@@ -236,6 +239,7 @@
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
   });
+})();
 </script>
 
 </body>

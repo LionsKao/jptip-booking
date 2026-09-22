@@ -178,6 +178,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="historyAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="history-alert-text"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="historyRecordInfoModal">
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -220,21 +231,27 @@
     attended:  { tone: 'tone-green',  label: '完成' },
   };
 
-  // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給學生看時，依管理者在學生資料設定的時區（+8／+9）換算顯示
+  function showHistoryAlert(message) {
+    document.getElementById('history-alert-text').textContent = message;
+    document.getElementById('historyAlertModal').classList.add('open');
+  }
+
   // 這個頁面本身已經由後端依 session cookie 擋過（非登入學生連頁面都進不來），
   // 這裡另外打 /api/session 只是為了拿到「是哪一位學生」，取代舊版可被竄改的 sessionStorage。
   const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
-  const students = session ? loadStudents() : [];
-  const currentStudent = session ? students.find((s) => s.email === session.email) : null;
-  const STUDENT_TIMEZONE_LABEL = (currentStudent && currentStudent.timezone) || '(UTC+8) 台北';
-  const STUDENT_TZ_OFFSET = STUDENT_TIMEZONE_LABEL.includes('+9') ? 9 : 8;
+
+  // 課程時間統一存成 UTC+8（台灣時間）為基準，依學生個人時區設定換算顯示。
+  const me = await fetch('/api/students/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const STUDENT_TIMEZONE_LABEL = (me && me.timezone) || '(UTC+08:00) 台北';
+  const STUDENT_TZ_OFFSET = parseUtcOffset(STUDENT_TIMEZONE_LABEL);
   const STUDENT_TZ_DELTA_HOURS = STUDENT_TZ_OFFSET - 8;
   document.getElementById('history-timezone-note').textContent = `所有課程時間皆為 ${STUDENT_TIMEZONE_LABEL} 時間`;
 
   function shiftToStudentTz(dateStr, timeStr) {
     if (!STUDENT_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
     const dt = new Date(`${dateStr.replace(/\//g, '-')}T${timeStr}:00`);
-    dt.setHours(dt.getHours() + STUDENT_TZ_DELTA_HOURS);
+    // setHours() 會把非整數小時直接截斷，緬甸 +6:30 這種半小時時區要改用分鐘計算。
+    dt.setMinutes(dt.getMinutes() + STUDENT_TZ_DELTA_HOURS * 60);
     const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, '0'), day = String(dt.getDate()).padStart(2, '0');
     const hh = String(dt.getHours()).padStart(2, '0'), mm = String(dt.getMinutes()).padStart(2, '0');
     return { date: `${y}/${m}/${day}`, time: `${hh}:${mm}` };
@@ -246,12 +263,25 @@
   cutoffDate.setHours(0, 0, 0, 0);
   cutoffDate.setDate(cutoffDate.getDate() - RECORD_WINDOW_DAYS);
 
-  const records = ((currentStudent && currentStudent.bookings) || [])
+  let bookings = [];
+  if (session) {
+    try {
+      const res = await fetch('/api/bookings');
+      if (!res.ok) throw new Error('load failed');
+      bookings = await res.json();
+    } catch {
+      showHistoryAlert('無法載入課程資料，請重新整理頁面');
+    }
+  }
+
+  const records = bookings
     .map((b) => ({
       id: b.id,
       course: b.course,
       courseId: b.courseId,
       teacher: b.teacher,
+      teacherId: b.teacherId,
+      studentName: b.studentName,
       date: b.date.replace(/-/g, '/'),
       time: b.time,
       status: b.status,
@@ -260,7 +290,8 @@
     .filter((r) => new Date(r.date.replace(/\//g, '-')) >= cutoffDate)
     .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
 
-  function loadCourses() { return JSON.parse(localStorage.getItem('admin-courses') || '[]'); } // TODO: 之後改接真正的 D1/API
+  const coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
+  function loadCourses() { return coursesCache; }
 
   function endTimeStr(timeStr, durationMinutes) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -297,7 +328,7 @@
 
   function formatDateTime(r, showTz = true) {
     const { dateLabel, startTimeLabel } = computeDisplayParts(r);
-    const tzTag = showTz ? `<span class="tz-tag">(UTC+${STUDENT_TZ_OFFSET})</span>` : '';
+    const tzTag = showTz ? `<span class="tz-tag">(UTC${formatUtcOffset(STUDENT_TZ_OFFSET)})</span>` : '';
     return `${dateLabel} ${startTimeLabel}${tzTag}`;
   }
 
@@ -308,7 +339,7 @@
       <div class="booking-card-info">
         ${r.bookingCode ? `<p class="booking-card-code">${r.bookingCode}</p>` : ''}
         <p class="booking-card-course">${r.course}</p>
-        <h4>${currentStudent.name} ／ ${r.teacher}</h4>
+        <h4>${r.studentName} ／ ${r.teacher}</h4>
         <p class="booking-card-datetime">${formatDateTime(r, false)}</p>
       </div>
     </div>`;
@@ -364,11 +395,11 @@
     if (!record) return;
     activeRecordId = id;
     document.getElementById('detail-course').textContent = record.course;
-    document.getElementById('detail-student').textContent = currentStudent.name;
+    document.getElementById('detail-student').textContent = record.studentName;
     document.getElementById('detail-teacher').textContent = record.teacher;
     const parts = computeDisplayParts(record);
     document.getElementById('detail-datetime').textContent = parts.dateLabel;
-    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC+${STUDENT_TZ_OFFSET}`;
+    document.getElementById('detail-time').textContent = `${parts.timeLabel}・${parts.durationLabel}・UTC${formatUtcOffset(STUDENT_TZ_OFFSET)}`;
     document.getElementById('detail-booking-code').textContent = record.bookingCode || '—';
     document.getElementById('history-list-view').hidden = true;
     document.getElementById('history-detail-view').hidden = false;
@@ -425,15 +456,22 @@
     document.getElementById('cancelConfirmModal').classList.add('open');
   });
 
-  document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+  document.getElementById('confirm-cancel-btn').addEventListener('click', async () => {
     const record = records.find((r) => r.id === activeRecordId);
-    if (record) record.status = 'cancelled';
-    const booking = currentStudent && (currentStudent.bookings || []).find((b) => b.id === activeRecordId);
-    if (booking) {
-      booking.status = 'cancelled';
-      saveStudents(students);
-    }
     document.getElementById('cancelConfirmModal').classList.remove('open');
+    if (!record) return;
+
+    const res = await fetch(`/api/bookings?id=${record.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled' }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showHistoryAlert(data.error || '取消失敗，請稍後再試');
+      return;
+    }
+    record.status = 'cancelled';
     hideHistoryDetail();
     renderHistoryCards();
     renderTodayGroup();

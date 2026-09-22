@@ -149,27 +149,12 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：courses(id, name, image)
-  const COURSES_KEY = 'admin-courses';
+(async () => {
   const SEARCH_KEY = 'admin-course-search';
 
-  function loadCourses() { // TODO: 之後改接真正的 D1/API
-    const raw = localStorage.getItem(COURSES_KEY);
-    if (raw) return JSON.parse(raw);
-
-    const NAMES = ['N5 綜合日本語 J1', 'N5 綜合日本語 J2', 'N5 綜合日本語 J3', 'N4 綜合日本語 J4', 'N4 綜合日本語 J5', 'N4 綜合日本語 J6', 'N3 綜合日本語 J7', 'N3 綜合日本語 J8', 'N3 綜合日本語 J9', 'N2 綜合日本語 J10', 'N2 綜合日本語 J11', 'N2 綜合日本語 J12', 'N2 綜合日本語 J13', '商務日文 基礎會話篇', '商務日文 應用會話篇'];
-
-    const seed = NAMES.map((name, i) => ({
-      id: i + 1, name, image: '', description: '',
-      durationMinutes: 100, bufferBeforeMinutes: 0, bufferAfterMinutes: 20,
-      scheduleIncrement: '1 小時', minLeadHours: 48, maxLeadDays: 30,
-    }));
-
-    localStorage.setItem(COURSES_KEY, JSON.stringify(seed));
-    return seed;
-  }
-
-  function saveCourses(list) { localStorage.setItem(COURSES_KEY, JSON.stringify(list)); } // TODO: 之後改接真正的 D1/API
+  // 課程是真正的 D1 資料（見 /api/courses），這裡整頁只在載入時抓一次，
+  // 之後搜尋/分頁都是在這份記憶體內的副本上做，不用每次都重打 API。
+  const courses = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
 
   // 沒有上傳自訂圖片時，用課程名稱裡的級數（J1、J2...）自動配色，顏色跟 student/booking.html 選課步驟的 course-tag 彩虹配色一致；
   // 商務日文系列沒有 J 級數，固定用鐵灰色＋「商」字
@@ -207,10 +192,9 @@
 
   function renderCourses() {
     const query = searchInput.value.trim().toLowerCase();
-    const all = loadCourses();
     const filtered = query
-      ? all.filter((c) => c.name.toLowerCase().includes(query))
-      : all;
+      ? courses.filter((c) => c.name.toLowerCase().includes(query))
+      : courses;
     const sorted = filtered.slice().sort((a, b) => (b.lastViewedAt || b.id) - (a.lastViewedAt || a.id));
 
     paginate(sorted, 10, renderCourseCard,
@@ -230,15 +214,15 @@
   }
 
   // 「最近點擊」是所有管理者共用的排序依據，存在 D1；背景同步完再重繪一次即可，
-  // 不用讓使用者等，也不影響第一次渲染的速度。
+  // 不用讓使用者等，也不影響第一次渲染的速度。這裡只是把時間戳記合併進記憶體
+  // 內的 courses 副本，不用寫回任何地方——D1 的 recently_viewed 本身就是真相來源。
   fetch('/api/recently-viewed?type=course').then((res) => (res.ok ? res.json() : {})).then((sharedMap) => {
-    const all = loadCourses();
     let changed = false;
-    all.forEach((c) => {
+    courses.forEach((c) => {
       const shared = sharedMap[c.id];
       if (shared != null && shared > (c.lastViewedAt || 0)) { c.lastViewedAt = shared; changed = true; }
     });
-    if (changed) { saveCourses(all); renderCourses(); }
+    if (changed) renderCourses();
   }).catch(() => {});
 
   const searchInput = document.getElementById('course-search');
@@ -271,6 +255,7 @@
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
   });
+})();
 </script>
 
 </body>

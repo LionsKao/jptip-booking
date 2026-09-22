@@ -1,0 +1,23 @@
+{
+  "login.role.student.title": "Đăng nhập học viên",
+  "login.role.student.desc": "Đặt lịch học ngay và bắt đầu hành trình học tập",
+  "login.role.teacher.title": "Đăng nhập giáo viên",
+  "login.role.teacher.desc": "Quản lý lớp học và khung giờ nhận đặt lịch của bạn",
+  "login.role.admin.title": "Đăng nhập quản trị viên",
+  "login.role.admin.desc": "Quản lý giáo viên, khóa học và cài đặt hệ thống",
+  "login.back": "Quay lại",
+  "login.emailPlaceholder": "Email",
+  "login.sendCode": "Nhận mã xác thực",
+  "login.resendCode": "Gửi lại mã xác thực",
+  "login.otpGroupLabel": "Mã xác thực 6 chữ số",
+  "login.otpDigitLabel": "Số thứ {{n}}",
+  "login.submit": "Đăng nhập",
+  "login.error.sendFailed": "Gửi thất bại, vui lòng thử lại sau",
+  "login.success.codeSent": "Đã gửi mã xác thực, vui lòng kiểm tra hộp thư",
+  "login.error.network": "Lỗi mạng, vui lòng thử lại sau",
+  "login.warning.cooldown": "Bạn có thể gửi lại mã sau {{seconds}} giây",
+  "login.error.invalidEmail": "Vui lòng nhập đúng định dạng email",
+  "login.warning.incompleteOtp": "Vui lòng nhập đầy đủ 6 chữ số mã xác thực",
+  "login.error.invalidOtp": "Mã xác thực không đúng hoặc đã hết hạn",
+  "common.ok": "OK"
+}

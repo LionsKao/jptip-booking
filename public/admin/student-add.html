@@ -97,8 +97,10 @@
         <div class="dropdown" id="add-timezone-dropdown" data-placeholder="選擇時區">
           <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
-            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+07:00) 河內、胡志明市">(UTC+07:00) 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+06:30) 仰光">(UTC+06:30) 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
       </div>
@@ -166,8 +168,6 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：students(id, name, phone, email, teams_link)
-
   let currentAvatar = randomAvatar();
   document.getElementById('add-avatar-preview').src = `../assets/avatars/${currentAvatar}`;
   document.getElementById('add-avatar-random-btn').addEventListener('click', () => {
@@ -179,7 +179,7 @@
     avatarImg.classList.add('avatar-swap');
   });
 
-  setDropdownValue('add-timezone-dropdown', '(UTC+8) 台北');
+  setDropdownValue('add-timezone-dropdown', '(UTC+08:00) 台北');
   document.querySelector('.avatar-picker-preview').classList.add('is-inactive');
 
   document.getElementById('add-status-toggle').addEventListener('change', (e) => {
@@ -205,7 +205,7 @@
     });
   });
 
-  document.getElementById('add-submit-btn').addEventListener('click', () => {
+  document.getElementById('add-submit-btn').addEventListener('click', async () => {
     const nameEl = document.getElementById('add-name');
     const phoneEl = document.getElementById('add-phone');
     const emailEl = document.getElementById('add-email');
@@ -218,9 +218,10 @@
     nameEl.classList.toggle('input-error', !name);
     phoneEl.classList.toggle('input-error', !phone);
     emailEl.classList.toggle('input-error', !email || !EMAIL_RE.test(email));
-    teamsLinkEl.classList.toggle('input-error', !teamsLink);
 
-    if (!name || !phone || !email || !teamsLink) {
+    // Teams 會議室連結目前還沒有實際會用到它的功能（保留欄位給未來使用），
+    // 所以跟舊版 mock 不同，新增學生時不再強制要求填寫。
+    if (!name || !phone || !email) {
       showAddAlert('請填寫完整資料');
       return;
     }
@@ -229,18 +230,24 @@
       return;
     }
 
-    const students = loadStudents();
-    students.push({
-      id: Date.now(),
-      name, phone: phone.replace(/\D/g, ''), email, teamsLink,
-      avatar: currentAvatar,
-      status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
-      timezone: getDropdownValue('add-timezone-dropdown'),
-      lastViewedAt: Date.now(),
-      courses: [],
-      bookings: [],
+    const res = await fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        phone: phone.replace(/\D/g, ''),
+        email,
+        teamsLink,
+        avatar: currentAvatar,
+        status: document.getElementById('add-status-toggle').checked ? 'active' : 'inactive',
+        timezone: getDropdownValue('add-timezone-dropdown'),
+      }),
     });
-    saveStudents(students);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showAddAlert(data.error || '新增失敗，請稍後再試');
+      return;
+    }
     document.getElementById('studentAddSuccessModal').classList.add('open');
   });
 

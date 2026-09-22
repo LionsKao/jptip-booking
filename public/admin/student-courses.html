@@ -40,26 +40,24 @@
 
   #course-list {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: var(--space-3);
   }
 
+  #add-course-dropdown {
+    width: 360px;
+  }
+  #add-course-dropdown .dropdown-trigger {
+    width: 100%;
+    border-radius: var(--radius-lg);
+  }
+  #add-course-dropdown .select-badge {
+    display: none;
+  }
   .course-add-row {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-3);
-    flex-wrap: wrap;
-  }
-  #add-course-dropdown .dropdown-trigger {
-    border-radius: var(--radius-lg);
-  }
-  #add-course-btn {
-    border: 3px solid transparent;
-    box-sizing: border-box;
-  }
-  #add-course-dropdown .select-badge {
-    display: none;
   }
   @media (min-width: 641px) {
     #add-course-dropdown .dropdown-menu {
@@ -122,23 +120,7 @@
     <div class="course-add-row">
       <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
         <button type="button" class="dropdown-trigger"><span class="label">選擇課程</span><span class="arrow"></span></button>
-        <ul class="dropdown-menu" id="add-course-menu">
-          <li data-value="N5 綜合日本語 J1">N5 綜合日本語 J1<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N5 綜合日本語 J2">N5 綜合日本語 J2<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N5 綜合日本語 J3">N5 綜合日本語 J3<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J4">N4 綜合日本語 J4<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J5">N4 綜合日本語 J5<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N4 綜合日本語 J6">N4 綜合日本語 J6<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J7">N3 綜合日本語 J7<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J8">N3 綜合日本語 J8<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N3 綜合日本語 J9">N3 綜合日本語 J9<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J10">N2 綜合日本語 J10<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J11">N2 綜合日本語 J11<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J12">N2 綜合日本語 J12<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="N2 綜合日本語 J13">N2 綜合日本語 J13<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="商務日文 基礎會話篇">商務日文 基礎會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="商務日文 應用會話篇">商務日文 應用會話篇<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-        </ul>
+        <ul class="dropdown-menu" id="add-course-menu"></ul>
       </div>
       <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增課程</button>
     </div>
@@ -190,16 +172,36 @@
 
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：student_courses(student_id, name, status, attended, booked)
+(async () => {
   const studentId = Number(new URLSearchParams(window.location.search).get('id'));
-  const students = loadStudents();
+  const [students, courses] = await Promise.all([
+    fetch('/api/students').then((res) => (res.ok ? res.json() : [])),
+    fetch('/api/courses').then((res) => (res.ok ? res.json() : [])),
+  ]);
   const student = students.find((s) => s.id === studentId);
 
   if (!student) {
     window.location.href = 'students.html';
-  } else {
-    student.courses = student.courses || [];
+    return;
   }
+
+  // 這個學生已購買的課程是真正的 D1 資料（見 /api/students/courses），這裡在
+  // 載入時抓一次存進 student.courses，之後新增/刪除都直接改這份記憶體副本再重繪。
+  student.courses = await fetch(`/api/students/courses?studentId=${studentId}`).then((res) => (res.ok ? res.json() : []));
+
+  // 「選擇課程」下拉選單改抓真正的課程目錄（/api/courses），不再用寫死的清單。
+  // 這裡手動插入 <li> 並自行綁定點擊事件，因為 script.js 裡的下拉選單綁定邏輯
+  // 是在頁面一載入就跑過一次了，那時候這個清單都還是空的。
+  const addCourseMenu = document.getElementById('add-course-menu');
+  addCourseMenu.innerHTML = courses.map((c) => `<li data-value="${c.name}">${c.name}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('');
+  addCourseMenu.querySelectorAll('li').forEach((item) => {
+    item.addEventListener('click', () => {
+      addCourseMenu.querySelectorAll('li').forEach((li) => li.classList.remove('selected'));
+      item.classList.add('selected');
+      document.querySelector('#add-course-dropdown .dropdown-trigger .label').textContent = item.dataset.value;
+      document.getElementById('add-course-dropdown').classList.remove('open');
+    });
+  });
 
   function resetCourseDropdown() {
     const dropdown = document.getElementById('add-course-dropdown');
@@ -209,31 +211,33 @@
 
   function updateCourseDropdownOptions() {
     const purchasedNames = new Set(student.courses.map((c) => c.name));
-    document.querySelectorAll('#add-course-menu li').forEach((li) => {
+    addCourseMenu.querySelectorAll('li').forEach((li) => {
       li.hidden = purchasedNames.has(li.dataset.value);
     });
   }
 
-  const padCount = (str) => str.replace(/^(\d+)/, (n) => n.padStart(2, '0'));
+  function showAlert(message) {
+    document.getElementById('basicInfoAlertText').textContent = message;
+    document.getElementById('basicInfoAlertModal').classList.add('open');
+  }
 
   function renderCourses() {
     const listEl = document.getElementById('course-list');
     listEl.innerHTML = student.courses.length
       ? student.courses.map((c) => {
-          const bookedNum = parseInt((c.booked || '0/16').split('/')[0], 10);
+          // attended/booked 已經是伺服器算好的 "N/D" 字串，直接顯示即可；
+          // D（總堂數）改用伺服器回傳的分母，不再寫死 16。
+          const [bookedNum, totalSessions] = (c.booked || '0/16').split('/').map(Number);
           const attendedNum = parseInt((c.attended || '0/16').split('/')[0], 10);
-          const isComplete = bookedNum >= 16 && attendedNum >= 16;
+          const isComplete = bookedNum >= totalSessions && attendedNum >= totalSessions;
           const isEmpty = bookedNum === 0 && attendedNum === 0;
-          const attended = padCount(c.attended || '0/16');
-          const booked = padCount(c.booked || '0/16');
-          const absent = padCount(c.absent || '0/16');
           const ribbon = isComplete
             ? '<span class="ribbon-clip"><span class="course-ribbon tone-green">完成</span></span>'
             : (!isEmpty ? '<span class="ribbon-clip"><span class="course-ribbon tone-blue">進行中</span></span>' : '');
           const deleteBtn = isEmpty
             ? `<button type="button" class="btn sm red course-delete-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>`
             : '';
-          const counts = `<p class="course-count">已預約：<b class="course-count-value">${booked}</b></p><p class="course-count">已上課：<b class="course-count-value">${attended}</b></p><p class="course-count">已缺席：<b class="course-count-value">${absent}</b></p>`;
+          const counts = `<p class="course-count">已預約：<b class="course-count-value">${c.booked}</b></p><p class="course-count">已上課：<b class="course-count-value">${c.attended}</b></p>`;
           return `<div class="course-row">
             ${ribbon}
             ${deleteBtn}
@@ -255,12 +259,18 @@
   }
 
   let pendingDeleteCourseId = null;
-  document.getElementById('delete-course-confirm-btn').addEventListener('click', () => {
+  document.getElementById('delete-course-confirm-btn').addEventListener('click', async () => {
     if (pendingDeleteCourseId == null) return;
-    student.courses = student.courses.filter((c) => c.id !== pendingDeleteCourseId);
-    saveStudents(students);
-    pendingDeleteCourseId = null;
+    const id = pendingDeleteCourseId;
+    const res = await fetch(`/api/students/courses?studentId=${studentId}&id=${id}`, { method: 'DELETE' });
     document.getElementById('deleteCourseConfirmModal').classList.remove('open');
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showAlert(data.error || '刪除失敗，請稍後再試');
+      return;
+    }
+    student.courses = student.courses.filter((c) => c.id !== id);
+    pendingDeleteCourseId = null;
     renderCourses();
   });
 
@@ -269,8 +279,7 @@
   document.getElementById('add-course-btn').addEventListener('click', () => {
     const value = getDropdownValue('add-course-dropdown');
     if (!value) {
-      document.getElementById('basicInfoAlertText').textContent = '請先選擇課程';
-      document.getElementById('basicInfoAlertModal').classList.add('open');
+      showAlert('請先選擇課程');
       return;
     }
     pendingCourseName = value;
@@ -278,21 +287,33 @@
     document.getElementById('addCourseConfirmModal').classList.add('open');
   });
 
-  document.getElementById('add-course-confirm-btn').addEventListener('click', () => {
+  document.getElementById('add-course-confirm-btn').addEventListener('click', async () => {
     if (!pendingCourseName) return;
-    student.courses.push({ id: Date.now(), name: pendingCourseName, status: 'ongoing', attended: '0/16', booked: '0/16', absent: '0/16' });
-    saveStudents(students);
-    pendingCourseName = null;
+    const res = await fetch(`/api/students/courses?studentId=${studentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseName: pendingCourseName }),
+    });
     document.getElementById('addCourseConfirmModal').classList.remove('open');
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      pendingCourseName = null;
+      showAlert(data.error || '新增失敗，請稍後再試');
+      return;
+    }
+    const created = await res.json();
+    student.courses.push(created);
+    pendingCourseName = null;
     resetCourseDropdown();
     renderCourses();
   });
 
-  if (student) renderCourses();
+  renderCourses();
 
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = `student-detail.html?id=${studentId}`;
   });
+})();
 </script>
 
 </body>

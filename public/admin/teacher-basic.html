@@ -107,8 +107,10 @@
         <div class="dropdown" id="receipt-timezone-dropdown" data-placeholder="選擇時區">
           <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
-            <li data-value="(UTC+8) 台北">(UTC+8) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+9) 大阪、札幌、東京">(UTC+9) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+07:00) 河內、胡志明市">(UTC+07:00) 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="(UTC+06:30) 仰光">(UTC+06:30) 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
       </div>
@@ -202,7 +204,7 @@
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
     <h3>已更新老師資料</h3>
     <div class="modal-actions">
-      <button class="btn blue" id="edit-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
     </div>
   </div>
 </div>
@@ -238,10 +240,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="../script.js"></script>
 <script>
-  // 未來資料庫對應（此階段僅前端 mock，尚未實作）：teachers(id, name, phone, email, avatar, status, courses)
-
+(async () => {
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
-  const teachers = loadTeachers();
+  const teachers = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
   const teacher = teachers.find((t) => t.id === teacherId);
 
   if (!teacher) {
@@ -337,7 +338,7 @@
           body: blob,
         })
           .then((res) => (res.ok ? res.json() : Promise.reject(res)))
-          .then((data) => setAvatarQuiet(data.path))
+          .then((data) => { setAvatarQuiet(data.path); teacher.avatar = data.path; })
           .catch((err) => console.warn('頭像上傳失敗，暫時沿用本地預覽', err));
       }, 'image/jpeg', 0.8);
       closeCropModal();
@@ -348,32 +349,56 @@
 
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    document.getElementById('edit-submit-btn').addEventListener('click', () => {
+    function showBasicAlert(message) {
+      document.getElementById('basicInfoAlertText').textContent = message;
+      document.getElementById('basicInfoAlertModal').classList.add('open');
+    }
+
+    // PATCH /api/teachers 是部分更新，但 receipt 在後端是單一 JSON 欄位、整包覆蓋，
+    // 不會像其他欄位一樣逐一合併——所以呼叫端如果只想改 receipt 裡的一個欄位，
+    // 一定要連同其餘既有的 receipt 欄位一起送出，否則會把其他欄位洗掉。
+    async function patchTeacher(fields) {
+      const res = await fetch(`/api/teachers?id=${teacher.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { ok: false, error: data.error || '儲存失敗，請稍後再試' };
+      }
+      Object.assign(teacher, fields);
+      return { ok: true };
+    }
+
+    document.getElementById('edit-submit-btn').addEventListener('click', async () => {
       const name = document.getElementById('edit-name').value.trim();
       const phone = document.getElementById('edit-phone').value.trim().replace(/\D/g, '');
       const email = document.getElementById('edit-email').value.trim();
 
       if (!name) {
-        document.getElementById('basicInfoAlertText').textContent = '請填寫姓名';
-        document.getElementById('basicInfoAlertModal').classList.add('open');
+        showBasicAlert('請填寫姓名');
         return;
       }
       if (email && !EMAIL_RE.test(email)) {
-        document.getElementById('basicInfoAlertText').textContent = 'Email 格式不對';
-        document.getElementById('basicInfoAlertModal').classList.add('open');
+        showBasicAlert('Email 格式不對');
         return;
       }
 
-      teacher.name = name;
-      teacher.phone = phone;
-      teacher.email = email;
-      teacher.specialty = document.getElementById('edit-specialty').value.trim();
-      teacher.motto = document.getElementById('edit-motto').value.trim();
-      teacher.avatar = currentAvatar;
-      teacher.status = document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive';
-      teacher.receipt = teacher.receipt || {};
-      teacher.receipt.timezone = getDropdownValue('receipt-timezone-dropdown');
-      saveTeachers(teachers);
+      const result = await patchTeacher({
+        name,
+        phone,
+        email,
+        specialty: document.getElementById('edit-specialty').value.trim(),
+        motto: document.getElementById('edit-motto').value.trim(),
+        avatar: currentAvatar,
+        status: document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive',
+        receipt: { ...(teacher.receipt || {}), timezone: getDropdownValue('receipt-timezone-dropdown') },
+      });
+      if (!result.ok) {
+        showBasicAlert(result.error);
+        return;
+      }
       document.getElementById('edit-phone').value = formatPhoneDisplay(phone);
       document.getElementById('editSuccessModal').classList.add('open');
       initialSnapshot = getFormSnapshot();
@@ -389,32 +414,33 @@
     document.getElementById('receipt-bank-branch-no').value = teacher.receipt.bankBranchNo || '';
     document.getElementById('receipt-bank-account-no').value = teacher.receipt.bankAccountNo || '';
     setDropdownValue('receipt-tax-dropdown', teacher.receipt.taxRate || '0%');
-    setDropdownValue('receipt-timezone-dropdown', teacher.receipt.timezone || '(UTC+9) 大阪、札幌、東京');
+    setDropdownValue('receipt-timezone-dropdown', teacher.receipt.timezone || '(UTC+09:00) 大阪、札幌、東京');
 
     document.getElementById('receipt-wage').addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/[^0-9]/g, '');
     });
 
-    document.getElementById('receipt-submit-btn').addEventListener('click', () => {
-      teacher.receipt = {
-        address: document.getElementById('receipt-address').value.trim(),
-        companyName: document.getElementById('receipt-company-name').value.trim(),
-        companyAddress: document.getElementById('receipt-company-address').value.trim(),
-        wage: document.getElementById('receipt-wage').value.trim(),
-        taxRate: getDropdownValue('receipt-tax-dropdown'),
-        timezone: getDropdownValue('receipt-timezone-dropdown'),
-        bank: document.getElementById('receipt-bank').value.trim(),
-        bankBranch: document.getElementById('receipt-bank-branch').value.trim(),
-        bankBranchNo: document.getElementById('receipt-bank-branch-no').value.trim(),
-        bankAccountNo: document.getElementById('receipt-bank-account-no').value.trim(),
-      };
-      saveTeachers(teachers);
+    document.getElementById('receipt-submit-btn').addEventListener('click', async () => {
+      const result = await patchTeacher({
+        receipt: {
+          address: document.getElementById('receipt-address').value.trim(),
+          companyName: document.getElementById('receipt-company-name').value.trim(),
+          companyAddress: document.getElementById('receipt-company-address').value.trim(),
+          wage: document.getElementById('receipt-wage').value.trim(),
+          taxRate: getDropdownValue('receipt-tax-dropdown'),
+          timezone: getDropdownValue('receipt-timezone-dropdown'),
+          bank: document.getElementById('receipt-bank').value.trim(),
+          bankBranch: document.getElementById('receipt-bank-branch').value.trim(),
+          bankBranchNo: document.getElementById('receipt-bank-branch-no').value.trim(),
+          bankAccountNo: document.getElementById('receipt-bank-account-no').value.trim(),
+        },
+      });
+      if (!result.ok) {
+        showBasicAlert(result.error);
+        return;
+      }
       document.getElementById('editSuccessModal').classList.add('open');
       initialSnapshot = getFormSnapshot();
-    });
-
-    document.getElementById('edit-success-ok-btn').addEventListener('click', () => {
-      window.location.href = `teacher-detail.html?id=${teacher.id}`;
     });
 
     function getFormSnapshot() {
@@ -453,6 +479,7 @@
       window.location.href = `teacher-detail.html?id=${teacherId}`;
     });
   }
+})();
 </script>
 
 </body>
