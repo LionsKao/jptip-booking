@@ -73,7 +73,7 @@
 
   .hours-day-slots {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: var(--space-3);
   }
   .hours-slot-row {
@@ -165,24 +165,24 @@
 <div class="page">
 
   <section class="section section-narrow">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2>新增時段</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2 data-i18n="hours.addTitle">新增時段</h2></div>
     <div class="row hours-add-row hours-add-row-day">
       <div class="dropdown" id="hours-day-dropdown" data-placeholder="星期">
-        <button type="button" class="dropdown-trigger"><span class="label">星期</span><span class="arrow"></span></button>
+        <button type="button" class="dropdown-trigger"><span class="label" data-i18n="hours.dayPlaceholder">星期</span><span class="arrow"></span></button>
         <ul class="dropdown-menu">
-          <li data-value="星期一">星期一<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="星期二">星期二<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="星期三">星期三<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="星期四">星期四<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="星期五">星期五<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="星期六">星期六<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-          <li data-value="星期日">星期日<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期一"><span data-i18n="weekday.mon">星期一</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期二"><span data-i18n="weekday.tue">星期二</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期三"><span data-i18n="weekday.wed">星期三</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期四"><span data-i18n="weekday.thu">星期四</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期五"><span data-i18n="weekday.fri">星期五</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期六"><span data-i18n="weekday.sat">星期六</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          <li data-value="星期日"><span data-i18n="weekday.sun">星期日</span><span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
         </ul>
       </div>
     </div>
     <div class="row hours-add-row">
       <div class="dropdown" id="hours-start-dropdown" data-placeholder="開始時間">
-        <button type="button" class="dropdown-trigger"><span class="label">開始時間</span><span class="arrow"></span></button>
+        <button type="button" class="dropdown-trigger"><span class="label" data-i18n="hours.startPlaceholder">開始時間</span><span class="arrow"></span></button>
         <ul class="dropdown-menu" id="hours-start-menu">
           <li data-value="08:00">08:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           <li data-value="08:30">08:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
@@ -214,7 +214,7 @@
         </ul>
       </div>
       <div class="dropdown" id="hours-end-dropdown" data-placeholder="結束時間">
-        <button type="button" class="dropdown-trigger"><span class="label">結束時間</span><span class="arrow"></span></button>
+        <button type="button" class="dropdown-trigger"><span class="label" data-i18n="hours.endPlaceholder">結束時間</span><span class="arrow"></span></button>
         <ul class="dropdown-menu" id="hours-end-menu">
           <li data-value="08:00">08:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           <li data-value="08:30">08:30<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
@@ -245,42 +245,42 @@
           <li data-value="21:00">21:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
         </ul>
       </div>
-      <button type="button" class="btn butter" id="hours-add-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增時段</button>
+      <button type="button" class="btn butter" id="hours-add-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="hours.addTitle">新增時段</span></button>
     </div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/monday.png" alt=""><h2>星期一</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/monday.png" alt=""><h2 data-i18n="weekday.mon">星期一</h2></div>
     <div class="hours-day-slots" id="hours-day-星期一"></div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/tuesday.png" alt=""><h2>星期二</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/tuesday.png" alt=""><h2 data-i18n="weekday.tue">星期二</h2></div>
     <div class="hours-day-slots" id="hours-day-星期二"></div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/wednesday.png" alt=""><h2>星期三</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/wednesday.png" alt=""><h2 data-i18n="weekday.wed">星期三</h2></div>
     <div class="hours-day-slots" id="hours-day-星期三"></div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/thursday.png" alt=""><h2>星期四</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/thursday.png" alt=""><h2 data-i18n="weekday.thu">星期四</h2></div>
     <div class="hours-day-slots" id="hours-day-星期四"></div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/friday.png" alt=""><h2>星期五</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/friday.png" alt=""><h2 data-i18n="weekday.fri">星期五</h2></div>
     <div class="hours-day-slots" id="hours-day-星期五"></div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/saturday.png" alt=""><h2>星期六</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/saturday.png" alt=""><h2 data-i18n="weekday.sat">星期六</h2></div>
     <div class="hours-day-slots" id="hours-day-星期六"></div>
   </section>
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/sunday.png" alt=""><h2>星期日</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/sunday.png" alt=""><h2 data-i18n="weekday.sun">星期日</h2></div>
     <div class="hours-day-slots" id="hours-day-星期日"></div>
   </section>
 
@@ -290,9 +290,9 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
-    <h3>新增成功</h3>
+    <h3 data-i18n="hours.addSuccess">新增成功</h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -303,7 +303,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="hoursAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -312,11 +312,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
-    <h3>確定要刪除這個時段嗎？</h3>
+    <h3 data-i18n="hours.deleteConfirm.title">確定要刪除這個時段嗎？</h3>
     <p class="text-small" id="hoursDeleteConfirmText"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="hours-delete-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="hours-delete-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> <span data-i18n="hours.delete">刪除</span></button>
     </div>
   </div>
 </div>
@@ -325,11 +325,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">選擇的時段尚未新增，離開後將不會保留。</p>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="hours.leaveConfirm.desc">選擇的時段尚未新增，離開後將不會保留。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
     </div>
   </div>
 </div>
@@ -355,6 +355,14 @@
   const TEACHER_TZ_OFFSET = parseUtcOffset(currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone);
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
 
+  // 這頁沒有語言切換鈕（已在老師主頁），純粹套用該老師帳號目前的語言。
+  await initI18n((currentTeacherRecord && currentTeacherRecord.language) || getCurrentLang());
+  // 星期下拉選單的 value 要維持固定中文 key（跟資料庫一致），顯示文字才翻譯——
+  // 幫每個 <li> 補上 data-label，選取後下拉會顯示翻譯文字而不是中文 key。
+  document.querySelectorAll('#hours-day-dropdown .dropdown-menu li[data-value]').forEach((li) => {
+    li.dataset.label = weekdayLabel(li.dataset.value);
+  });
+
   function shiftHourString(hhmm, deltaHours) {
     if (!deltaHours) return hhmm;
     const [h, m] = hhmm.split(':').map(Number);
@@ -373,7 +381,7 @@
     if (!res.ok) throw new Error('load failed');
     availability = await res.json();
   } catch {
-    showHoursAlert('無法載入時段資料，請重新整理頁面');
+    showHoursAlert(t('hours.error.loadFailed'));
   }
 
   const WEEKDAYS = [
@@ -391,16 +399,20 @@
   function renderHoursTable() {
     WEEKDAYS.forEach((wd) => {
       const container = document.getElementById(`hours-day-${wd.key}`);
-      const slots = availability.filter((h) => h.day === wd.key).sort((a, b) => a.start.localeCompare(b.start));
+      // 依「換算成老師自己時區後」顯示出來的時間排序，不是資料庫存的原始 UTC+8
+      // 時間——時區位移可能造成跨日（例如緬甸 -1.5 小時），原始時間排序在畫面
+      // 上就會變成「比較晚的排在前面」，要排的是使用者實際看到的時間。
+      const slots = availability.filter((h) => h.day === wd.key)
+        .sort((a, b) => shiftHourString(a.start, TEACHER_TZ_DELTA_HOURS).localeCompare(shiftHourString(b.start, TEACHER_TZ_DELTA_HOURS)));
       container.innerHTML = slots.length
-        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)} (UTC${formatUtcOffset(TEACHER_TZ_OFFSET)})</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button></div>`).join('')
-        : `<p class="hours-day-empty">無設定</p>`;
+        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)} (UTC${formatUtcOffset(TEACHER_TZ_OFFSET)})</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button></div>`).join('')
+        : `<p class="hours-day-empty">${t('hours.empty')}</p>`;
       container.querySelectorAll('.hours-slot-row, .hours-day-empty').forEach((card) => applyTiltEffect(card));
       container.querySelectorAll('button[data-id]').forEach((btn) => {
         btn.addEventListener('click', () => {
           pendingDeleteId = Number(btn.dataset.id);
           const slot = availability.find((h) => h.id === pendingDeleteId);
-          document.getElementById('hoursDeleteConfirmText').textContent = slot ? `${slot.day} ${slot.start} - ${slot.end}` : '';
+          document.getElementById('hoursDeleteConfirmText').textContent = slot ? `${weekdayLabel(slot.day)} ${slot.start} - ${slot.end}` : '';
           document.getElementById('hoursDeleteConfirmModal').classList.add('open');
         });
       });
@@ -417,7 +429,7 @@
     const res = await fetch(`/api/teachers/hours?teacherId=${currentTeacherId}&id=${idToDelete}`, { method: 'DELETE' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHoursAlert(data.error || '刪除失敗，請稍後再試');
+      showHoursAlert(data.error || t('hours.error.deleteFailed'));
       return;
     }
     availability = availability.filter((h) => h.id !== idToDelete);
@@ -430,12 +442,12 @@
     const end = getDropdownValue('hours-end-dropdown');
 
     if (!day || !start || !end || start >= end) {
-      showHoursAlert('選擇的時間不對');
+      showHoursAlert(t('hours.error.invalidTime'));
       return;
     }
     const overlaps = availability.some((h) => h.day === day && start < h.end && end > h.start);
     if (overlaps) {
-      showHoursAlert('時間有重疊到');
+      showHoursAlert(t('hours.error.overlap'));
       return;
     }
 
@@ -446,7 +458,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHoursAlert(data.error || '新增失敗，請稍後再試');
+      showHoursAlert(data.error || t('hours.error.addFailed'));
       return;
     }
     const created = await res.json();

@@ -145,11 +145,11 @@
 <div class="page">
 
   <section class="section section-narrow">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/summer-holidays.png" alt=""><h2>新增休假</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/summer-holidays.png" alt=""><h2 data-i18n="leave.addTitle">新增休假</h2></div>
     <div class="leave-datepicker-row">
       <div class="date-popover" id="leave-date-popover">
         <button type="button" class="date-popover-trigger" id="leave-date-trigger">
-          <span id="leave-date-label">請選擇日期</span>
+          <span id="leave-date-label" data-i18n="leave.selectDatePlaceholder">請選擇日期</span>
           <i class="fa-solid fa-fw fa-calendar-days"></i>
         </button>
         <div class="date-popover-panel">
@@ -166,15 +166,15 @@
           </div>
         </div>
       </div>
-      <button type="button" class="btn butter" id="leave-add-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增休假</button>
+      <button type="button" class="btn butter" id="leave-add-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="leave.addTitle">新增休假</span></button>
     </div>
   </section>
 
   <section class="section">
     <div class="section-title">
       <img class="title-icon" src="../assets/icons/invoice.png" alt="">
-      <h2>休假紀錄</h2>
-      <button type="button" class="info-btn" id="leave-record-info-btn" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button>
+      <h2 data-i18n="leave.recordsTitle">休假紀錄</h2>
+      <button type="button" class="info-btn" id="leave-record-info-btn" data-i18n-aria-label="common.info" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button>
     </div>
     <div class="booking-cards" id="leave-cards"></div>
   </section>
@@ -189,9 +189,9 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon info"><i class="fa-solid fa-calendar-days"></i></div>
-    <h3 id="leaveInfoModalTitle">請先選擇日期</h3>
+    <h3 id="leaveInfoModalTitle" data-i18n="leave.selectDateFirst">請先選擇日期</h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -200,10 +200,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon info"><i class="fa-solid fa-clock-rotate-left"></i></div>
-    <h3>休假紀錄只顯示 60 天內</h3>
-    <p class="text-small">從今天往回算 60 天，超過的休假紀錄就不會再顯示囉。</p>
+    <h3 data-i18n="leave.recordInfo.title">休假紀錄只顯示 60 天內</h3>
+    <p class="text-small" data-i18n="leave.recordInfo.desc">從今天往回算 60 天，超過的休假紀錄就不會再顯示囉。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -212,11 +212,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-umbrella-beach"></i></div>
-    <h3>確定要新增這天休假嗎？</h3>
+    <h3 data-i18n="leave.addConfirm.title">確定要新增這天休假嗎？</h3>
     <p class="text-small" id="leaveAddConfirmDate"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn green" id="leave-add-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="leave-add-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="leave.addConfirm.confirm">確定</span></button>
     </div>
   </div>
 </div>
@@ -225,11 +225,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-trash"></i></div>
-    <h3>確定要刪除這天休假嗎？</h3>
+    <h3 data-i18n="leave.deleteConfirm.title">確定要刪除這天休假嗎？</h3>
     <p class="text-small" id="leaveDeleteConfirmDate"></p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="leave-delete-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="leave-delete-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> <span data-i18n="hours.delete">刪除</span></button>
     </div>
   </div>
 </div>
@@ -238,11 +238,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">選擇的日期尚未新增，離開後將不會保留。</p>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="leave.leaveConfirm.desc">選擇的日期尚未新增，離開後將不會保留。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
     </div>
   </div>
 </div>
@@ -262,6 +262,10 @@
   function loadTeachers() { return teachersCache; }
   const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
   const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
+  const currentTeacherRecord = loadTeachers().find((t) => t.id === currentTeacherId);
+
+  // 這頁沒有語言切換鈕（已在老師主頁），純粹套用該老師帳號目前的語言。
+  await initI18n((currentTeacherRecord && currentTeacherRecord.language) || getCurrentLang());
 
   function showInfoModal(title) {
     document.getElementById('leaveInfoModalTitle').textContent = title;
@@ -274,7 +278,7 @@
     if (!res.ok) throw new Error('load failed');
     leaveDays = await res.json();
   } catch {
-    showInfoModal('無法載入休假資料，請重新整理頁面');
+    showInfoModal(t('leave.error.loadFailed'));
   }
 
   const leavePageState = { page: 1 };
@@ -285,13 +289,9 @@
   leaveCutoffDate.setHours(0, 0, 0, 0);
   leaveCutoffDate.setDate(leaveCutoffDate.getDate() - RECORD_WINDOW_DAYS);
 
-  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
   function formatLeaveDate(dateISO) {
-    const [y, m, d] = dateISO.split('-');
-    const weekday = WEEKDAY_NAMES[new Date(dateISO).getDay()];
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    if (isMobile) return `${y}/${m}/${d} ${weekday}`;
-    return `${y} 年 ${m} 月 ${d} 日 星期${weekday}`;
+    return isMobile ? formatDateShort(dateISO) : formatDateLong(dateISO);
   }
 
   function isPastDate(dateISO) {
@@ -308,9 +308,9 @@
       .sort((a, b) => b.date.localeCompare(a.date));
     paginate(sortedLeaveDays, 10, (l) => `<div class="leave-card">
         <span class="leave-card-date">${formatLeaveDate(l.date)}</span>
-        ${isPastDate(l.date) ? '' : `<button type="button" class="btn sm red" data-id="${l.id}"><i class="fa-solid fa-fw fa-trash"></i> 刪除</button>`}
+        ${isPastDate(l.date) ? '' : `<button type="button" class="btn sm red" data-id="${l.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>`}
       </div>`, cardsEl, document.getElementById('leave-pagination'), leavePageState,
-      `<div class="leave-card-empty">尚無休假</div>`,
+      `<div class="leave-card-empty">${t('leave.noRecords')}</div>`,
       (el) => {
         el.querySelectorAll('.leave-card, .leave-card-empty').forEach((card) => applyTiltEffect(card));
         el.querySelectorAll('button[data-id]').forEach((btn) => {
@@ -327,19 +327,19 @@
   renderLeaveTable();
 
   function getSelectedDateISO() {
-    const monthLabel = document.querySelector('[data-month-label]');
+    // 月曆標題文字現在是依語言在地化的，不能再靠 regex 反推年月——直接讀
+    // script.js 的 datepicker 寫在元素上的 data-year / data-month 就好。
+    const picker = document.querySelector('[data-datepicker]');
     const selectedDay = document.querySelector('.datepicker-grid button.selected');
-    if (!monthLabel || !selectedDay) return null;
-    const match = monthLabel.textContent.match(/(\d+)\s*年\s*(\d+)\s*月/);
-    if (!match) return null;
-    const year = match[1];
-    const month = match[2].padStart(2, '0');
+    if (!picker || picker.dataset.year === undefined || !selectedDay) return null;
+    const year = picker.dataset.year;
+    const month = String(Number(picker.dataset.month) + 1).padStart(2, '0');
     const day = selectedDay.textContent.trim().padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
 
   function resetDateLabel() {
-    document.getElementById('leave-date-label').textContent = '請選擇日期';
+    document.getElementById('leave-date-label').textContent = t('leave.selectDatePlaceholder');
   }
 
   let pendingAddDate = null;
@@ -348,11 +348,11 @@
   document.getElementById('leave-add-btn').addEventListener('click', () => {
     const dateISO = getSelectedDateISO();
     if (!dateISO) {
-      showInfoModal('請先選擇日期');
+      showInfoModal(t('leave.selectDateFirst'));
       return;
     }
     if (leaveDays.some((l) => l.date === dateISO)) {
-      showInfoModal('這一天已經在休假清單中');
+      showInfoModal(t('leave.error.alreadyExists'));
       return;
     }
     pendingAddDate = dateISO;
@@ -373,7 +373,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showInfoModal(data.error || '新增失敗，請稍後再試');
+      showInfoModal(data.error || t('hours.error.addFailed'));
       return;
     }
     const created = await res.json();
@@ -392,7 +392,7 @@
     const res = await fetch(`/api/teachers/leave?teacherId=${currentTeacherId}&id=${idToDelete}`, { method: 'DELETE' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showInfoModal(data.error || '刪除失敗，請稍後再試');
+      showInfoModal(data.error || t('hours.error.deleteFailed'));
       return;
     }
     leaveDays = leaveDays.filter((l) => l.id !== idToDelete);

@@ -92,10 +92,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要登出嗎？</h3>
+    <h3 data-i18n="dashboard.logoutConfirm.title">確定要登出嗎？</h3>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 登出</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="dashboard.logout">登出</span></button>
     </div>
   </div>
 </div>
@@ -106,22 +106,22 @@
     <button type="button" class="dash-card" data-action="lessons">
       <span class="dash-card-icon"><img src="../assets/icons/coming-soon.png" alt=""></span>
       <span>
-        <h3>我的課程</h3>
-        <p>查看接下來的課程與學生名單</p>
+        <h3 data-i18n="teacher.lessons.title">我的課程</h3>
+        <p data-i18n="teacher.lessons.desc">查看接下來的課程與學生名單</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="leave">
       <span class="dash-card-icon"><img src="../assets/icons/summer-holidays.png" alt=""></span>
       <span>
-        <h3>休假申請</h3>
-        <p>設定不上課的休假日</p>
+        <h3 data-i18n="teacher.leave.title">休假申請</h3>
+        <p data-i18n="teacher.leave.desc">設定不上課的休假日</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="hours">
       <span class="dash-card-icon"><img src="../assets/icons/clock.png" alt=""></span>
       <span>
-        <h3>教課可能時間</h3>
-        <p>設定每週可授課的時段</p>
+        <h3 data-i18n="teacher.hours.title">教課可能時間</h3>
+        <p data-i18n="teacher.hours.desc">設定每週可授課的時段</p>
       </span>
     </button>
   </div>

@@ -83,10 +83,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon warning"><i class="fa-solid fa-fw fa-exclamation"></i></div>
-    <h3>尚未設定會議室連結</h3>
-    <p class="text-small">請聯繫管理者為你設定專屬的會議室連結。</p>
+    <h3 data-i18n="dashboard.meetingRoomAlert.title">尚未設定會議室連結</h3>
+    <p class="text-small" data-i18n="dashboard.meetingRoomAlert.desc">請聯繫管理者為你設定專屬的會議室連結。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -95,10 +95,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要登出嗎？</h3>
+    <h3 data-i18n="dashboard.logoutConfirm.title">確定要登出嗎？</h3>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 登出</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="logout-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="dashboard.logout">登出</span></button>
     </div>
   </div>
 </div>
@@ -109,22 +109,22 @@
     <button type="button" class="dash-card" data-action="meeting-room">
       <span class="dash-card-icon"><img src="../assets/icons/online-training.png" alt=""></span>
       <span>
-        <h3>會議室</h3>
-        <p>進入線上課程的會議室</p>
+        <h3 data-i18n="dashboard.meetingRoom.title">會議室</h3>
+        <p data-i18n="dashboard.meetingRoom.desc">進入線上課程的會議室</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="new-booking">
       <span class="dash-card-icon"><img src="../assets/icons/add-event.png" alt=""></span>
       <span>
-        <h3>新增預約</h3>
-        <p>預約新的課程時段</p>
+        <h3 data-i18n="dashboard.newBooking.title">新增預約</h3>
+        <p data-i18n="dashboard.newBooking.desc">預約新的課程時段</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="booking-history">
       <span class="dash-card-icon"><img src="../assets/icons/flash-card.png" alt=""></span>
       <span>
-        <h3>我的課程</h3>
-        <p>查看已預約的課程與紀錄</p>
+        <h3 data-i18n="history.myCourses">我的課程</h3>
+        <p data-i18n="dashboard.myCourses.desc">查看已預約的課程與紀錄</p>
       </span>
     </button>
     <button type="button" class="dash-card" data-action="messages" hidden>

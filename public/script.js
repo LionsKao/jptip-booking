@@ -116,12 +116,15 @@ document.querySelectorAll('.dropdown').forEach((dropdown) => {
     item.addEventListener('click', () => {
       if (multi) {
         item.classList.toggle('selected');
-        const chosen = [...menu.querySelectorAll('li.selected')].map((li) => li.dataset.value);
+        // data-label 是給需要「顯示文字跟實際存值不同」的下拉選單用的（例如星期
+        // 幾要翻譯成使用者語言、但存進資料庫的 value 得維持固定的中文 key）；沒
+        // 設定就照舊用 data-value，其他既有的下拉選單完全不受影響。
+        const chosen = [...menu.querySelectorAll('li.selected')].map((li) => li.dataset.label || li.dataset.value);
         label.textContent = chosen.length ? chosen.join('、') : dropdown.dataset.placeholder;
       } else {
         menu.querySelectorAll('li').forEach((li) => li.classList.remove('selected'));
         item.classList.add('selected');
-        label.textContent = item.dataset.value;
+        label.textContent = item.dataset.label || item.dataset.value;
         dropdown.classList.remove('open');
       }
     });
@@ -290,6 +293,17 @@ function formatUtcOffset(offsetHours) {
   const h = Math.floor(abs);
   const m = Math.round((abs - h) * 60);
   return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+// 老師時段（teacher_hours）用固定的中文「星期幾」字串當資料庫的 day 值（跟
+// src/index.ts 的 WEEKDAY_NAMES 一致），畫面顯示才需要翻譯——這裡只是顯示用
+// 的查表，不影響實際存值。
+const WEEKDAY_KEY_TO_I18N = {
+  '星期一': 'weekday.mon', '星期二': 'weekday.tue', '星期三': 'weekday.wed',
+  '星期四': 'weekday.thu', '星期五': 'weekday.fri', '星期六': 'weekday.sat', '星期日': 'weekday.sun',
+};
+function weekdayLabel(key) {
+  return t(WEEKDAY_KEY_TO_I18N[key] || key);
 }
 
 function parseYmd(dateInput) {
