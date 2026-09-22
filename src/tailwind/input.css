@@ -752,7 +752,10 @@
   .datepicker-weekdays,
   .datepicker-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    /* minmax(0, 1fr) 而不是單純 1fr——沒有 minmax(0, ...) 的話，欄位遇到中文/
+       日文以外的語言（例如緬甸文，單一星期名稱可能長達 8-9 個字、且沒有更短
+       的縮寫形式）就不會換行，而是把整個 grid 撐寬到卡片外面。 */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px;
     text-align: center;
   }
@@ -766,6 +769,13 @@
     font-weight: 700;
     color: var(--text-muted);
     padding-bottom: 6px;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+  }
+  /* 緬甸文星期名稱沒有比全名更短的形式（見 script.js 的 MY_WEEKDAY_NAMES 說明），
+     縮小字級讓換行後最多兩行，不會把整排高度撐得太誇張。 */
+  .datepicker-weekdays.is-compact span {
+    font-size: .8125rem;
   }
   .datepicker-grid button {
     aspect-ratio: 1;

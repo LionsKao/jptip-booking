@@ -99,12 +99,12 @@
   <div id="history-list-view">
 
     <section class="section" id="today-group">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/flag.png" alt=""><h2>今天的課程</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/flag.png" alt=""><h2 data-i18n="history.today">今天的課程</h2></div>
       <div class="booking-cards" id="today-cards"></div>
     </section>
 
     <section class="section" id="history-group">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2>我的課程</h2><button type="button" class="info-btn" data-modal-open="historyRecordInfoModal" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button><button type="button" class="info-btn" data-modal-open="historyTimezoneModal" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2 data-i18n="history.myCourses">我的課程</h2><button type="button" class="info-btn" data-modal-open="historyRecordInfoModal" data-i18n-aria-label="common.info" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button><button type="button" class="info-btn" data-modal-open="historyTimezoneModal" data-i18n-aria-label="history.tzInfo" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
       <div class="booking-cards" id="history-cards"></div>
     </section>
 
@@ -117,38 +117,38 @@
   <div id="history-detail-view" hidden>
     <section class="section">
       <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
-      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>課程詳情</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
-          <span><p>預約編號</p><h3 id="detail-booking-code">—</h3></span>
+          <span><p data-i18n="history.detail.code">預約編號</p><h3 id="detail-booking-code">—</h3></span>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
-          <span><p>課程</p><h3 id="detail-course">—</h3></span>
+          <span><p data-i18n="booking.confirm.course">課程</p><h3 id="detail-course">—</h3></span>
         </div>
         <div class="confirm-highlight-row">
           <div class="confirm-highlight">
             <span class="confirm-highlight-icon"><img src="../assets/icons/student.png" alt=""></span>
-            <span><p>學生</p><h3 id="detail-student">—</h3></span>
+            <span><p data-i18n="history.detail.student">學生</p><h3 id="detail-student">—</h3></span>
           </div>
           <div class="confirm-highlight">
             <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
-            <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+            <span><p data-i18n="booking.confirm.teacher">老師</p><h3 id="detail-teacher">—</h3></span>
           </div>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
-          <span><p>日期</p><h3 id="detail-datetime">—</h3></span>
+          <span><p data-i18n="booking.confirm.date">日期</p><h3 id="detail-datetime">—</h3></span>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
-          <span><p>時間</p><h3 id="detail-time">—</h3></span>
+          <span><p data-i18n="history.detail.time">時間</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
     <div class="wizard-nav">
-      <button type="button" class="btn red" id="cancel-booking-btn"><i class="fa-solid fa-fw fa-xmark"></i> 取消預約</button>
+      <button type="button" class="btn red" id="cancel-booking-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
     </div>
   </div>
 
@@ -158,10 +158,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-xmark"></i></div>
-    <h3>確定要取消預約嗎？</h3>
+    <h3 data-i18n="history.cancelConfirm.title">確定要取消預約嗎？</h3>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定取消</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelConfirm.confirm">確定取消</span></button>
     </div>
   </div>
 </div>
@@ -170,10 +170,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-exclamation"></i></div>
-    <h3>已無法取消此預約</h3>
+    <h3 data-i18n="history.tooLate.title">已無法取消此預約</h3>
     <p class="text-small" id="cancel-too-late-note"></p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -184,7 +184,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="history-alert-text"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -193,10 +193,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon info"><i class="fa-solid fa-fw fa-clock-rotate-left"></i></div>
-    <h3>我的課程最多顯示 365 天內</h3>
-    <p class="text-small">從今天往回算 365 天，超過的課程紀錄就不會再顯示囉。</p>
+    <h3 data-i18n="history.recordInfo.title">我的課程最多顯示 365 天內</h3>
+    <p class="text-small" data-i18n="history.recordInfo.desc">從今天往回算 365 天，超過的課程紀錄就不會再顯示囉。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -205,10 +205,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
-    <h3>課程時間顯示時區</h3>
+    <h3 data-i18n="history.tzModal.title">課程時間顯示時區</h3>
     <p class="text-small" id="history-timezone-note"></p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -216,19 +216,26 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 語言設定的真相是帳號的 language 欄位；這裡不放語言切換鈕（已在學生主頁），
+  // 純粹只是套用帳號目前的語言，讓下面動態組出來的文字一開始就是對的語言。
+  const me = await fetch('/api/students/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const lang = (me && me.language) || getCurrentLang();
+  setCurrentLang(lang);
+  await initI18n(lang);
+
   const STATUS_MAP = {
-    pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
-    absent:    { cls: 'tone-navy', icon: 'question.png',       label: '缺席' },
-    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', label: '預約' },
-    cancelled: { cls: 'cancelled', icon: 'close.png',          label: '取消' },
-    attended:  { cls: 'confirmed', icon: 'check.png',          label: '完成' },
+    pending:   { cls: 'pending',   icon: 'icon-alert.png',     get label() { return t('status.pending'); } },
+    absent:    { cls: 'tone-navy', icon: 'question.png',       get label() { return t('status.absent'); } },
+    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', get label() { return t('status.upcoming'); } },
+    cancelled: { cls: 'cancelled', icon: 'close.png',          get label() { return t('status.cancelled'); } },
+    attended:  { cls: 'confirmed', icon: 'check.png',          get label() { return t('status.attended'); } },
   };
   const RIBBON_TONE_MAP = {
-    pending:   { tone: 'tone-orange', label: '需處理' },
-    absent:    { tone: 'tone-navy',   label: '缺席' },
-    upcoming:  { tone: 'tone-blue',   label: '預約' },
-    cancelled: { tone: 'tone-red',    label: '取消' },
-    attended:  { tone: 'tone-green',  label: '完成' },
+    pending:   { tone: 'tone-orange', get label() { return t('status.pending'); } },
+    absent:    { tone: 'tone-navy',   get label() { return t('status.absent'); } },
+    upcoming:  { tone: 'tone-blue',   get label() { return t('status.upcoming'); } },
+    cancelled: { tone: 'tone-red',    get label() { return t('status.cancelled'); } },
+    attended:  { tone: 'tone-green',  get label() { return t('status.attended'); } },
   };
 
   function showHistoryAlert(message) {
@@ -241,11 +248,10 @@
   const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
 
   // 課程時間統一存成 UTC+8（台灣時間）為基準，依學生個人時區設定換算顯示。
-  const me = await fetch('/api/students/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
   const STUDENT_TIMEZONE_LABEL = (me && me.timezone) || '(UTC+08:00) 台北';
   const STUDENT_TZ_OFFSET = parseUtcOffset(STUDENT_TIMEZONE_LABEL);
   const STUDENT_TZ_DELTA_HOURS = STUDENT_TZ_OFFSET - 8;
-  document.getElementById('history-timezone-note').textContent = `所有課程時間皆為 ${STUDENT_TIMEZONE_LABEL} 時間`;
+  document.getElementById('history-timezone-note').textContent = t('history.allTimesIn', { tz: STUDENT_TIMEZONE_LABEL });
 
   function shiftToStudentTz(dateStr, timeStr) {
     if (!STUDENT_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
@@ -270,7 +276,7 @@
       if (!res.ok) throw new Error('load failed');
       bookings = await res.json();
     } catch {
-      showHistoryAlert('無法載入課程資料，請重新整理頁面');
+      showHistoryAlert(t('history.loadFailed'));
     }
   }
 
@@ -304,24 +310,18 @@
   function durationLabelStr(durationMinutes) {
     const h = Math.floor(durationMinutes / 60);
     const m = durationMinutes % 60;
-    if (h && m) return `${h} 時 ${m} 分`;
-    if (h) return `${h} 時`;
-    return `${m} 分`;
+    if (h && m) return t('common.durationBoth', { h, m });
+    if (h) return t('common.durationHourOnly', { h });
+    return t('common.durationMinuteOnly', { m });
   }
-
-  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 
   function computeDisplayParts(r) {
     const shifted = shiftToStudentTz(r.date, r.time);
     const course = loadCourses().find((c) => (r.courseId != null && c.id === r.courseId) || c.name === r.course);
     const durationMinutes = (course && course.durationMinutes) || 60;
     const timeLabel = `${shifted.time} - ${endTimeStr(shifted.time, durationMinutes)}`;
-    const d = new Date(shifted.date.replace(/\//g, '-'));
-    const weekday = WEEKDAY_NAMES[d.getDay()];
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    const dateLabel = isMobile
-      ? `${shifted.date} ${weekday}`
-      : (() => { const [y, m, day] = shifted.date.split('/'); return `${y} 年 ${m} 月 ${day} 日 星期${weekday}`; })();
+    const dateLabel = isMobile ? formatDateShort(shifted.date) : formatDateLong(shifted.date);
     const durationLabel = durationLabelStr(durationMinutes);
     return { dateLabel, timeLabel, startTimeLabel: shifted.time, durationLabel };
   }
@@ -360,7 +360,7 @@
       document.getElementById('history-cards'),
       document.getElementById('history-pagination'),
       historyPageState,
-      '<div class="booking-card-empty">尚無課程紀錄</div>',
+      `<div class="booking-card-empty">${t('history.noRecords')}</div>`,
       bindCardClicks);
   }
 
@@ -375,7 +375,7 @@
     const cardsEl = document.getElementById('today-cards');
     cardsEl.innerHTML = todayRecords.length
       ? todayRecords.map(renderHistoryCard).join('')
-      : '<div class="booking-card-empty">今天沒有課程</div>';
+      : `<div class="booking-card-empty">${t('history.noToday')}</div>`;
     bindCardClicks(cardsEl);
     cardsEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
   }
@@ -449,7 +449,7 @@
     const course = loadCourses().find((c) => (record.courseId != null && c.id === record.courseId) || c.name === record.course);
     const minLeadHours = course?.minLeadHours ?? 48;
     if (hoursUntilStart(record) < minLeadHours) {
-      document.getElementById('cancel-too-late-note').textContent = `距離上課時間不足 ${minLeadHours} 小時，已無法取消預約，如有需要請聯絡管理者協助處理。`;
+      document.getElementById('cancel-too-late-note').textContent = t('history.tooLate.note', { hours: minLeadHours });
       document.getElementById('cancelTooLateModal').classList.add('open');
       return;
     }
@@ -468,7 +468,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHistoryAlert(data.error || '取消失敗，請稍後再試');
+      showHistoryAlert(data.error || t('history.cancel.error'));
       return;
     }
     record.status = 'cancelled';

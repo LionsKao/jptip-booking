@@ -135,6 +135,188 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================================================
+// 多語系（i18n）——語言字典由 /i18n/{lang}.json 抓取，套用到帶
+// data-i18n / data-i18n-placeholder / data-i18n-aria-label 屬性的元素；
+// 帳號登入後的「真相」存在資料庫的 language 欄位（見 src/index.ts 的
+// /api/me/language），這裡的 localStorage 只是登入前、或 API 回應前的
+// 暫存/預設值，避免畫面閃一下才套用正確語言。
+// ==========================================================================
+const SUPPORTED_LANGUAGES = ['zh-Hant', 'ja', 'en', 'vi', 'my'];
+const LANG_LABELS = {
+  'zh-Hant': '繁體中文',
+  ja: '日本語',
+  en: 'English',
+  vi: 'Tiếng Việt',
+  my: 'မြန်မာဘာသာ',
+};
+const LANG_STORAGE_KEY = 'lang';
+
+function getCurrentLang() {
+  try {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    return SUPPORTED_LANGUAGES.includes(stored) ? stored : 'zh-Hant';
+  } catch {
+    return 'zh-Hant';
+  }
+}
+function setCurrentLang(lang) {
+  try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch {}
+}
+
+let i18nDict = {};
+let i18nLang = null;
+
+async function loadI18nDict(lang) {
+  if (i18nLang === lang) return;
+  const res = await fetch(`/i18n/${lang}.json`).catch(() => null);
+  i18nDict = res && res.ok ? await res.json() : {};
+  i18nLang = lang;
+}
+
+// {{name}} 佔位符做簡單字串替換（例如「還可在 {{seconds}} 秒後...」）。
+function t(key, params) {
+  let text = i18nDict[key] || key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replaceAll(`{{${k}}}`, v);
+    }
+  }
+  return text;
+}
+
+function applyTranslations(root = document) {
+  root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  root.querySelectorAll('[data-i18n-aria-label]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel)); });
+}
+
+async function initI18n(lang) {
+  await loadI18nDict(lang);
+  document.documentElement.lang = lang;
+  applyTranslations();
+}
+
+// 語言切換元件：把 🌐 圖示鈕 + 下拉選單畫進 container，選了新語言就更新
+// localStorage、重新套用翻譯，並透過 onChange 讓呼叫端決定要不要連帶存回帳號。
+function renderLangSwitch(container, currentLang, onChange) {
+  container.classList.add('lang-switch');
+  container.innerHTML = `
+    <button type="button" class="lang-switch-trigger" aria-label="Language"><i class="fa-solid fa-fw fa-globe"></i></button>
+    <ul class="lang-switch-menu">
+      ${SUPPORTED_LANGUAGES.map((code) => `<li data-value="${code}" class="${code === currentLang ? 'selected' : ''}">${LANG_LABELS[code]}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('')}
+    </ul>`;
+
+  container.querySelector('.lang-switch-trigger').addEventListener('click', (e) => {
+    e.stopPropagation();
+    container.classList.toggle('open');
+  });
+  container.querySelectorAll('.lang-switch-menu li').forEach((li) => {
+    li.addEventListener('click', async () => {
+      const lang = li.dataset.value;
+      container.classList.remove('open');
+      if (lang === i18nLang) return;
+      container.querySelectorAll('.lang-switch-menu li').forEach((l) => l.classList.remove('selected'));
+      li.classList.add('selected');
+      setCurrentLang(lang);
+      await initI18n(lang);
+      if (onChange) onChange(lang);
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target)) container.classList.remove('open');
+  });
+}
+
+// ==========================================================================
+// 多語系日期格式——用 Intl.DateTimeFormat 依語言自動套用當地慣用的日期
+// 順序/標點，而不是每個語言各自手刻規則。時間一律用 24 小時制 HH:mm，
+// 這點在所有語言下順序都一樣，不需要另外處理。
+// ==========================================================================
+const DATE_LOCALE_MAP = {
+  'zh-Hant': 'zh-TW',
+  ja: 'ja-JP',
+  en: 'en-GB',
+  vi: 'vi-VN',
+  my: 'my-MM-u-nu-latn', // 緬甸文用阿拉伯數字（0-9），比原生緬甸數字更符合當地數位產品慣例
+};
+// 短格式的星期縮寫要各語言分開挑：中/日/越用 narrow（單字不重複、看得出差異）；
+// 英文 narrow 會有 T=Tuesday/Thursday 撞字問題，改用 short。緬甸文不透過這裡
+// 的 Intl 路徑（見下方 MY_WEEKDAY_NAMES 的說明），這裡的設定對它沒有作用。
+const WEEKDAY_SHORT_STYLE_MAP = { 'zh-Hant': 'narrow', ja: 'narrow', en: 'short', vi: 'narrow' };
+
+// 緬甸文（my）星期／月份名稱直接寫死，不透過 Intl.DateTimeFormat 查——實測發現
+// 不少瀏覽器（例如某些 Android WebView、這次測試用的 Chromium）沒有內建緬甸文
+// 的語系資料，Intl 遇到不支援的語言會「悄悄 fallback 回系統預設語言」而不是報
+// 錯，畫面就會變成使用者選了緬甸文、卻看到中文或英文日期的狀況。寫死表格可以
+// 保證不管瀏覽器支不支援，緬甸文使用者看到的永遠是正確的緬甸文。
+// 索引對齊 Date.getDay()（0 = 星期日）；緬甸文的星期名稱沒有更短的縮寫形式
+// （長格式、短格式是同一組字），這點已經用 Intl 在有支援的環境下驗證過。
+const MY_WEEKDAY_NAMES = ['တနင်္ဂနွေ', 'တနင်္လာ', 'အင်္ဂါ', 'ဗုဒ္ဓဟူး', 'ကြာသပတေး', 'သောကြာ', 'စနေ'];
+const MY_MONTH_NAMES = [
+  'ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်',
+  'ဇူလိုင်', 'သြဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ',
+];
+// 數字仍用阿拉伯數字（0-9），跟緬甸當地數位產品的慣例一致（見 DATE_LOCALE_MAP 的說明）。
+function myFormatLong(d) {
+  return `${d.getFullYear()} ${MY_MONTH_NAMES[d.getMonth()]} ${d.getDate()} ${MY_WEEKDAY_NAMES[d.getDay()]}`;
+}
+function myFormatShort(d) {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear()} ${MY_WEEKDAY_NAMES[d.getDay()]}`;
+}
+function myMonthYearLabel(year, month) {
+  return `${MY_MONTH_NAMES[month]} ${year}`;
+}
+
+// ==========================================================================
+// 老師／學生「時區」欄位（例：'(UTC+6:30) 仰光'）— 從標籤字串解析出實際小時
+// 差，統一在這裡處理，courses/hours/lessons/booking-history 等頁面都共用，
+// 才不用每個頁面各自寫一份、又漏掉緬甸這種非整數小時的時區。
+// ==========================================================================
+function parseUtcOffset(label) {
+  const m = /UTC([+-]\d+)(?::(\d+))?/.exec(label || '');
+  if (!m) return 8; // 沒有設定時區時，跟資料庫時間基準（UTC+8）一致
+  const hours = Number(m[1]);
+  const minutes = m[2] ? Number(m[2]) / 60 : 0;
+  return hours < 0 ? hours - minutes : hours + minutes;
+}
+
+// ISO 8601 風格的固定寬度格式（"+08:00"、"+06:30"），所有時區長度一致，
+// 不會有的補 0、有的沒補（"+8" 跟 "+6:30" 混用）這種不一致的寫法。
+function formatUtcOffset(offsetHours) {
+  const sign = offsetHours < 0 ? '-' : '+';
+  const abs = Math.abs(offsetHours);
+  const h = Math.floor(abs);
+  const m = Math.round((abs - h) * 60);
+  return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function parseYmd(dateInput) {
+  return dateInput instanceof Date ? dateInput : new Date(String(dateInput).replaceAll('/', '-'));
+}
+
+function formatDateLong(dateInput, lang = getCurrentLang()) {
+  const d = parseYmd(dateInput);
+  if (lang === 'my') return myFormatLong(d);
+  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(d);
+}
+
+function formatDateShort(dateInput, lang = getCurrentLang()) {
+  const d = parseYmd(dateInput);
+  if (lang === 'my') return myFormatShort(d);
+  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+  // 繁體中文用 ASCII 括號 + 單字星期（例：2026/09/22(二)），跟其他語言的
+  // locale 預設組合輸出（例：Tue, 22/09/2026）故意做成不同排法。
+  if (lang === 'zh-Hant') {
+    const datePart = new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(d);
+    return `${datePart}(${weekday})`;
+  }
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit', weekday: WEEKDAY_SHORT_STYLE_MAP[lang] || 'short' }).format(d);
+}
+// ==========================================================================
 // Date picker (single-day select, demo month navigation)
 // ==========================================================================
 (() => {
@@ -145,6 +327,7 @@ document.addEventListener('click', (e) => {
   const grid = picker.querySelector('[data-grid]');
   const prevBtn = picker.querySelector('[data-prev]');
   const nextBtn = picker.querySelector('[data-next]');
+  const weekdayHeaderEls = [...picker.querySelectorAll('.datepicker-weekdays span')];
 
   const now = new Date();
   let viewYear = now.getFullYear();
@@ -155,8 +338,39 @@ document.addEventListener('click', (e) => {
   function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
   function firstWeekdayMon0(y, m) { const d = new Date(y, m, 1).getDay(); return (d + 6) % 7; }
 
+  // 星期標題（週一開頭，跟格子的排法一致）依語言產生；緬甸文查表（見
+  // MY_WEEKDAY_NAMES 的說明），其他語言交給 Intl，不要寫死中文。
+  if (weekdayHeaderEls.length === 7) {
+    const lang = getCurrentLang();
+    picker.querySelector('.datepicker-weekdays').classList.toggle('is-compact', lang === 'my');
+    if (lang === 'my') {
+      // MY_WEEKDAY_NAMES 索引 0 = 星期日，這裡從星期一開始排，所以位移一格。
+      for (let i = 0; i < 7; i++) {
+        weekdayHeaderEls[i].textContent = MY_WEEKDAY_NAMES[(i + 1) % 7];
+      }
+    } else {
+      const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+      const style = WEEKDAY_SHORT_STYLE_MAP[lang] || 'narrow';
+      // 2026-01-05 是週一，從這天開始連续取 7 天即為週一到週日。
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(2026, 0, 5 + i);
+        weekdayHeaderEls[i].textContent = new Intl.DateTimeFormat(locale, { weekday: style }).format(d);
+      }
+    }
+  }
+
   function render() {
-    monthLabel.textContent = `${viewYear} 年 ${String(viewMonth + 1).padStart(2, '0')} 月`;
+    // 月份標題：緬甸文查表，其他語言交給 Intl 依語言自動調整年月順序/標點
+    // （例如英文會變成 "August 2026"），不是每個語言都跟中文一樣「年 月」這種順序。
+    const lang = getCurrentLang();
+    if (lang === 'my') {
+      monthLabel.textContent = myMonthYearLabel(viewYear, viewMonth);
+    } else {
+      const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+      monthLabel.textContent = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' }).format(new Date(viewYear, viewMonth, 1));
+    }
+    picker.dataset.year = viewYear;
+    picker.dataset.month = viewMonth;
     grid.innerHTML = '';
 
     const leading = firstWeekdayMon0(viewYear, viewMonth);
@@ -779,156 +993,3 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
   }
 })();
 
-// ==========================================================================
-// 多語系（i18n）——語言字典由 /i18n/{lang}.json 抓取，套用到帶
-// data-i18n / data-i18n-placeholder / data-i18n-aria-label 屬性的元素；
-// 帳號登入後的「真相」存在資料庫的 language 欄位（見 src/index.ts 的
-// /api/me/language），這裡的 localStorage 只是登入前、或 API 回應前的
-// 暫存/預設值，避免畫面閃一下才套用正確語言。
-// ==========================================================================
-const SUPPORTED_LANGUAGES = ['zh-Hant', 'ja', 'en', 'vi', 'my'];
-const LANG_LABELS = {
-  'zh-Hant': '繁體中文',
-  ja: '日本語',
-  en: 'English',
-  vi: 'Tiếng Việt',
-  my: 'မြန်မာဘာသာ',
-};
-const LANG_STORAGE_KEY = 'lang';
-
-function getCurrentLang() {
-  try {
-    const stored = localStorage.getItem(LANG_STORAGE_KEY);
-    return SUPPORTED_LANGUAGES.includes(stored) ? stored : 'zh-Hant';
-  } catch {
-    return 'zh-Hant';
-  }
-}
-function setCurrentLang(lang) {
-  try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch {}
-}
-
-let i18nDict = {};
-let i18nLang = null;
-
-async function loadI18nDict(lang) {
-  if (i18nLang === lang) return;
-  const res = await fetch(`/i18n/${lang}.json`).catch(() => null);
-  i18nDict = res && res.ok ? await res.json() : {};
-  i18nLang = lang;
-}
-
-// {{name}} 佔位符做簡單字串替換（例如「還可在 {{seconds}} 秒後...」）。
-function t(key, params) {
-  let text = i18nDict[key] || key;
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      text = text.replaceAll(`{{${k}}}`, v);
-    }
-  }
-  return text;
-}
-
-function applyTranslations(root = document) {
-  root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
-  root.querySelectorAll('[data-i18n-aria-label]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel)); });
-}
-
-async function initI18n(lang) {
-  await loadI18nDict(lang);
-  document.documentElement.lang = lang;
-  applyTranslations();
-}
-
-// 語言切換元件：把 🌐 圖示鈕 + 下拉選單畫進 container，選了新語言就更新
-// localStorage、重新套用翻譯，並透過 onChange 讓呼叫端決定要不要連帶存回帳號。
-function renderLangSwitch(container, currentLang, onChange) {
-  container.classList.add('lang-switch');
-  container.innerHTML = `
-    <button type="button" class="lang-switch-trigger" aria-label="Language"><i class="fa-solid fa-fw fa-globe"></i></button>
-    <ul class="lang-switch-menu">
-      ${SUPPORTED_LANGUAGES.map((code) => `<li data-value="${code}" class="${code === currentLang ? 'selected' : ''}">${LANG_LABELS[code]}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('')}
-    </ul>`;
-
-  container.querySelector('.lang-switch-trigger').addEventListener('click', (e) => {
-    e.stopPropagation();
-    container.classList.toggle('open');
-  });
-  container.querySelectorAll('.lang-switch-menu li').forEach((li) => {
-    li.addEventListener('click', async () => {
-      const lang = li.dataset.value;
-      container.classList.remove('open');
-      if (lang === i18nLang) return;
-      container.querySelectorAll('.lang-switch-menu li').forEach((l) => l.classList.remove('selected'));
-      li.classList.add('selected');
-      setCurrentLang(lang);
-      await initI18n(lang);
-      if (onChange) onChange(lang);
-    });
-  });
-  document.addEventListener('click', (e) => {
-    if (!container.contains(e.target)) container.classList.remove('open');
-  });
-}
-
-// ==========================================================================
-// 多語系日期格式——用 Intl.DateTimeFormat 依語言自動套用當地慣用的日期
-// 順序/標點，而不是每個語言各自手刻規則。時間一律用 24 小時制 HH:mm，
-// 這點在所有語言下順序都一樣，不需要另外處理。
-// ==========================================================================
-const DATE_LOCALE_MAP = {
-  'zh-Hant': 'zh-TW',
-  ja: 'ja-JP',
-  en: 'en-GB',
-  vi: 'vi-VN',
-  my: 'my-MM-u-nu-latn', // 緬甸文用阿拉伯數字（0-9），比原生緬甸數字更符合當地數位產品慣例
-};
-// 短格式的星期縮寫要各語言分開挑：中/日/越用 narrow（單字不重複、看得出差異）；
-// 英文 narrow 會有 T=Tuesday/Thursday 撞字問題，緬甸文 narrow 週日/週一也會撞字，兩者改用 short。
-const WEEKDAY_SHORT_STYLE_MAP = { 'zh-Hant': 'narrow', ja: 'narrow', en: 'short', vi: 'narrow', my: 'short' };
-
-// ==========================================================================
-// 老師／學生「時區」欄位（例：'(UTC+6:30) 仰光'）— 從標籤字串解析出實際小時
-// 差，統一在這裡處理，courses/hours/lessons/booking-history 等頁面都共用，
-// 才不用每個頁面各自寫一份、又漏掉緬甸這種非整數小時的時區。
-// ==========================================================================
-function parseUtcOffset(label) {
-  const m = /UTC([+-]\d+)(?::(\d+))?/.exec(label || '');
-  if (!m) return 8; // 沒有設定時區時，跟資料庫時間基準（UTC+8）一致
-  const hours = Number(m[1]);
-  const minutes = m[2] ? Number(m[2]) / 60 : 0;
-  return hours < 0 ? hours - minutes : hours + minutes;
-}
-
-// ISO 8601 風格的固定寬度格式（"+08:00"、"+06:30"），所有時區長度一致，
-// 不會有的補 0、有的沒補（"+8" 跟 "+6:30" 混用）這種不一致的寫法。
-function formatUtcOffset(offsetHours) {
-  const sign = offsetHours < 0 ? '-' : '+';
-  const abs = Math.abs(offsetHours);
-  const h = Math.floor(abs);
-  const m = Math.round((abs - h) * 60);
-  return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-function parseYmd(dateInput) {
-  return dateInput instanceof Date ? dateInput : new Date(String(dateInput).replaceAll('/', '-'));
-}
-
-function formatDateLong(dateInput, lang = getCurrentLang()) {
-  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
-  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(parseYmd(dateInput));
-}
-
-function formatDateShort(dateInput, lang = getCurrentLang()) {
-  const d = parseYmd(dateInput);
-  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
-  // 繁體中文用 ASCII 括號 + 單字星期（例：2026/09/22(二)），跟其他語言的
-  // locale 預設組合輸出（例：Tue, 22/09/2026）故意做成不同排法。
-  if (lang === 'zh-Hant') {
-    const datePart = new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(d);
-    return `${datePart}(${weekday})`;
-  }
-  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit', weekday: WEEKDAY_SHORT_STYLE_MAP[lang] || 'short' }).format(d);
-}

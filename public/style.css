@@ -1198,7 +1198,7 @@
   }
   .datepicker-weekdays, .datepicker-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px;
     text-align: center;
   }
@@ -1224,6 +1224,11 @@
     font-weight: 700;
     color: var(--text-muted);
     padding-bottom: 6px;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+  }
+  .datepicker-weekdays.is-compact span {
+    font-size: .8125rem;
   }
   .datepicker-grid button {
     aspect-ratio: 1;
