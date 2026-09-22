@@ -293,5 +293,24 @@
   "admin.courses.minLeadInfo.line1": "Trong khoảng thời gian này trước khi buổi học bắt đầu, học viên không thể đặt lịch hoặc hủy buổi học này.",
   "admin.courses.minLeadInfo.line2": "Ví dụ đặt 48 giờ nghĩa là nếu còn chưa đến 48 giờ nữa buổi học sẽ bắt đầu, học viên sẽ không thể đặt buổi học này, cũng không thể hủy buổi học đã đặt. Giới hạn này giúp giáo viên và bộ phận quản lý có đủ thời gian chuẩn bị hoặc sắp xếp dạy thay, tránh việc đặt lịch hoặc hủy lịch vào phút chót.",
   "admin.courses.maxLeadInfo.line1": "Học viên chỉ có thể đặt lịch trong phạm vi số ngày này tính từ hôm nay.",
-  "admin.courses.maxLeadInfo.line2": "Ví dụ đặt 30 ngày nghĩa là học viên chỉ có thể đặt lịch xa nhất đến 30 ngày sau, các ngày ngoài phạm vi này sẽ không thể chọn. Điều này giúp lịch dạy của giáo viên không bị đặt quá xa trong tương lai, thuận tiện cho giáo viên và bộ phận quản lý sắp xếp lịch dạy dài hạn."
+  "admin.courses.maxLeadInfo.line2": "Ví dụ đặt 30 ngày nghĩa là học viên chỉ có thể đặt lịch xa nhất đến 30 ngày sau, các ngày ngoài phạm vi này sẽ không thể chọn. Điều này giúp lịch dạy của giáo viên không bị đặt quá xa trong tương lai, thuận tiện cho giáo viên và bộ phận quản lý sắp xếp lịch dạy dài hạn.",
+
+  "admin.bookings.title": "Lịch sử đặt lịch",
+  "admin.bookings.tzInfo": "Giải thích múi giờ",
+  "admin.bookings.searchPlaceholder": "Tìm theo mã đặt lịch／khóa học／học viên／giáo viên",
+  "admin.bookings.noMatch": "Không tìm thấy lịch sử đặt lịch phù hợp",
+  "admin.bookings.empty": "Chưa có lịch sử đặt lịch",
+  "admin.bookings.markAttended": "Đánh dấu hoàn thành",
+  "admin.bookings.confirm": "Xác nhận",
+  "admin.bookings.attendedConfirm.title": "Đánh dấu buổi học này là đã hoàn thành?",
+  "admin.bookings.attendedConfirm.desc": "Dùng khi giáo viên quên đánh dấu hoàn thành buổi học.",
+  "admin.bookings.absentConfirm.title": "Đánh dấu buổi học này là vắng mặt?",
+  "admin.bookings.absentConfirm.desc": "Số buổi học của học viên sẽ không được hoàn lại.",
+  "admin.bookings.pendingConfirm.title": "Đánh dấu buổi học này là cần xử lý?",
+  "admin.bookings.pendingConfirm.desc": "Dùng khi buổi học này có tranh chấp, cần xác nhận thêm.",
+  "admin.bookings.cancelledConfirm.title": "Hủy lịch đặt này?",
+  "admin.bookings.cancelledConfirm.desc": "Số buổi học của học viên sẽ được hoàn lại một buổi.",
+  "admin.bookings.tzModal.title": "Múi giờ hiển thị thời gian buổi học",
+  "admin.bookings.tzModal.desc": "Quản trị viên luôn xem theo giờ Đài Bắc (UTC+08:00), không bị ảnh hưởng bởi múi giờ cá nhân của giáo viên/học viên.",
+  "admin.bookings.updateFailed": "Cập nhật thất bại, vui lòng thử lại sau"
 }

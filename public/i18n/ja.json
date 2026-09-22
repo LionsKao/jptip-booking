@@ -293,5 +293,24 @@
   "admin.courses.minLeadInfo.line1": "授業開始前のこの期間中は、生徒は予約もキャンセルもできません。",
   "admin.courses.minLeadInfo.line2": "例えば48時間に設定すると、授業開始まで48時間を切ると、生徒はこの授業を予約することも、すでに予約済みのこの授業をキャンセルすることもできなくなります。この制限により、講師と教務が授業の準備や代講の手配をする十分な時間を確保し、直前の予約や直前のキャンセルを防ぐことができます。",
   "admin.courses.maxLeadInfo.line1": "生徒は今日から起算してこの日数以内の授業しか予約できません。",
-  "admin.courses.maxLeadInfo.line2": "例えば30日に設定すると、生徒は今日から最大30日後までの授業しか予約できず、この範囲を超える日付は選択できなくなります。これにより、講師の授業スケジュールが遠い未来まで埋まってしまうのを防ぎ、講師と教務が長期的な授業時間を調整しやすくなります。"
+  "admin.courses.maxLeadInfo.line2": "例えば30日に設定すると、生徒は今日から最大30日後までの授業しか予約できず、この範囲を超える日付は選択できなくなります。これにより、講師の授業スケジュールが遠い未来まで埋まってしまうのを防ぎ、講師と教務が長期的な授業時間を調整しやすくなります。",
+
+  "admin.bookings.title": "予約履歴",
+  "admin.bookings.tzInfo": "タイムゾーンについて",
+  "admin.bookings.searchPlaceholder": "予約番号／コース／生徒／講師で検索",
+  "admin.bookings.noMatch": "該当する予約履歴が見つかりません",
+  "admin.bookings.empty": "予約履歴がありません",
+  "admin.bookings.markAttended": "授業完了にする",
+  "admin.bookings.confirm": "確定",
+  "admin.bookings.attendedConfirm.title": "授業完了として記録しますか？",
+  "admin.bookings.attendedConfirm.desc": "講師が完了操作を忘れた場合に使用します。",
+  "admin.bookings.absentConfirm.title": "欠席として記録しますか？",
+  "admin.bookings.absentConfirm.desc": "生徒の予約回数は返還されません。",
+  "admin.bookings.pendingConfirm.title": "要対応として記録しますか？",
+  "admin.bookings.pendingConfirm.desc": "この授業に異議があり、さらに確認が必要な場合に使用します。",
+  "admin.bookings.cancelledConfirm.title": "この予約をキャンセルしますか？",
+  "admin.bookings.cancelledConfirm.desc": "生徒の予約回数が1回返還されます。",
+  "admin.bookings.tzModal.title": "授業時間の表示タイムゾーン",
+  "admin.bookings.tzModal.desc": "管理者は常に (UTC+08:00) 台北時間で表示され、講師／生徒個人のタイムゾーン設定の影響を受けません。",
+  "admin.bookings.updateFailed": "更新に失敗しました。しばらくしてから再度お試しください"
 }

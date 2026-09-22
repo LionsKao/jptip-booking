@@ -293,5 +293,24 @@
   "admin.courses.minLeadInfo.line1": "課程開始前的這段時間內，學生無法預約，也無法取消這堂課。",
   "admin.courses.minLeadInfo.line2": "例如設定 48 小時，代表如果課程再過不到 48 小時就要開始，學生就不能預約這堂課，也不能取消已經預約好的這堂課。這個限制可以讓老師與教務有足夠時間準備上課或安排代課，避免臨時被預約或臨時被取消。",
   "admin.courses.maxLeadInfo.line1": "學生最多只能預約到今天加上這個天數以內的課程。",
-  "admin.courses.maxLeadInfo.line2": "例如設定 30 天，代表學生今天最遠只能預約到 30 天後的課程，超過這個範圍的日期就不會開放讓學生選擇。這可以避免老師的課表被排到太遠的未來，方便老師與教務安排長期的授課時段。"
+  "admin.courses.maxLeadInfo.line2": "例如設定 30 天，代表學生今天最遠只能預約到 30 天後的課程，超過這個範圍的日期就不會開放讓學生選擇。這可以避免老師的課表被排到太遠的未來，方便老師與教務安排長期的授課時段。",
+
+  "admin.bookings.title": "預約紀錄",
+  "admin.bookings.tzInfo": "時區說明",
+  "admin.bookings.searchPlaceholder": "搜尋預約編號／課程／學生／老師",
+  "admin.bookings.noMatch": "找不到符合的預約紀錄",
+  "admin.bookings.empty": "沒有預約紀錄",
+  "admin.bookings.markAttended": "完成課程",
+  "admin.bookings.confirm": "確定",
+  "admin.bookings.attendedConfirm.title": "確定要標記為完成課程嗎？",
+  "admin.bookings.attendedConfirm.desc": "適用於老師忘記標記完成的情況。",
+  "admin.bookings.absentConfirm.title": "確定要標記為缺席嗎？",
+  "admin.bookings.absentConfirm.desc": "學生的預約次數不會退還。",
+  "admin.bookings.pendingConfirm.title": "確定要標記為需處理嗎？",
+  "admin.bookings.pendingConfirm.desc": "適用於這堂課程有爭議、需要進一步確認的情況。",
+  "admin.bookings.cancelledConfirm.title": "確定要取消這筆預約嗎？",
+  "admin.bookings.cancelledConfirm.desc": "學生的預約次數將會退還一次。",
+  "admin.bookings.tzModal.title": "課程時間顯示時區",
+  "admin.bookings.tzModal.desc": "管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。",
+  "admin.bookings.updateFailed": "更新失敗，請稍後再試"
 }

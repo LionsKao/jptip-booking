@@ -293,5 +293,24 @@
   "admin.courses.minLeadInfo.line1": "During this period before a lesson starts, students can't book or cancel this lesson.",
   "admin.courses.minLeadInfo.line2": "For example, if set to 48 hours, once a lesson is less than 48 hours away, students can no longer book it or cancel an existing booking for it. This gives teachers and staff enough time to prepare or arrange a substitute, and prevents last-minute bookings or cancellations.",
   "admin.courses.maxLeadInfo.line1": "Students can only book lessons up to this many days from today.",
-  "admin.courses.maxLeadInfo.line2": "For example, if set to 30 days, students can book at most 30 days ahead from today — dates beyond that won't be selectable. This keeps a teacher's schedule from being booked too far into the future, making it easier for teachers and staff to plan long-term teaching slots."
+  "admin.courses.maxLeadInfo.line2": "For example, if set to 30 days, students can book at most 30 days ahead from today — dates beyond that won't be selectable. This keeps a teacher's schedule from being booked too far into the future, making it easier for teachers and staff to plan long-term teaching slots.",
+
+  "admin.bookings.title": "Booking Records",
+  "admin.bookings.tzInfo": "Timezone Info",
+  "admin.bookings.searchPlaceholder": "Search by booking code／course／student／teacher",
+  "admin.bookings.noMatch": "No matching booking records found",
+  "admin.bookings.empty": "No booking records",
+  "admin.bookings.markAttended": "Mark as Completed",
+  "admin.bookings.confirm": "Confirm",
+  "admin.bookings.attendedConfirm.title": "Mark this lesson as completed?",
+  "admin.bookings.attendedConfirm.desc": "Use this when a teacher forgot to mark a lesson as completed.",
+  "admin.bookings.absentConfirm.title": "Mark this lesson as absent?",
+  "admin.bookings.absentConfirm.desc": "The student's lesson count will not be refunded.",
+  "admin.bookings.pendingConfirm.title": "Mark this lesson as needing attention?",
+  "admin.bookings.pendingConfirm.desc": "Use this when there's a dispute or something needs further confirmation for this lesson.",
+  "admin.bookings.cancelledConfirm.title": "Cancel this booking?",
+  "admin.bookings.cancelledConfirm.desc": "The student's lesson count will be refunded by one.",
+  "admin.bookings.tzModal.title": "Lesson Time Display Timezone",
+  "admin.bookings.tzModal.desc": "Admins always see times in (UTC+08:00) Taipei time, regardless of the teacher's or student's own timezone setting.",
+  "admin.bookings.updateFailed": "Update failed, please try again later"
 }

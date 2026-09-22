@@ -108,11 +108,11 @@
   <div id="bookings-list-view">
 
     <section class="section" id="card-bookings">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/icon-calendar.png" alt=""><h2>預約紀錄</h2><button type="button" class="info-btn" data-modal-open="bookingsTimezoneModal" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/icon-calendar.png" alt=""><h2 data-i18n="admin.bookings.title">預約紀錄</h2><button type="button" class="info-btn" data-modal-open="bookingsTimezoneModal" aria-label="時區說明" data-i18n-aria-label="admin.bookings.tzInfo"><i class="fa-solid fa-fw fa-globe"></i></button></div>
       <div class="search-box">
         <i class="fa-solid fa-fw fa-magnifying-glass"></i>
-        <input type="text" id="bookings-search" placeholder="搜尋預約編號／課程／學生／老師">
-        <button type="button" class="search-clear-btn" id="bookings-search-clear" hidden aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+        <input type="text" id="bookings-search" placeholder="搜尋預約編號／課程／學生／老師" data-i18n-placeholder="admin.bookings.searchPlaceholder">
+        <button type="button" class="search-clear-btn" id="bookings-search-clear" hidden aria-label="清除搜尋" data-i18n-aria-label="admin.common.clearSearch"><i class="fa-solid fa-fw fa-xmark"></i></button>
       </div>
       <div id="all-bookings-cards"></div>
     </section>
@@ -126,44 +126,44 @@
   <div id="bookings-detail-view" hidden>
     <section class="section">
       <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
-      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>課程詳情</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
-          <span><p>預約編號</p><h3 id="detail-booking-code">—</h3></span>
+          <span><p data-i18n="history.detail.code">預約編號</p><h3 id="detail-booking-code">—</h3></span>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
-          <span><p>課程</p><h3 id="detail-course">—</h3></span>
+          <span><p data-i18n="booking.confirm.course">課程</p><h3 id="detail-course">—</h3></span>
         </div>
         <div class="confirm-highlight-row">
           <div class="confirm-highlight">
             <span class="confirm-highlight-icon"><img src="../assets/icons/student.png" alt=""></span>
-            <span><p>學生</p><h3 id="detail-student">—</h3></span>
+            <span><p data-i18n="history.detail.student">學生</p><h3 id="detail-student">—</h3></span>
           </div>
           <div class="confirm-highlight">
             <span class="confirm-highlight-icon"><img src="../assets/icons/woman.png" alt=""></span>
-            <span><p>老師</p><h3 id="detail-teacher">—</h3></span>
+            <span><p data-i18n="booking.confirm.teacher">老師</p><h3 id="detail-teacher">—</h3></span>
           </div>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/icon-calendar.png" alt=""></span>
-          <span><p>日期</p><h3 id="detail-datetime">—</h3></span>
+          <span><p data-i18n="booking.confirm.date">日期</p><h3 id="detail-datetime">—</h3></span>
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
-          <span><p>時間</p><h3 id="detail-time">—</h3></span>
+          <span><p data-i18n="history.detail.time">時間</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
     <div class="wizard-nav" id="admin-action-nav">
       <div class="wizard-nav-row">
-        <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> 取消預約</button>
-        <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> 缺席</button>
-        <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> 需處理</button>
+        <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
+        <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> <span data-i18n="status.absent">缺席</span></button>
+        <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> <span data-i18n="status.pending">需處理</span></button>
       </div>
       <div class="wizard-nav-row">
-        <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> 完成課程</button>
+        <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.markAttended">完成課程</span></button>
       </div>
     </div>
   </div>
@@ -174,11 +174,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
-    <h3>確定要標記為完成課程嗎？</h3>
-    <p class="text-small">適用於老師忘記標記完成的情況。</p>
+    <h3 data-i18n="admin.bookings.attendedConfirm.title">確定要標記為完成課程嗎？</h3>
+    <p class="text-small" data-i18n="admin.bookings.attendedConfirm.desc">適用於老師忘記標記完成的情況。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn green" id="confirm-mark-attended-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="confirm-mark-attended-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.confirm">確定</span></button>
     </div>
   </div>
 </div>
@@ -187,11 +187,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon navy"><i class="fa-solid fa-question"></i></div>
-    <h3>確定要標記為缺席嗎？</h3>
-    <p class="text-small">學生的預約次數不會退還。</p>
+    <h3 data-i18n="admin.bookings.absentConfirm.title">確定要標記為缺席嗎？</h3>
+    <p class="text-small" data-i18n="admin.bookings.absentConfirm.desc">學生的預約次數不會退還。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn navy" id="confirm-mark-absent-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn navy" id="confirm-mark-absent-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.confirm">確定</span></button>
     </div>
   </div>
 </div>
@@ -200,11 +200,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
-    <h3>確定要標記為需處理嗎？</h3>
-    <p class="text-small">適用於這堂課程有爭議、需要進一步確認的情況。</p>
+    <h3 data-i18n="admin.bookings.pendingConfirm.title">確定要標記為需處理嗎？</h3>
+    <p class="text-small" data-i18n="admin.bookings.pendingConfirm.desc">適用於這堂課程有爭議、需要進一步確認的情況。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn orange" id="confirm-mark-pending-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確定</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn orange" id="confirm-mark-pending-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.confirm">確定</span></button>
     </div>
   </div>
 </div>
@@ -213,11 +213,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-fw fa-xmark"></i></div>
-    <h3>確定要取消這筆預約嗎？</h3>
-    <p class="text-small">學生的預約次數將會退還一次。</p>
+    <h3 data-i18n="admin.bookings.cancelledConfirm.title">確定要取消這筆預約嗎？</h3>
+    <p class="text-small" data-i18n="admin.bookings.cancelledConfirm.desc">學生的預約次數將會退還一次。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-mark-cancelled-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定取消</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-mark-cancelled-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelConfirm.confirm">確定取消</span></button>
     </div>
   </div>
 </div>
@@ -228,7 +228,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -237,10 +237,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
-    <h3>課程時間顯示時區</h3>
-    <p class="text-small">管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
+    <h3 data-i18n="admin.bookings.tzModal.title">課程時間顯示時區</h3>
+    <p class="text-small" data-i18n="admin.bookings.tzModal.desc">管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -248,6 +248,11 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  const adminLang = (adminMe && adminMe.language) || getCurrentLang();
+  await initI18n(adminLang);
+
   // 課程是真的 D1 資料，這裡先抓一次存起來給下面 computeDisplayParts() 用。
   const coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
   function loadCourses() { return coursesCache; }
@@ -257,18 +262,18 @@
   let bookings = await fetch('/api/bookings').then((res) => (res.ok ? res.json() : []));
 
   const STATUS_MAP = {
-    pending:   { cls: 'pending',   icon: 'icon-alert.png',     label: '需處理' },
-    absent:    { cls: 'tone-navy', icon: 'question.png',       label: '缺席' },
-    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', label: '預約' },
-    cancelled: { cls: 'cancelled', icon: 'close.png',          label: '取消' },
-    attended:  { cls: 'confirmed', icon: 'check.png',          label: '完成' },
+    pending:   { cls: 'pending',   icon: 'icon-alert.png',     get label() { return t('status.pending'); } },
+    absent:    { cls: 'tone-navy', icon: 'question.png',       get label() { return t('status.absent'); } },
+    upcoming:  { cls: 'info',      icon: 'icon-hourglass.png', get label() { return t('status.upcoming'); } },
+    cancelled: { cls: 'cancelled', icon: 'close.png',          get label() { return t('status.cancelled'); } },
+    attended:  { cls: 'confirmed', icon: 'check.png',          get label() { return t('status.attended'); } },
   };
   const RIBBON_TONE_MAP = {
-    pending:   { tone: 'tone-orange', label: '需處理' },
-    absent:    { tone: 'tone-navy',   label: '缺席' },
-    upcoming:  { tone: 'tone-blue',   label: '預約' },
-    cancelled: { tone: 'tone-red',    label: '取消' },
-    attended:  { tone: 'tone-green',  label: '完成' },
+    pending:   { tone: 'tone-orange', get label() { return t('status.pending'); } },
+    absent:    { tone: 'tone-navy',   get label() { return t('status.absent'); } },
+    upcoming:  { tone: 'tone-blue',   get label() { return t('status.upcoming'); } },
+    cancelled: { tone: 'tone-red',    get label() { return t('status.cancelled'); } },
+    attended:  { tone: 'tone-green',  get label() { return t('status.attended'); } },
   };
 
   function endTimeStr(timeStr, durationMinutes) {
@@ -279,14 +284,12 @@
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
   }
 
-  const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-
   function durationLabelStr(durationMinutes) {
     const h = Math.floor(durationMinutes / 60);
     const m = durationMinutes % 60;
-    if (h && m) return `${h} 時 ${m} 分`;
-    if (h) return `${h} 時`;
-    return `${m} 分`;
+    if (h && m) return t('common.durationBoth', { h, m });
+    if (h) return t('common.durationHourOnly', { h });
+    return t('common.durationMinuteOnly', { m });
   }
 
   // 管理者一律看 UTC+8（台灣時間），不依老師/學生個人時區換算顯示，也不需要另外標示時區
@@ -294,10 +297,8 @@
     const course = loadCourses().find((c) => (b.courseId != null && c.id === b.courseId) || c.name === b.course);
     const durationMinutes = (course && course.durationMinutes) || 60;
     const timeLabel = `${b.time} - ${endTimeStr(b.time, durationMinutes)}`;
-    const [y, m, d] = b.date.split('-');
-    const weekday = WEEKDAY_NAMES[new Date(b.date).getDay()];
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    const dateLabel = isMobile ? `${y}/${m}/${d} ${weekday}` : `${y} 年 ${m} 月 ${d} 日 星期${weekday}`;
+    const dateLabel = isMobile ? formatDateShort(b.date, adminLang) : formatDateLong(b.date, adminLang);
     const durationLabel = durationLabelStr(durationMinutes);
     return { dateLabel, timeLabel, startTimeLabel: b.time, durationLabel };
   }
@@ -334,7 +335,7 @@
       document.getElementById('all-bookings-cards'),
       document.getElementById('all-bookings-pagination'),
       bookingsPageState,
-      `<div class="booking-card-empty">${query ? '找不到符合的預約紀錄' : '沒有預約紀錄'}</div>`,
+      `<div class="booking-card-empty">${query ? t('admin.bookings.noMatch') : t('admin.bookings.empty')}</div>`,
       (containerEl) => {
         containerEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
         containerEl.querySelectorAll('.booking-card').forEach((card) => {
@@ -422,7 +423,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showBookingAlert(data.error || '更新失敗，請稍後再試');
+      showBookingAlert(data.error || t('admin.bookings.updateFailed'));
       return;
     }
 
