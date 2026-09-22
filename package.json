@@ -4,7 +4,10 @@
   "description": "",
   "main": "script.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "build:css": "tailwindcss -i ./src/tailwind/input.css -o ./public/style.css",
     "watch:css": "tailwindcss -i ./src/tailwind/input.css -o ./public/style.css --watch",
     "dev": "concurrently \"npm:watch:css\" \"wrangler dev --port 12345\""
@@ -12,13 +15,22 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.2.1",
     "@cloudflare/workers-types": "^5.20260827.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/cli": "^4.3.3",
     "concurrently": "^10.0.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
     "wrangler": "^4.127.0"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.5.1": true,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "workerd@1.20260921.1": true
   }
 }

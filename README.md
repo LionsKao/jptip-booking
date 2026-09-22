@@ -50,6 +50,32 @@ npm run dev
 npm run build:css
 ```
 
+## 測試
+
+後端（`src/index.ts`）以 [`@cloudflare/vitest-plugin`](https://developers.cloudflare.com/workers/testing/vitest-integration/) 撰寫測試，在真正的 workerd runtime 裡跑，會套用 `migrations/` 到一個隔離的測試用 D1（不會動到本機或正式的資料庫）：
+
+```bash
+npm test
+```
+
+開發時用 watch 模式：
+
+```bash
+npm run test:watch
+```
+
+前端以 [Playwright](https://playwright.dev/) 寫端對端測試，會自動啟動 `npm run dev`（`http://localhost:12345`）並用真正的瀏覽器跑過登入、預約精靈、管理者代管老師等關鍵流程：
+
+```bash
+npm run test:e2e
+```
+
+用瀏覽器介面除錯：
+
+```bash
+npm run test:e2e:ui
+```
+
 ## 資料庫（D1）
 
 套用 migrations：
