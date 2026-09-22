@@ -208,5 +208,51 @@
   "admin.teachers.field.mottoPlaceholder": "ဥပမာ - အတူတကွ သင်ယူပြီး တိုးတက်ကြပါစို့။",
   "admin.teachers.addSuccess": "ဆရာ ထည့်သွင်းပြီးပါပြီ",
   "admin.teachers.statusLock.title": "လောလောဆယ် ဖွင့်၍မရသေးပါ",
-  "admin.teachers.statusLock.desc": "ဆရာထည့်သွင်းပြီးနောက် \"သင်ကြားနိုင်သည့်သင်တန်း\" နှင့် \"သင်ကြားနိုင်သည့်အချိန်\" သတ်မှတ်မှုပြီးမြောက်မှသာ အကောင့်ကို ဖွင့်ပါ၊ သတ်မှတ်မပြီးသေးသော ဆရာကို ကျောင်းသားများ မမြင်စေရန်။"
+  "admin.teachers.statusLock.desc": "ဆရာထည့်သွင်းပြီးနောက် \"သင်ကြားနိုင်သည့်သင်တန်း\" နှင့် \"သင်ကြားနိုင်သည့်အချိန်\" သတ်မှတ်မှုပြီးမြောက်မှသာ အကောင့်ကို ဖွင့်ပါ၊ သတ်မှတ်မပြီးသေးသော ဆရာကို ကျောင်းသားများ မမြင်စေရန်။",
+
+  "admin.courses.field.name": "သင်တန်းအမည်",
+  "admin.courses.field.namePlaceholder": "သင်တန်းအမည် ထည့်သွင်းပါ",
+  "admin.courses.field.description": "ဖော်ပြချက်",
+  "admin.courses.field.descriptionPlaceholder": "သင်တန်းရွေးချယ်ချိန်တွင် သင်တန်းအောက်တွင် ပြသမည့် ဖော်ပြချက်",
+  "admin.courses.addSuccess": "သင်တန်း ထည့်သွင်းပြီးပါပြီ",
+  "admin.courses.statusLock.title": "လောလောဆယ် ဖွင့်၍မရသေးပါ",
+  "admin.courses.statusLock.desc": "သင်တန်းထည့်သွင်းပြီးနောက် အချိန်ဆိုင်ရာသတ်မှတ်ချက်များနှင့် ဤသင်တန်းကို သင်ကြားနိုင်သည့် ဆရာများ သတ်မှတ်မှုပြီးမှသာ ဖွင့်ပါ၊ သတ်မှတ်မပြီးသေးသော သင်တန်းကို ကျောင်းသားများ မမြင်စေရန်။",
+  "admin.courses.fillNameRequired": "သင်တန်းအမည် ထည့်သွင်းပါ",
+
+  "admin.detail.basic.title": "အခြေခံအချက်အလက်",
+
+  "admin.students.detail.basic.desc": "အမည်၊ ဆက်သွယ်ရန်အချက်အလက်၊ အခြေအနေနှင့် အချိန်ဇုန်ကို ကြည့်ရှု/တည်းဖြတ်ရန်",
+  "admin.students.detail.courses.title": "ဝယ်ယူထားသော သင်တန်းများ",
+  "admin.students.detail.courses.desc": "ကျောင်းသားဝယ်ယူထားသော သင်တန်းများကို ကြည့်ရှု/ထည့်သွင်းရန်",
+  "admin.students.detail.bookings.desc": "ကျောင်းသား၏ ဘွတ်ကင်နှင့် တက်ရောက်မှတ်တမ်းများကို ကြည့်ရှုရန်",
+
+  "admin.teachers.detail.basic.desc": "အမည်၊ ဆက်သွယ်ရန်အချက်အလက်နှင့် ငွေတောင်းခံလွှာ အချက်အလက်များကို ကြည့်ရှု/တည်းဖြတ်ရန်",
+  "admin.teachers.detail.courses.title": "သင်ကြားနိုင်သော သင်တန်းများ",
+  "admin.teachers.detail.courses.desc": "ဆရာသင်ကြားနိုင်သော သင်တန်းများကို သတ်မှတ်ရန်",
+  "admin.teachers.detail.lessons.title": "ဆရာ၏ သင်ခန်းစာများ",
+  "admin.teachers.detail.lessons.desc": "ဤဆရာ၏ သင်ခန်းစာများနှင့် ဘွတ်ကင်မှတ်တမ်းများကို ကြည့်ရှုရန်",
+
+  "admin.common.uploadImage": "ပုံ အပ်လုဒ်တင်ရန်",
+  "admin.common.confirmEdit": "တည်းဖြတ်မှု အတည်ပြုမည်",
+  "admin.common.saveFailed": "သိမ်းဆည်း၍မရပါ၊ နောက်မှ ထပ်စမ်းကြည့်ပါ",
+  "admin.common.unsavedEditDesc": "လက်ရှိတည်းဖြတ်ထားသော အချက်အလက်ကို သိမ်းဆည်းမည် မဟုတ်ပါ။",
+  "admin.common.cropAvatar.title": "ကိုယ်စားပြုပုံ ဖြတ်တောက်ရန်",
+  "admin.common.cropAvatar.desc": "ရွှေ့ရန် ဖိဆွဲပါ၊ ချုံ့/ချဲ့ရန် ဘီးလှိမ့်ပါ။ ဖြတ်တောက်နယ်နိမိတ်သည် စတုရန်းပုံစံ သတ်မှတ်ထားပါသည်။",
+  "admin.common.confirmCrop": "ဖြတ်တောက်မှု အတည်ပြုမည်",
+
+  "admin.students.updateSuccess": "ကျောင်းသားအချက်အလက် အပ်ဒိတ်လုပ်ပြီးပါပြီ",
+
+  "admin.teachers.updateSuccess": "ဆရာအချက်အလက် အပ်ဒိတ်လုပ်ပြီးပါပြီ",
+  "admin.teachers.fillNameRequired": "အမည် ထည့်သွင်းပါ",
+  "admin.teachers.receipt.title": "ငွေတောင်းခံလွှာ အချက်အလက်",
+  "admin.teachers.receipt.address": "ဆရာ့လိပ်စာ",
+  "admin.teachers.receipt.companyName": "ကုမ္ပဏီအမည်",
+  "admin.teachers.receipt.companyAddress": "ကုမ္ပဏီလိပ်စာ",
+  "admin.teachers.receipt.wage": "နာရီစား လုပ်ခ",
+  "admin.teachers.receipt.tax": "စားသုံးခွန်",
+  "admin.teachers.receipt.selectTax": "အခွန်နှုန်း ရွေးချယ်ပါ",
+  "admin.teachers.receipt.bank": "ဘဏ်",
+  "admin.teachers.receipt.bankBranch": "ဘဏ်ခွဲအမည်",
+  "admin.teachers.receipt.bankBranchNo": "ဘဏ်ခွဲကုဒ်",
+  "admin.teachers.receipt.bankAccountNo": "အကောင့်နံပါတ်"
 }

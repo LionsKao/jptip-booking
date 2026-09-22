@@ -69,47 +69,47 @@
     <span class="teacher-header-avatar"><img id="teacher-header-avatar-img" src="" alt=""></span>
     <div class="teacher-header-name">
       <h2 id="teacher-header-name"></h2>
-      <span class="pill tone-muted" id="teacher-header-status" hidden>停用</span>
+      <span class="pill tone-muted" id="teacher-header-status" hidden data-i18n="admin.common.disabled">停用</span>
     </div>
   </div>
 
   <button type="button" class="dash-card" id="basic-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/clipboard.png" alt=""></span>
     <span>
-      <h3>基本資料</h3>
-      <p>查看與編輯姓名、聯絡方式、領收書資料</p>
+      <h3 data-i18n="admin.detail.basic.title">基本資料</h3>
+      <p data-i18n="admin.teachers.detail.basic.desc">查看與編輯姓名、聯絡方式、領收書資料</p>
     </span>
   </button>
 
   <button type="button" class="dash-card" id="courses-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/books.png" alt=""></span>
     <span>
-      <h3>可教課程</h3>
-      <p>設定老師可以教的課程</p>
+      <h3 data-i18n="admin.teachers.detail.courses.title">可教課程</h3>
+      <p data-i18n="admin.teachers.detail.courses.desc">設定老師可以教的課程</p>
     </span>
   </button>
 
   <button type="button" class="dash-card" id="leave-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/summer-holidays.png" alt=""></span>
     <span>
-      <h3>休假申請</h3>
-      <p>設定不上課的休假日</p>
+      <h3 data-i18n="teacher.leave.title">休假申請</h3>
+      <p data-i18n="teacher.leave.desc">設定不上課的休假日</p>
     </span>
   </button>
 
   <button type="button" class="dash-card" id="hours-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/clock.png" alt=""></span>
     <span>
-      <h3>教課可能時間</h3>
-      <p>設定每週可授課的時段</p>
+      <h3 data-i18n="teacher.hours.title">教課可能時間</h3>
+      <p data-i18n="teacher.hours.desc">設定每週可授課的時段</p>
     </span>
   </button>
 
   <button type="button" class="dash-card" id="lessons-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/coming-soon.png" alt=""></span>
     <span>
-      <h3>老師的課程</h3>
-      <p>查看這位老師的課程與預約紀錄</p>
+      <h3 data-i18n="admin.teachers.detail.lessons.title">老師的課程</h3>
+      <p data-i18n="admin.teachers.detail.lessons.desc">查看這位老師的課程與預約紀錄</p>
     </span>
   </button>
 
@@ -118,6 +118,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
   const teachers = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
   const teacher = teachers.find((t) => t.id === teacherId);

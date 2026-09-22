@@ -69,31 +69,31 @@
     <span class="student-header-avatar"><img id="student-header-avatar-img" src="" alt=""></span>
     <div class="student-header-name">
       <h2 id="student-header-name"></h2>
-      <span class="pill tone-muted" id="student-header-status" hidden>停用</span>
+      <span class="pill tone-muted" id="student-header-status" hidden data-i18n="admin.common.disabled">停用</span>
     </div>
   </div>
 
   <button type="button" class="dash-card" id="basic-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/clipboard.png" alt=""></span>
     <span>
-      <h3>基本資料</h3>
-      <p>查看與編輯姓名、聯絡方式、狀態與時區</p>
+      <h3 data-i18n="admin.detail.basic.title">基本資料</h3>
+      <p data-i18n="admin.students.detail.basic.desc">查看與編輯姓名、聯絡方式、狀態與時區</p>
     </span>
   </button>
 
   <button type="button" class="dash-card" id="courses-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/invoice.png" alt=""></span>
     <span>
-      <h3>購買課程</h3>
-      <p>查看與新增學生購買的課程</p>
+      <h3 data-i18n="admin.students.detail.courses.title">購買課程</h3>
+      <p data-i18n="admin.students.detail.courses.desc">查看與新增學生購買的課程</p>
     </span>
   </button>
 
   <button type="button" class="dash-card" id="bookings-entry-card">
     <span class="dash-card-icon"><img src="../assets/icons/flash-card.png" alt=""></span>
     <span>
-      <h3>預約紀錄</h3>
-      <p>查看學生的課程預約與上課紀錄</p>
+      <h3 data-i18n="admin.dash.bookings.title">預約紀錄</h3>
+      <p data-i18n="admin.students.detail.bookings.desc">查看學生的課程預約與上課紀錄</p>
     </span>
   </button>
 
@@ -102,6 +102,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const studentId = Number(new URLSearchParams(window.location.search).get('id'));
   const students = await fetch('/api/students').then((res) => (res.ok ? res.json() : []));
   const student = students.find((s) => s.id === studentId);

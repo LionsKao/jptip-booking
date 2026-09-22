@@ -71,15 +71,15 @@
 <div class="page">
 
   <section class="section" id="card-basic">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2>基本資料</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="admin.detail.basic.title">基本資料</h2></div>
 
     <div class="avatar-picker">
       <span class="avatar-picker-preview"><img id="edit-avatar-preview" src="" alt=""></span>
-      <button type="button" class="btn outline sm" id="edit-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
-      <button type="button" class="btn outline sm" id="edit-avatar-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> 上傳圖片</button>
+      <button type="button" class="btn outline sm" id="edit-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> <span data-i18n="admin.common.random">隨機</span></button>
+      <button type="button" class="btn outline sm" id="edit-avatar-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> <span data-i18n="admin.common.uploadImage">上傳圖片</span></button>
       <input type="file" id="edit-avatar-file-input" accept="image/*" hidden>
       <div class="status-toggle-wrap">
-        <span class="status-toggle-text" id="status-toggle-text">啟用</span>
+        <span class="status-toggle-text" id="status-toggle-text" data-i18n="admin.common.enabled">啟用</span>
         <label class="status-toggle">
           <input type="checkbox" id="edit-status-toggle">
           <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
@@ -89,11 +89,11 @@
 
     <div class="field-row">
       <div class="form-field">
-        <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> 姓名</label>
+        <label for="edit-name"><i class="fa-solid fa-fw fa-user"></i> <span data-i18n="admin.field.name">姓名</span></label>
         <input type="text" id="edit-name" class="text-input" maxlength="50">
       </div>
       <div class="form-field">
-        <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> 手機</label>
+        <label for="edit-phone"><i class="fa-solid fa-fw fa-phone"></i> <span data-i18n="admin.field.phone">手機</span></label>
         <input type="tel" id="edit-phone" class="text-input" maxlength="15">
       </div>
     </div>
@@ -103,9 +103,9 @@
         <input type="email" id="edit-email" class="text-input" maxlength="100">
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-earth-asia"></i> 時區</label>
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> <span data-i18n="admin.field.timezone">時區</span></label>
         <div class="dropdown" id="receipt-timezone-dropdown" data-placeholder="選擇時區">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.field.selectTimezone">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
             <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
             <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
@@ -117,44 +117,44 @@
     </div>
     <div class="field-row">
       <div class="form-field">
-        <label for="edit-specialty"><i class="fa-solid fa-fw fa-star"></i> 專長</label>
-        <input type="text" id="edit-specialty" class="text-input" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
+        <label for="edit-specialty"><i class="fa-solid fa-fw fa-star"></i> <span data-i18n="admin.teachers.field.specialty">專長</span></label>
+        <input type="text" id="edit-specialty" class="text-input" data-i18n-placeholder="admin.teachers.field.specialtyPlaceholder" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
       </div>
       <div class="form-field">
-        <label for="edit-motto"><i class="fa-solid fa-fw fa-quote-left"></i> 座右銘</label>
-        <input type="text" id="edit-motto" class="text-input" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
+        <label for="edit-motto"><i class="fa-solid fa-fw fa-quote-left"></i> <span data-i18n="admin.teachers.field.motto">座右銘</span></label>
+        <input type="text" id="edit-motto" class="text-input" data-i18n-placeholder="admin.teachers.field.mottoPlaceholder" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
       </div>
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="edit-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+      <button type="button" class="btn blue" id="edit-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
   <section class="section" id="card-receipt">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2>領收書資料</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.teachers.receipt.title">領收書資料</h2></div>
 
     <div class="receipt-grid">
       <div class="form-field">
-        <label for="receipt-address"><i class="fa-solid fa-fw fa-house"></i> 老師地址</label>
+        <label for="receipt-address"><i class="fa-solid fa-fw fa-house"></i> <span data-i18n="admin.teachers.receipt.address">老師地址</span></label>
         <input type="text" id="receipt-address" class="text-input" maxlength="200">
       </div>
       <div class="form-field">
-        <label for="receipt-company-name"><i class="fa-solid fa-fw fa-building"></i> 公司名稱</label>
+        <label for="receipt-company-name"><i class="fa-solid fa-fw fa-building"></i> <span data-i18n="admin.teachers.receipt.companyName">公司名稱</span></label>
         <input type="text" id="receipt-company-name" class="text-input" maxlength="100">
       </div>
       <div class="form-field">
-        <label for="receipt-company-address"><i class="fa-solid fa-fw fa-location-dot"></i> 公司地址</label>
+        <label for="receipt-company-address"><i class="fa-solid fa-fw fa-location-dot"></i> <span data-i18n="admin.teachers.receipt.companyAddress">公司地址</span></label>
         <input type="text" id="receipt-company-address" class="text-input" maxlength="200">
       </div>
       <div class="form-field">
-        <label for="receipt-wage"><i class="fa-solid fa-fw fa-sack-dollar"></i> 時薪</label>
+        <label for="receipt-wage"><i class="fa-solid fa-fw fa-sack-dollar"></i> <span data-i18n="admin.teachers.receipt.wage">時薪</span></label>
         <input type="text" id="receipt-wage" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="10">
       </div>
       <div class="form-field">
-        <label><i class="fa-solid fa-fw fa-receipt"></i> 消費稅</label>
+        <label><i class="fa-solid fa-fw fa-receipt"></i> <span data-i18n="admin.teachers.receipt.tax">消費稅</span></label>
         <div class="dropdown" id="receipt-tax-dropdown" data-placeholder="選擇稅率">
-          <button type="button" class="dropdown-trigger"><span class="label">選擇稅率</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.teachers.receipt.selectTax">選擇稅率</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
             <li data-value="0%">0%<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
             <li data-value="5%">5%<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
@@ -163,25 +163,25 @@
         </div>
       </div>
       <div class="form-field">
-        <label for="receipt-bank"><i class="fa-solid fa-fw fa-building-columns"></i> 銀行</label>
+        <label for="receipt-bank"><i class="fa-solid fa-fw fa-building-columns"></i> <span data-i18n="admin.teachers.receipt.bank">銀行</span></label>
         <input type="text" id="receipt-bank" class="text-input" maxlength="50">
       </div>
       <div class="form-field">
-        <label for="receipt-bank-branch"><i class="fa-solid fa-fw fa-building"></i> 支店名</label>
+        <label for="receipt-bank-branch"><i class="fa-solid fa-fw fa-building"></i> <span data-i18n="admin.teachers.receipt.bankBranch">支店名</span></label>
         <input type="text" id="receipt-bank-branch" class="text-input" maxlength="50">
       </div>
       <div class="form-field">
-        <label for="receipt-bank-branch-no"><i class="fa-solid fa-fw fa-hashtag"></i> 店番</label>
+        <label for="receipt-bank-branch-no"><i class="fa-solid fa-fw fa-hashtag"></i> <span data-i18n="admin.teachers.receipt.bankBranchNo">店番</span></label>
         <input type="text" id="receipt-bank-branch-no" class="text-input" maxlength="10">
       </div>
       <div class="form-field">
-        <label for="receipt-bank-account-no"><i class="fa-solid fa-fw fa-credit-card"></i> 口座番号</label>
+        <label for="receipt-bank-account-no"><i class="fa-solid fa-fw fa-credit-card"></i> <span data-i18n="admin.teachers.receipt.bankAccountNo">口座番号</span></label>
         <input type="text" id="receipt-bank-account-no" class="text-input" maxlength="20">
       </div>
     </div>
 
     <div class="receipt-submit-row">
-      <button type="button" class="btn blue" id="receipt-submit-btn"><i class="fa-solid fa-fw fa-check"></i> 確認編輯</button>
+      <button type="button" class="btn blue" id="receipt-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -193,7 +193,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="basicInfoAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -202,9 +202,9 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
-    <h3>已更新老師資料</h3>
+    <h3 data-i18n="admin.teachers.updateSuccess">已更新老師資料</h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -213,11 +213,11 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">目前修改的資料將不會保留。</p>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="admin.common.unsavedEditDesc">目前修改的資料將不會保留。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
     </div>
   </div>
 </div>
@@ -225,14 +225,14 @@
 <div class="modal-overlay" id="avatarCropModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" id="avatar-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <h3>裁切頭像</h3>
-    <p class="text-small">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
+    <h3 data-i18n="admin.common.cropAvatar.title">裁切頭像</h3>
+    <p class="text-small" data-i18n="admin.common.cropAvatar.desc">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
     <div class="crop-container">
       <img id="avatar-crop-image" alt="">
     </div>
     <div class="modal-actions">
-      <button class="btn outline" id="avatar-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn blue" id="avatar-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 確認裁切</button>
+      <button class="btn outline" id="avatar-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn blue" id="avatar-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmCrop">確認裁切</span></button>
     </div>
   </div>
 </div>
@@ -241,6 +241,10 @@
 <script src="../script.js"></script>
 <script>
 (async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
   const teacherId = Number(new URLSearchParams(window.location.search).get('id'));
   const teachers = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
   const teacher = teachers.find((t) => t.id === teacherId);
@@ -263,7 +267,7 @@
     document.getElementById('edit-avatar-preview').src = avatarSrc(currentAvatar);
     function setStatusToggle(isActive) {
       document.getElementById('edit-status-toggle').checked = isActive;
-      document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
+      document.getElementById('status-toggle-text').textContent = isActive ? t('admin.common.enabled') : t('admin.common.disabled');
       document.querySelector('.avatar-picker-preview').classList.toggle('is-inactive', !isActive);
     }
     setStatusToggle(teacher.status !== 'inactive');
@@ -365,7 +369,7 @@
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        return { ok: false, error: data.error || '儲存失敗，請稍後再試' };
+        return { ok: false, error: data.error || t('admin.common.saveFailed') };
       }
       Object.assign(teacher, fields);
       return { ok: true };
@@ -377,11 +381,11 @@
       const email = document.getElementById('edit-email').value.trim();
 
       if (!name) {
-        showBasicAlert('請填寫姓名');
+        showBasicAlert(t('admin.teachers.fillNameRequired'));
         return;
       }
       if (email && !EMAIL_RE.test(email)) {
-        showBasicAlert('Email 格式不對');
+        showBasicAlert(t('admin.common.invalidEmail'));
         return;
       }
 

@@ -62,13 +62,13 @@
 <div class="page">
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2>新增課程</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2 data-i18n="admin.courses.addNew">新增課程</h2></div>
 
     <div class="avatar-picker">
       <span class="avatar-picker-preview is-inactive" id="add-course-image-wrap"><img id="add-course-image-preview" src="" alt=""></span>
-      <button type="button" class="btn outline sm" id="add-course-image-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> 隨機</button>
+      <button type="button" class="btn outline sm" id="add-course-image-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> <span data-i18n="admin.common.random">隨機</span></button>
       <div class="status-toggle-wrap">
-        <span class="status-toggle-text" id="status-toggle-text">停用</span>
+        <span class="status-toggle-text" id="status-toggle-text" data-i18n="admin.common.disabled">停用</span>
         <label class="status-toggle">
           <input type="checkbox" id="add-status-toggle">
           <span class="status-toggle-track"><span class="status-toggle-thumb"></span></span>
@@ -78,18 +78,18 @@
 
     <div class="field-row">
       <div class="form-field">
-        <label for="add-course-name"><i class="fa-solid fa-fw fa-book"></i> 課程名稱</label>
-        <input type="text" id="add-course-name" class="text-input" placeholder="請輸入課程名稱" maxlength="25">
+        <label for="add-course-name"><i class="fa-solid fa-fw fa-book"></i> <span data-i18n="admin.courses.field.name">課程名稱</span></label>
+        <input type="text" id="add-course-name" class="text-input" data-i18n-placeholder="admin.courses.field.namePlaceholder" placeholder="請輸入課程名稱" maxlength="25">
       </div>
       <div class="form-field">
-        <label for="add-course-description"><i class="fa-solid fa-fw fa-align-left"></i> 描述</label>
-        <input type="text" id="add-course-description" class="text-input" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
+        <label for="add-course-description"><i class="fa-solid fa-fw fa-align-left"></i> <span data-i18n="admin.courses.field.description">描述</span></label>
+        <input type="text" id="add-course-description" class="text-input" data-i18n-placeholder="admin.courses.field.descriptionPlaceholder" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
       </div>
     </div>
   </section>
 
   <div class="wizard-nav">
-    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> 新增</button>
+    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.common.add">新增</span></button>
   </div>
 
 </div>
@@ -100,7 +100,7 @@
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
     <h3 id="courseAddAlertText"></h3>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 好</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
     </div>
   </div>
 </div>
@@ -109,9 +109,9 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
-    <h3>已新增課程</h3>
+    <h3 data-i18n="admin.courses.addSuccess">已新增課程</h3>
     <div class="modal-actions">
-      <button class="btn blue" id="course-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" id="course-add-success-ok-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -120,10 +120,10 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
-    <h3>還不能啟用</h3>
-    <p class="text-small">新增課程後，請先設定完成時間參數與可以上這堂課的老師，再啟用課程，避免學生看到還沒設定好的課程。</p>
+    <h3 data-i18n="admin.courses.statusLock.title">還不能啟用</h3>
+    <p class="text-small" data-i18n="admin.courses.statusLock.desc">新增課程後，請先設定完成時間參數與可以上這堂課的老師，再啟用課程，避免學生看到還沒設定好的課程。</p>
     <div class="modal-actions">
-      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> 知道了</button>
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
   </div>
 </div>
@@ -132,17 +132,23 @@
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-    <h3>確定要離開嗎？</h3>
-    <p class="text-small">目前輸入的資料將不會保留。</p>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="admin.common.unsavedFormDesc">目前輸入的資料將不會保留。</p>
     <div class="modal-actions">
-      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> 取消</button>
-      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> 確定離開</button>
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
     </div>
   </div>
 </div>
 
 <script src="../script.js"></script>
 <script>
+(async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+})();
+
   let currentImage = randomAvatar(); // 新增課程時先隨機給一個動物頭像
 
   function setCourseImage(newImage) {
@@ -157,10 +163,11 @@
 
   function setStatusToggle(isActive) {
     document.getElementById('add-status-toggle').checked = isActive;
-    document.getElementById('status-toggle-text').textContent = isActive ? '啟用' : '停用';
     document.getElementById('add-course-image-wrap').classList.toggle('is-inactive', !isActive);
   }
   setStatusToggle(false); // 新課程還有很多東西要設定，預設先停用，這階段不能啟用
+  // 狀態文字一律停用（點擊會被下面攔截，不會真的切到啟用），維持 HTML 原本
+  // data-i18n 套用好的文字即可，不用在這裡搶在語言字典載入完成前先蓋一次。
   document.getElementById('add-status-toggle').addEventListener('click', (e) => {
     if (e.target.checked) {
       e.preventDefault();
@@ -181,7 +188,7 @@
     const name = document.getElementById('add-course-name').value.trim();
 
     if (!name) {
-      showAddAlert('請填寫課程名稱');
+      showAddAlert(t('admin.courses.fillNameRequired'));
       return;
     }
 
@@ -197,7 +204,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showAddAlert(data.error || '新增失敗，請稍後再試');
+      showAddAlert(data.error || t('hours.error.addFailed'));
       return;
     }
     document.getElementById('courseAddSuccessModal').classList.add('open');

@@ -208,5 +208,51 @@
   "admin.teachers.field.mottoPlaceholder": "例：一緒に学び、共に成長していきましょう。",
   "admin.teachers.addSuccess": "已新增老師",
   "admin.teachers.statusLock.title": "還不能啟用",
-  "admin.teachers.statusLock.desc": "新增老師後，請先到「可教課程」與「可上課時段」設定完成，再啟用老師帳號，避免學生看到還沒設定好的老師。"
+  "admin.teachers.statusLock.desc": "新增老師後，請先到「可教課程」與「可上課時段」設定完成，再啟用老師帳號，避免學生看到還沒設定好的老師。",
+
+  "admin.courses.field.name": "課程名稱",
+  "admin.courses.field.namePlaceholder": "請輸入課程名稱",
+  "admin.courses.field.description": "描述",
+  "admin.courses.field.descriptionPlaceholder": "選課時會顯示在課程下方的說明文字",
+  "admin.courses.addSuccess": "已新增課程",
+  "admin.courses.statusLock.title": "還不能啟用",
+  "admin.courses.statusLock.desc": "新增課程後，請先設定完成時間參數與可以上這堂課的老師，再啟用課程，避免學生看到還沒設定好的課程。",
+  "admin.courses.fillNameRequired": "請填寫課程名稱",
+
+  "admin.detail.basic.title": "基本資料",
+
+  "admin.students.detail.basic.desc": "查看與編輯姓名、聯絡方式、狀態與時區",
+  "admin.students.detail.courses.title": "購買課程",
+  "admin.students.detail.courses.desc": "查看與新增學生購買的課程",
+  "admin.students.detail.bookings.desc": "查看學生的課程預約與上課紀錄",
+
+  "admin.teachers.detail.basic.desc": "查看與編輯姓名、聯絡方式、領收書資料",
+  "admin.teachers.detail.courses.title": "可教課程",
+  "admin.teachers.detail.courses.desc": "設定老師可以教的課程",
+  "admin.teachers.detail.lessons.title": "老師的課程",
+  "admin.teachers.detail.lessons.desc": "查看這位老師的課程與預約紀錄",
+
+  "admin.common.uploadImage": "上傳圖片",
+  "admin.common.confirmEdit": "確認編輯",
+  "admin.common.saveFailed": "儲存失敗，請稍後再試",
+  "admin.common.unsavedEditDesc": "目前修改的資料將不會保留。",
+  "admin.common.cropAvatar.title": "裁切頭像",
+  "admin.common.cropAvatar.desc": "拖曳移動、滾輪縮放，裁切範圍固定為正方形。",
+  "admin.common.confirmCrop": "確認裁切",
+
+  "admin.students.updateSuccess": "已更新學生資料",
+
+  "admin.teachers.updateSuccess": "已更新老師資料",
+  "admin.teachers.fillNameRequired": "請填寫姓名",
+  "admin.teachers.receipt.title": "領收書資料",
+  "admin.teachers.receipt.address": "老師地址",
+  "admin.teachers.receipt.companyName": "公司名稱",
+  "admin.teachers.receipt.companyAddress": "公司地址",
+  "admin.teachers.receipt.wage": "時薪",
+  "admin.teachers.receipt.tax": "消費稅",
+  "admin.teachers.receipt.selectTax": "選擇稅率",
+  "admin.teachers.receipt.bank": "銀行",
+  "admin.teachers.receipt.bankBranch": "支店名",
+  "admin.teachers.receipt.bankBranchNo": "店番",
+  "admin.teachers.receipt.bankAccountNo": "口座番号"
 }

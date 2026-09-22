@@ -208,5 +208,51 @@
   "admin.teachers.field.mottoPlaceholder": "VD: Hãy cùng nhau học tập và phát triển.",
   "admin.teachers.addSuccess": "Đã thêm giáo viên",
   "admin.teachers.statusLock.title": "Chưa thể kích hoạt",
-  "admin.teachers.statusLock.desc": "Sau khi thêm giáo viên, vui lòng hoàn tất thiết lập \"Khóa học có thể dạy\" và \"Khung giờ có thể dạy\" trước khi kích hoạt tài khoản, để tránh học viên nhìn thấy giáo viên chưa thiết lập xong."
+  "admin.teachers.statusLock.desc": "Sau khi thêm giáo viên, vui lòng hoàn tất thiết lập \"Khóa học có thể dạy\" và \"Khung giờ có thể dạy\" trước khi kích hoạt tài khoản, để tránh học viên nhìn thấy giáo viên chưa thiết lập xong.",
+
+  "admin.courses.field.name": "Tên khóa học",
+  "admin.courses.field.namePlaceholder": "Nhập tên khóa học",
+  "admin.courses.field.description": "Mô tả",
+  "admin.courses.field.descriptionPlaceholder": "Hiển thị bên dưới khóa học khi chọn khóa học",
+  "admin.courses.addSuccess": "Đã thêm khóa học",
+  "admin.courses.statusLock.title": "Chưa thể kích hoạt",
+  "admin.courses.statusLock.desc": "Sau khi thêm khóa học, vui lòng hoàn tất thiết lập thông số thời gian và giáo viên có thể dạy khóa học này trước khi kích hoạt, để tránh học viên nhìn thấy khóa học chưa thiết lập xong.",
+  "admin.courses.fillNameRequired": "Vui lòng nhập tên khóa học",
+
+  "admin.detail.basic.title": "Thông tin cơ bản",
+
+  "admin.students.detail.basic.desc": "Xem và chỉnh sửa họ tên, thông tin liên hệ, trạng thái và múi giờ",
+  "admin.students.detail.courses.title": "Khóa học đã mua",
+  "admin.students.detail.courses.desc": "Xem và thêm khóa học mà học viên đã mua",
+  "admin.students.detail.bookings.desc": "Xem lịch đặt học và lịch sử tham gia của học viên",
+
+  "admin.teachers.detail.basic.desc": "Xem và chỉnh sửa họ tên, thông tin liên hệ và thông tin hóa đơn",
+  "admin.teachers.detail.courses.title": "Khóa học có thể dạy",
+  "admin.teachers.detail.courses.desc": "Thiết lập các khóa học mà giáo viên có thể dạy",
+  "admin.teachers.detail.lessons.title": "Lớp học của giáo viên",
+  "admin.teachers.detail.lessons.desc": "Xem các buổi học và lịch sử đặt lịch của giáo viên này",
+
+  "admin.common.uploadImage": "Tải ảnh lên",
+  "admin.common.confirmEdit": "Xác nhận chỉnh sửa",
+  "admin.common.saveFailed": "Lưu thất bại, vui lòng thử lại sau",
+  "admin.common.unsavedEditDesc": "Thông tin vừa chỉnh sửa sẽ không được lưu.",
+  "admin.common.cropAvatar.title": "Cắt ảnh đại diện",
+  "admin.common.cropAvatar.desc": "Kéo để di chuyển, cuộn để phóng to/thu nhỏ. Vùng cắt cố định theo hình vuông.",
+  "admin.common.confirmCrop": "Xác nhận cắt ảnh",
+
+  "admin.students.updateSuccess": "Đã cập nhật thông tin học viên",
+
+  "admin.teachers.updateSuccess": "Đã cập nhật thông tin giáo viên",
+  "admin.teachers.fillNameRequired": "Vui lòng nhập họ tên",
+  "admin.teachers.receipt.title": "Thông tin hóa đơn",
+  "admin.teachers.receipt.address": "Địa chỉ giáo viên",
+  "admin.teachers.receipt.companyName": "Tên công ty",
+  "admin.teachers.receipt.companyAddress": "Địa chỉ công ty",
+  "admin.teachers.receipt.wage": "Lương theo giờ",
+  "admin.teachers.receipt.tax": "Thuế tiêu dùng",
+  "admin.teachers.receipt.selectTax": "Chọn mức thuế",
+  "admin.teachers.receipt.bank": "Ngân hàng",
+  "admin.teachers.receipt.bankBranch": "Tên chi nhánh",
+  "admin.teachers.receipt.bankBranchNo": "Mã chi nhánh",
+  "admin.teachers.receipt.bankAccountNo": "Số tài khoản"
 }

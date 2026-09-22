@@ -208,5 +208,51 @@
   "admin.teachers.field.mottoPlaceholder": "例：一緒に学び、共に成長していきましょう。",
   "admin.teachers.addSuccess": "講師を追加しました",
   "admin.teachers.statusLock.title": "まだ有効化できません",
-  "admin.teachers.statusLock.desc": "講師を追加した後、「対応可能コース」と「対応可能な時間帯」の設定を完了してからアカウントを有効化してください。設定が終わっていない講師が生徒に表示されるのを防ぐためです。"
+  "admin.teachers.statusLock.desc": "講師を追加した後、「対応可能コース」と「対応可能な時間帯」の設定を完了してからアカウントを有効化してください。設定が終わっていない講師が生徒に表示されるのを防ぐためです。",
+
+  "admin.courses.field.name": "コース名",
+  "admin.courses.field.namePlaceholder": "コース名を入力してください",
+  "admin.courses.field.description": "説明",
+  "admin.courses.field.descriptionPlaceholder": "コース選択時にコースの下に表示される説明文",
+  "admin.courses.addSuccess": "コースを追加しました",
+  "admin.courses.statusLock.title": "まだ有効化できません",
+  "admin.courses.statusLock.desc": "コースを追加した後、まず時間設定とこのコースを担当できる講師の設定を完了してから有効化してください。設定が終わっていないコースが生徒に表示されるのを防ぐためです。",
+  "admin.courses.fillNameRequired": "コース名を入力してください",
+
+  "admin.detail.basic.title": "基本情報",
+
+  "admin.students.detail.basic.desc": "氏名、連絡先、状態、タイムゾーンを確認・編集する",
+  "admin.students.detail.courses.title": "購入コース",
+  "admin.students.detail.courses.desc": "生徒が購入したコースを確認・追加する",
+  "admin.students.detail.bookings.desc": "生徒の授業予約と受講記録を確認する",
+
+  "admin.teachers.detail.basic.desc": "氏名、連絡先、領収書情報を確認・編集する",
+  "admin.teachers.detail.courses.title": "対応可能コース",
+  "admin.teachers.detail.courses.desc": "講師が担当できるコースを設定する",
+  "admin.teachers.detail.lessons.title": "講師の授業",
+  "admin.teachers.detail.lessons.desc": "この講師の授業と予約記録を確認する",
+
+  "admin.common.uploadImage": "画像をアップロード",
+  "admin.common.confirmEdit": "編集を確定",
+  "admin.common.saveFailed": "保存に失敗しました。しばらくしてから再度お試しください",
+  "admin.common.unsavedEditDesc": "現在編集中の内容は保存されません。",
+  "admin.common.cropAvatar.title": "アバターをトリミング",
+  "admin.common.cropAvatar.desc": "ドラッグで移動、ホイールで拡大縮小。トリミング範囲は正方形に固定されています。",
+  "admin.common.confirmCrop": "トリミングを確定",
+
+  "admin.students.updateSuccess": "生徒情報を更新しました",
+
+  "admin.teachers.updateSuccess": "講師情報を更新しました",
+  "admin.teachers.fillNameRequired": "氏名を入力してください",
+  "admin.teachers.receipt.title": "領収書情報",
+  "admin.teachers.receipt.address": "講師住所",
+  "admin.teachers.receipt.companyName": "会社名",
+  "admin.teachers.receipt.companyAddress": "会社住所",
+  "admin.teachers.receipt.wage": "時給",
+  "admin.teachers.receipt.tax": "消費税",
+  "admin.teachers.receipt.selectTax": "税率を選択",
+  "admin.teachers.receipt.bank": "銀行",
+  "admin.teachers.receipt.bankBranch": "支店名",
+  "admin.teachers.receipt.bankBranchNo": "店番",
+  "admin.teachers.receipt.bankAccountNo": "口座番号"
 }

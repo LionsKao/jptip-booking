@@ -208,5 +208,51 @@
   "admin.teachers.field.mottoPlaceholder": "e.g. Let's learn and grow together.",
   "admin.teachers.addSuccess": "Teacher Added",
   "admin.teachers.statusLock.title": "Can't Enable Yet",
-  "admin.teachers.statusLock.desc": "After adding a teacher, please finish setting up their Available Courses and Available Teaching Hours before enabling the account, so students don't see a teacher who isn't fully set up yet."
+  "admin.teachers.statusLock.desc": "After adding a teacher, please finish setting up their Available Courses and Available Teaching Hours before enabling the account, so students don't see a teacher who isn't fully set up yet.",
+
+  "admin.courses.field.name": "Course Name",
+  "admin.courses.field.namePlaceholder": "Enter course name",
+  "admin.courses.field.description": "Description",
+  "admin.courses.field.descriptionPlaceholder": "Shown below the course when students are selecting a course",
+  "admin.courses.addSuccess": "Course Added",
+  "admin.courses.statusLock.title": "Can't Enable Yet",
+  "admin.courses.statusLock.desc": "After adding a course, please finish setting up its schedule parameters and which teachers can teach it before enabling it, so students don't see a course that isn't fully set up yet.",
+  "admin.courses.fillNameRequired": "Please enter a course name",
+
+  "admin.detail.basic.title": "Basic Info",
+
+  "admin.students.detail.basic.desc": "View and edit name, contact info, status, and timezone",
+  "admin.students.detail.courses.title": "Purchased Courses",
+  "admin.students.detail.courses.desc": "View and add courses purchased by this student",
+  "admin.students.detail.bookings.desc": "View this student's bookings and attendance records",
+
+  "admin.teachers.detail.basic.desc": "View and edit name, contact info, and receipt information",
+  "admin.teachers.detail.courses.title": "Available Courses",
+  "admin.teachers.detail.courses.desc": "Set which courses this teacher can teach",
+  "admin.teachers.detail.lessons.title": "Teacher's Lessons",
+  "admin.teachers.detail.lessons.desc": "View this teacher's lessons and booking records",
+
+  "admin.common.uploadImage": "Upload Image",
+  "admin.common.confirmEdit": "Confirm Edit",
+  "admin.common.saveFailed": "Save failed, please try again later",
+  "admin.common.unsavedEditDesc": "The changes you made will not be saved.",
+  "admin.common.cropAvatar.title": "Crop Avatar",
+  "admin.common.cropAvatar.desc": "Drag to move, scroll to zoom. The crop area is fixed to a square.",
+  "admin.common.confirmCrop": "Confirm Crop",
+
+  "admin.students.updateSuccess": "Student Info Updated",
+
+  "admin.teachers.updateSuccess": "Teacher Info Updated",
+  "admin.teachers.fillNameRequired": "Please enter a name",
+  "admin.teachers.receipt.title": "Receipt Information",
+  "admin.teachers.receipt.address": "Teacher's Address",
+  "admin.teachers.receipt.companyName": "Company Name",
+  "admin.teachers.receipt.companyAddress": "Company Address",
+  "admin.teachers.receipt.wage": "Hourly Wage",
+  "admin.teachers.receipt.tax": "Sales Tax",
+  "admin.teachers.receipt.selectTax": "Select Tax Rate",
+  "admin.teachers.receipt.bank": "Bank",
+  "admin.teachers.receipt.bankBranch": "Branch Name",
+  "admin.teachers.receipt.bankBranchNo": "Branch Code",
+  "admin.teachers.receipt.bankAccountNo": "Account Number"
 }
