@@ -22,12 +22,104 @@ function avatarSrc(avatar) {
   return `../assets/avatars/${avatar}`; // 隨機動物頭像（打包在 assets 裡的固定圖示）
 }
 
+// 課程詳情標題旁的複製按鈕（學生預約紀錄／老師我的課程／管理端預約紀錄／管理端學生預約紀錄共用）：
+// 直接把畫面上課程詳情每一格的「標題：內容」加上狀態組成文字——畫面顯示什麼就複製什麼，時區也
+// 自動跟該頁一致。方便使用者有問題時直接貼給客服／老師／學生，不用自己謄打。
+function bindCopyDetailButton(btn, getStatusLabel, onFail) {
+  const icon = btn.querySelector('i');
+  // .copy-icon-pop 沒被拿掉過就直接換圖示 class 的話，動畫不會重播（CSS animation 只在 class
+  // 真的「從無到有」時才會重新觸發）。先換 class、強制 reflow、再加回去，確保每次點擊都重播。
+  function swapIcon(newIconClass) {
+    icon.className = newIconClass;
+    void icon.offsetWidth;
+    icon.classList.add('copy-icon-pop');
+  }
+  btn.addEventListener('click', async () => {
+    const summary = btn.closest('.section').querySelector('.confirm-summary');
+    const lines = [...summary.querySelectorAll('.confirm-highlight')]
+      .filter((el) => !el.hidden)
+      .map((el) => `${el.querySelector('p').textContent}：${el.querySelector('h3').textContent}`);
+    const status = getStatusLabel();
+    if (status) lines.push(`${t('history.detail.status')}：${status}`);
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      swapIcon('fa-solid fa-check');
+      setTimeout(() => swapIcon('fa-regular fa-copy'), 1500);
+    } catch {
+      onFail();
+    }
+  });
+}
+
+// 課程詳情「課程」那一格的圖示（管理端預約紀錄／學生預約紀錄／老師我的課程共用）：
+// 課程有上傳封面圖就用真的課程圖片（圓形裁切，跟課程管理列表一致），沒有就維持書本圖示。
+function setCourseHighlightIcon(imgEl, course) {
+  const src = course ? courseImageSrc(course.image) : '';
+  imgEl.src = src || '../assets/icons/books.png';
+  imgEl.classList.toggle('is-course-photo', !!src);
+}
+
 // 課程封面圖：沒上傳過就回傳空字串（呼叫端自行 fallback 成色塊+文字）
 function courseImageSrc(image) {
   if (!image) return '';
   if (image.startsWith('data:')) return image; // 舊資料相容：裁切後直接存 base64（尚未上傳到 R2）
   if (image.startsWith('courses/')) return `/${image}`; // R2 上傳的真實課程圖，經 Worker /courses/:key 讀取
   return `../assets/avatars/${image}`; // 隨機圖示（沿用跟老師/學生一樣的動物圖示集）
+}
+
+// 老師端三頁（教課可能時間／我的課程／休假申請）要讀「這頁在看的那位老師」的完整資料（時區在領收書資料裡）：
+//   老師本人 → /api/teachers/me（只回自己那筆）
+//   管理者代管 → /api/teachers 完整清單裡找 ?id= 那位（完整欄位只有管理者拿得到，
+//                學生／老師呼叫 /api/teachers 只會拿到選老師卡片需要的公開欄位）
+async function loadCurrentTeacher(viewingAsAdmin, teacherIdParam) {
+  if (!viewingAsAdmin) {
+    return fetch('/api/teachers/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  }
+  const teachers = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : [])).catch(() => []);
+  return teachers.find((t) => t.id === Number(teacherIdParam)) || null;
+}
+
+// 設定頁（學生／老師）的「上傳圖片」：選檔 → 裁切成 400x400 正方形 → 交給 onCropped(dataUrl, blob)。
+// 跟管理端不同，這裡裁切完不會馬上上傳：呼叫端先用 dataUrl 本地預覽，按「確認編輯」才真的上傳，
+// 沒按就離開的話伺服器上的頭像不會被換掉。頁面上要有 #avatarCropModal 那組裁切 modal 跟 Cropper.js。
+function bindAvatarCropUpload(uploadBtn, fileInput, onCropped) {
+  const CROP_OUTPUT_SIZE = 400;
+  const modal = document.getElementById('avatarCropModal');
+  const img = document.getElementById('avatar-crop-image');
+  let cropper = null;
+
+  function closeCropModal() {
+    if (cropper) { cropper.destroy(); cropper = null; }
+    modal.classList.remove('open');
+    fileInput.value = '';
+  }
+
+  uploadBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+      modal.classList.add('open');
+      img.onload = () => {
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, dragMode: 'move', guides: true, autoCropArea: 1, background: false });
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('avatar-crop-confirm-btn').addEventListener('click', () => {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ width: CROP_OUTPUT_SIZE, height: CROP_OUTPUT_SIZE });
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    canvas.toBlob((blob) => { if (blob) onCropped(dataUrl, blob); }, 'image/jpeg', 0.8);
+    closeCropModal();
+  });
+  document.getElementById('avatar-crop-cancel-btn').addEventListener('click', closeCropModal);
+  document.getElementById('avatar-crop-close-btn').addEventListener('click', closeCropModal);
 }
 
 // ==========================================================================
@@ -89,11 +181,18 @@ function getDropdownValue(dropdownId) {
 function setDropdownValue(dropdownId, value) {
   if (!value) return;
   const dropdown = document.getElementById(dropdownId);
-  const li = dropdown.querySelector(`.dropdown-menu li[data-value="${value}"]`);
+  const items = [...dropdown.querySelectorAll('.dropdown-menu li')];
+  // 時區標籤比對忽略寫法差異：舊資料可能是 '(UTC+6:30) 仰光'、'(UTC+9) 東京' 這種有括號、沒補零
+  // 或城市名稱不同的寫法，選項則是 'UTC+06:30 仰光'——完全一樣的找不到時，改用解析出來的 UTC
+  // 偏移量比對，不然選單會什麼都沒選到，按儲存時時區就被存成空白。
+  const isTimezone = (v) => /UTC[+-]\d/.test(v || '');
+  const li = items.find((l) => l.dataset.value === value)
+    || (isTimezone(value) ? items.find((l) => isTimezone(l.dataset.value) && parseUtcOffset(l.dataset.value) === parseUtcOffset(value)) : null);
   if (!li) return;
   dropdown.querySelectorAll('.dropdown-menu li').forEach((l) => l.classList.remove('selected'));
   li.classList.add('selected');
   dropdown.querySelector('.dropdown-trigger .label').textContent = li.textContent.trim();
+  dropdown.dispatchEvent(new CustomEvent('dropdown:change', { bubbles: true }));
 }
 
 // ==========================================================================
@@ -127,6 +226,8 @@ document.querySelectorAll('.dropdown').forEach((dropdown) => {
         label.textContent = item.dataset.label || item.dataset.value;
         dropdown.classList.remove('open');
       }
+      // 讓頁面知道選取變了（例如「選齊了才讓新增按鈕可以按」）
+      dropdown.dispatchEvent(new CustomEvent('dropdown:change', { bubbles: true }));
     });
   });
 });
@@ -221,7 +322,12 @@ function renderLangSwitch(container, currentLang, onChange) {
       container.querySelectorAll('.lang-switch-menu li').forEach((l) => l.classList.remove('selected'));
       li.classList.add('selected');
       setCurrentLang(lang);
+      // 淡出→換字→淡入，蓋掉不同語言文字長度不一造成的版面跳動；只在使用者主動
+      // 切換語言時做，第一次載入頁面呼叫 initI18n() 不會經過這裡，不受影響。
+      document.body.classList.add('i18n-fade-out');
+      await new Promise((resolve) => setTimeout(resolve, 150));
       await initI18n(lang);
+      document.body.classList.remove('i18n-fade-out');
       if (onChange) onChange(lang);
     });
   });
@@ -255,6 +361,9 @@ const WEEKDAY_SHORT_STYLE_MAP = { 'zh-Hant': 'narrow', ja: 'narrow', en: 'short'
 // 索引對齊 Date.getDay()（0 = 星期日）；緬甸文的星期名稱沒有更短的縮寫形式
 // （長格式、短格式是同一組字），這點已經用 Intl 在有支援的環境下驗證過。
 const MY_WEEKDAY_NAMES = ['တနင်္ဂနွေ', 'တနင်္လာ', 'အင်္ဂါ', 'ဗုဒ္ဓဟူး', 'ကြာသပတေး', 'သောကြာ', 'စနေ'];
+// 日期選擇器的星期標題欄位很窄，緬甸文全名（尤其星期四 ကြာသပတေး）會擠爆，這裡另外用單字縮寫，
+// 索引與 MY_WEEKDAY_NAMES 對齊（0 = 星期日）。
+const MY_WEEKDAY_SHORT_NAMES = ['နွေ', 'လာ', 'ဂါ', 'ဟူး', 'ကြာ', 'သော', 'နေ'];
 const MY_MONTH_NAMES = [
   'ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်',
   'ဇူလိုင်', 'သြဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ',
@@ -273,7 +382,7 @@ function myMonthYearLabel(year, month) {
 }
 
 // ==========================================================================
-// 老師／學生「時區」欄位（例：'(UTC+6:30) 仰光'）— 從標籤字串解析出實際小時
+// 老師／學生「時區」欄位（例：'UTC+06:30 仰光'；舊資料可能是 '(UTC+6:30) 仰光'）— 從標籤字串解析出實際小時
 // 差，統一在這裡處理，courses/hours/lessons/booking-history 等頁面都共用，
 // 才不用每個頁面各自寫一份、又漏掉緬甸這種非整數小時的時區。
 // ==========================================================================
@@ -295,6 +404,13 @@ function formatUtcOffset(offsetHours) {
   return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// 句子裡要帶出時區時用（例：「所有時段皆為 UTC+06:30 仰光時間」）——統一成不帶括號、
+// 偏移量補零的 'UTC+06:30 仰光'；舊資料 '(UTC+6:30) 仰光' 這種寫法也會轉成一樣的格式。
+function formatTimezoneForSentence(label) {
+  const city = (label || '').replace(/^\s*\(?UTC[+-][\d:]*\)?\s*/, '').trim();
+  return `UTC${formatUtcOffset(parseUtcOffset(label))}${city ? ` ${city}` : ''}`;
+}
+
 // 老師時段（teacher_hours）用固定的中文「星期幾」字串當資料庫的 day 值（跟
 // src/index.ts 的 WEEKDAY_NAMES 一致），畫面顯示才需要翻譯——這裡只是顯示用
 // 的查表，不影響實際存值。
@@ -314,6 +430,14 @@ function formatDateLong(dateInput, lang = getCurrentLang()) {
   const d = parseYmd(dateInput);
   if (lang === 'my') return myFormatLong(d);
   const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+  if (lang === 'zh-Hant') {
+    // 年月日之間留空白、月/日補成兩位數（09 而非 9），星期前面也留空白：
+    // 「2026 年 09 月 10 日 星期四」。
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(d);
+    return `${d.getFullYear()} 年 ${month} 月 ${day} 日 ${weekday}`;
+  }
   return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(d);
 }
 
@@ -360,7 +484,7 @@ function formatDateShort(dateInput, lang = getCurrentLang()) {
     if (lang === 'my') {
       // MY_WEEKDAY_NAMES 索引 0 = 星期日，這裡從星期一開始排，所以位移一格。
       for (let i = 0; i < 7; i++) {
-        weekdayHeaderEls[i].textContent = MY_WEEKDAY_NAMES[(i + 1) % 7];
+        weekdayHeaderEls[i].textContent = MY_WEEKDAY_SHORT_NAMES[(i + 1) % 7];
       }
     } else {
       const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
@@ -548,6 +672,108 @@ document.querySelectorAll('.time-slot:not(.disabled)').forEach((slot) => applyTi
 document.querySelectorAll('.entry-card').forEach((card) => applyTiltEffect(card, 6));
 
 // ==========================================================================
+// Star rating — starsHtml() renders a read-only 1-5 star row as an HTML
+// string, for embedding in card/detail template literals (booking card
+// badges, teacher/admin read-only displays). initStarRatingInput() wires a
+// clickable picker into a live container — only the student's own rating
+// input (booking-history.html) needs this; every other display is read-only
+// and just uses starsHtml().
+// ==========================================================================
+// 「課程回饋」區塊：每個人一段——大頭照＋名字、星星、留言／課堂記錄（還沒填就是空星星＋灰字
+// 「尚無留言」）。管理者兩段（學生、老師）都放，老師／學生只放自己那段，可見範圍跟後端
+// bookingRowToJson 一致。用 DOM 組而不是拼 HTML 字串：留言是使用者輸入的文字，要用
+// textContent 才不會被當成 HTML 執行。
+// entries: [{ avatar, name, rating, text }]
+function renderFeedbackEntries(container, entries) {
+  container.replaceChildren(...entries.map(({ avatar, name, rating, text }) => {
+    const entry = document.createElement('div');
+    entry.className = 'feedback-entry';
+    const label = document.createElement('p');
+    label.className = 'feedback-label';
+    const img = document.createElement('img');
+    img.className = 'feedback-avatar';
+    img.src = avatarSrc(avatar);
+    img.alt = '';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'feedback-name';
+    nameEl.textContent = name || '';
+    label.append(img, nameEl);
+    const stars = document.createElement('div');
+    stars.className = 'feedback-stars';
+    stars.innerHTML = starsHtml(rating);
+    const textEl = document.createElement('p');
+    textEl.className = `text-small feedback-text${text ? '' : ' is-empty'}`;
+    textEl.textContent = text || t('history.feedback.noComment');
+    entry.append(label, stars, textEl);
+    return entry;
+  }));
+}
+
+// 已完成課堂卡片上的回饋標籤：「★ 評分」＋「💬 有沒有留言／課堂記錄（0 或 1）」，還沒評分就是 ★ 0。
+// 學生的是黃色、老師的是粉紅色——學生卡片只放學生自己的、老師卡片只放老師自己的，管理者兩個都放
+// （可見範圍跟後端 bookingRowToJson 一致）。
+function feedbackPillHtml(who, tone, rating, text) {
+  const hasText = text && text.trim() ? 1 : 0;
+  return `<span class="pill ${tone} has-icon booking-card-feedback-pill" aria-label="${who}"><i class="fa-solid fa-star"></i>${rating ?? 0}<img class="pill-icon" src="../assets/icons/chat.png" alt="">${hasText}</span>`;
+}
+function studentFeedbackPillHtml(booking) {
+  return feedbackPillHtml(t('history.feedback.studentRating'), 'rating-star', booking.rating, booking.studentComment);
+}
+function teacherFeedbackPillHtml(booking) {
+  return feedbackPillHtml(t('history.feedback.teacherRating'), 'tone-rose', booking.teacherRating, booking.teacherNote);
+}
+
+function starsHtml(value, extraClass = '') {
+  const stars = Array.from({ length: 5 }, (_, i) =>
+    `<i class="fa-${i < (value || 0) ? 'solid' : 'regular'} fa-star"></i>`
+  ).join('');
+  return `<span class="star-rating${extraClass ? ` ${extraClass}` : ''}">${stars}</span>`;
+}
+
+// 按鈕從「不能按」變成「可以按」的那一下跳一次（.btn-enabled-pop）。呼叫端只在真的從停用
+// 變成可按時呼叫，避免重複檢查時一直重播。class 拿掉、強制 reflow 再加回去，確保動畫每次
+// 都能從頭播放（同一個 class 持續存在的話瀏覽器不會重播 CSS animation）。
+function playEnabledPop(btn) {
+  btn.classList.remove('btn-enabled-pop');
+  void btn.offsetWidth;
+  btn.classList.add('btn-enabled-pop');
+}
+// 依條件切換按鈕能不能按；從停用變成可按的那一下自動跳一次，已經可按時重複呼叫不會重播。
+function setButtonEnabled(btn, enabled) {
+  const wasDisabled = btn.disabled;
+  btn.disabled = !enabled;
+  if (wasDisabled && enabled) playEnabledPop(btn);
+}
+// 讓按鈕跟著表單內容切換能不能按：container 裡任何輸入（打字、勾選、下拉選單）都會重新用
+// isReady() 判斷，從停用變成可按時跳一下。不是表單欄位造成的變動（例如換頭像、儲存成功後
+// 更新了「已儲存」的基準）由呼叫端自己呼叫回傳的 refresh()。
+function watchForm(container, btn, isReady) {
+  const refresh = () => setButtonEnabled(btn, isReady());
+  ['input', 'change', 'dropdown:change'].forEach((type) => container.addEventListener(type, refresh));
+  btn.disabled = !isReady();
+  return refresh;
+}
+
+// 星星按鈕只建立一次，hover／點擊時只切換圖示樣式——不能在 hover 時重建按鈕：滑鼠按下跟放開
+// 之間如果游標底下的按鈕被換成新的元素，瀏覽器不會觸發 click，真的用滑鼠點星星會點不到。
+function initStarRatingInput(container, onChange) {
+  let value = 0;
+  container.innerHTML = Array.from({ length: 5 }, (_, i) =>
+    `<button type="button" class="star-rating-btn" data-value="${i + 1}" aria-label="${t('booking.rating.starLabel', { n: i + 1 })}"><i class="fa-regular fa-star"></i></button>`
+  ).join('');
+  const buttons = [...container.querySelectorAll('.star-rating-btn')];
+  function paint(shown) {
+    buttons.forEach((btn, i) => { btn.querySelector('i').className = `fa-${i < shown ? 'solid' : 'regular'} fa-star`; });
+  }
+  buttons.forEach((btn) => {
+    const n = Number(btn.dataset.value);
+    btn.addEventListener('mouseenter', () => paint(n));
+    btn.addEventListener('mouseleave', () => paint(value));
+    btn.addEventListener('click', () => { value = n; paint(value); onChange(n); });
+  });
+}
+
+// ==========================================================================
 // Modal
 // ==========================================================================
 document.querySelectorAll('[data-modal-open]').forEach((btn) => {
@@ -635,7 +861,7 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         return;
       }
       otpBoxes.forEach((b) => { b.disabled = false; b.value = ''; b.classList.remove('filled', 'error'); });
-      submitBtn.disabled = false;
+      setButtonEnabled(submitBtn, true); // 第一次寄出驗證碼時「登入」從停用變成可按，跳一下；重寄時已經可按，不會再跳
       card.dataset.step = '2';
       sendBtn.innerHTML = `<i class="fa-solid fa-fw fa-rotate-right"></i> ${t('login.resendCode')}`;
       sendBtn.classList.remove('blue');
@@ -727,8 +953,14 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
       }
       // The server already set the real (HttpOnly) session cookie on this
       // response — that cookie, not anything client-readable, is what every
-      // protected page/API now checks.
-      window.location.href = `${card.dataset.role}/`;
+      // protected page/API now checks. Show a brief success message before
+      // redirecting so the auto-submit-on-6th-digit path doesn't feel like
+      // the page just yanks itself away with zero feedback.
+      otpBoxes.forEach((b) => { b.disabled = true; });
+      document.getElementById('loginSuccessModal').classList.add('open');
+      setTimeout(() => {
+        window.location.href = `${card.dataset.role}/`;
+      }, 1800);
     } catch {
       showLoginAlert(t('login.error.network'), 'error');
       submitBtn.disabled = false;

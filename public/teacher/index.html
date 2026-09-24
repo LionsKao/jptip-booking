@@ -41,7 +41,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-5);
-    width: 500px;
+    width: 550px;
     max-width: 100%;
     margin: 0 auto;
     border-radius: var(--radius-lg);
@@ -124,6 +124,13 @@
         <p data-i18n="teacher.hours.desc">設定每週可授課的時段</p>
       </span>
     </button>
+    <button type="button" class="dash-card" data-action="settings">
+      <span class="dash-card-icon"><img src="../assets/icons/cogwheel.png" alt=""></span>
+      <span>
+        <h3 data-i18n="settings.title">設定</h3>
+        <p data-i18n="settings.desc">管理個人資料與偏好設定</p>
+      </span>
+    </button>
   </div>
 
 </div>
@@ -133,11 +140,7 @@
 (async () => {
   // 帳號的 language 欄位才是真相；登入後這裡負責把它同步進 localStorage，
   // 也讓老師隨時能在這頁換語言（換的當下也存回帳號，換裝置登入才會一致）。
-  // 老師自己的資料沒有獨立的 /me 端點，跟其他老師頁面一樣用 session email
-  // 反查 /api/teachers 全清單來找到自己那筆。
-  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
-  const teachers = session ? await fetch('/api/teachers').then((res) => (res.ok ? res.json() : [])).catch(() => []) : [];
-  const selfTeacher = session ? teachers.find((t) => t.email === session.email) : null;
+  const selfTeacher = await fetch('/api/teachers/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
   const lang = (selfTeacher && selfTeacher.language) || getCurrentLang();
   setCurrentLang(lang);
   await initI18n(lang);
@@ -158,6 +161,9 @@
   });
   document.querySelector('[data-action="hours"]').addEventListener('click', () => {
     window.location.href = 'hours.html';
+  });
+  document.querySelector('[data-action="settings"]').addEventListener('click', () => {
+    window.location.href = 'settings.html';
   });
 
   document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));

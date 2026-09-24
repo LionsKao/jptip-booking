@@ -28,6 +28,7 @@
     gap: var(--space-4);
   }
   .wizard-nav .btn { flex: 1 1 0; min-width: 0; }
+  #admin-action-section .wizard-nav { max-width: none; margin: 0; }
 
   #card-bookings {
     max-width: 1000px;
@@ -71,7 +72,6 @@
   #all-bookings-cards .booking-card:nth-child(2n) {
     animation-delay: .04s;
   }
-  #card-bookings .booking-card:has(.pill.info) { cursor: default; }
   #card-bookings .booking-card:hover { border-color: var(--color-blue); }
 
   .page-nav {
@@ -126,14 +126,14 @@
   <div id="bookings-detail-view" hidden>
     <section class="section">
       <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
-      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2><button type="button" class="info-btn" id="copy-detail-btn" data-i18n-aria-label="history.detail.copy" aria-label="複製課程資訊"><i class="fa-regular fa-copy"></i></button></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
           <span><p data-i18n="history.detail.code">預約編號</p><h3 id="detail-booking-code">—</h3></span>
         </div>
         <div class="confirm-highlight">
-          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span class="confirm-highlight-icon"><img id="detail-course-image" src="../assets/icons/books.png" alt=""></span>
           <span><p data-i18n="booking.confirm.course">課程</p><h3 id="detail-course">—</h3></span>
         </div>
         <div class="confirm-highlight-row">
@@ -152,20 +152,27 @@
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
-          <span><p data-i18n="history.detail.time">時間</p><h3 id="detail-time">—</h3></span>
+          <span><p data-i18n="history.detail.time">時間・課程長度・時區</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
-    <div class="wizard-nav" id="admin-action-nav">
-      <div class="wizard-nav-row">
-        <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
-        <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> <span data-i18n="status.absent">缺席</span></button>
-        <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> <span data-i18n="status.pending">需處理</span></button>
+    <section class="section" id="booking-feedback">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
+      <div id="booking-feedback-entries"></div>
+    </section>
+    <section class="section" id="admin-action-section">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/click.png" alt=""><h2 data-i18n="admin.bookings.actions.title">功能按鈕</h2></div>
+      <div class="wizard-nav" id="admin-action-nav">
+        <div class="wizard-nav-row">
+          <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
+          <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> <span data-i18n="status.absent">缺席</span></button>
+          <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> <span data-i18n="status.pending">需處理</span></button>
+        </div>
+        <div class="wizard-nav-row">
+          <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.markAttended">完成課程</span></button>
+        </div>
       </div>
-      <div class="wizard-nav-row">
-        <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.markAttended">完成課程</span></button>
-      </div>
-    </div>
+    </section>
   </div>
 
 </div>
@@ -238,7 +245,7 @@
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
     <h3 data-i18n="admin.bookings.tzModal.title">課程時間顯示時區</h3>
-    <p class="text-small" data-i18n="admin.bookings.tzModal.desc">管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
+    <p class="text-small" data-i18n="admin.bookings.tzModal.desc">管理者一律以 UTC+08:00 台北時間顯示，不受老師/學生個人時區設定影響。</p>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
@@ -260,6 +267,12 @@
   // 不像 student-bookings.html 是單一學生的預約，這裡是全部學生的預約總覽——
   // GET /api/bookings 不帶 studentId/teacherId 參數，管理者身分會拿到全部資料。
   let bookings = await fetch('/api/bookings').then((res) => (res.ok ? res.json() : []));
+
+  // 課程回饋的「學生評分／老師課堂記錄」小標要放本人大頭照，預約資料只有 id，另外抓名單對照
+  const [studentsCache, teachersCache] = await Promise.all([
+    fetch('/api/students').then((res) => (res.ok ? res.json() : [])).catch(() => []),
+    fetch('/api/teachers').then((res) => (res.ok ? res.json() : [])).catch(() => []),
+  ]);
 
   const STATUS_MAP = {
     pending:   { cls: 'pending',   icon: 'icon-alert.png',     get label() { return t('status.pending'); } },
@@ -311,12 +324,15 @@
   function renderBookingCard(b) {
     const s = STATUS_MAP[b.status];
     return `<div class="booking-card is-clickable" data-id="${b.id}">
-      <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+      <div class="booking-card-status-stack">
+        <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+        ${b.status === 'attended' ? studentFeedbackPillHtml(b) + teacherFeedbackPillHtml(b) : ''}
+      </div>
       <div class="booking-card-info">
         ${b.bookingCode ? `<p class="booking-card-code">${b.bookingCode}</p>` : ''}
+        <p class="booking-card-datetime">${formatBookingDateTime(b)}</p>
         <p class="booking-card-course">${b.course}</p>
         <h4>${b.studentName} ／ ${b.teacher}</h4>
-        <p class="booking-card-datetime">${formatBookingDateTime(b)}</p>
       </div>
     </div>`;
   }
@@ -378,6 +394,7 @@
     if (!booking) return;
     activeBookingId = id;
     document.getElementById('detail-course').textContent = booking.course;
+    setCourseHighlightIcon(document.getElementById('detail-course-image'), loadCourses().find((c) => (booking.courseId != null && c.id === booking.courseId) || c.name === booking.course));
     document.getElementById('detail-student').textContent = booking.studentName;
     document.getElementById('detail-teacher').textContent = booking.teacher;
     const parts = computeDisplayParts(booking);
@@ -395,6 +412,14 @@
       ribbonText.className = `course-ribbon ${ribbon.tone}`;
     }
 
+    const student = studentsCache.find((st) => st.id === booking.studentId);
+    const teacher = teachersCache.find((tc) => tc.id === booking.teacherId);
+    // 管理者一律看得到「課程回饋」區塊，學生、老師兩段都在（還沒填就是空星星＋「尚無留言」）
+    renderFeedbackEntries(document.getElementById('booking-feedback-entries'), [
+      { avatar: student && student.avatar, name: booking.studentName, rating: booking.rating, text: booking.studentComment },
+      { avatar: teacher && teacher.avatar, name: booking.teacher, rating: booking.teacherRating, text: booking.teacherNote },
+    ]);
+
     window.scrollTo(0, 0);
   }
 
@@ -403,6 +428,10 @@
     document.getElementById('bookings-detail-view').hidden = true;
     document.getElementById('bookings-list-view').hidden = false;
   }
+
+  bindCopyDetailButton(document.getElementById('copy-detail-btn'),
+    () => { const b = bookings.find((x) => x.id === activeBookingId); return b ? STATUS_MAP[b.status].label : ''; },
+    () => showBookingAlert(t('history.detail.copyFailed')));
 
   function showBookingAlert(message) {
     document.getElementById('basicInfoAlertText').textContent = message;

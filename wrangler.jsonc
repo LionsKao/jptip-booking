@@ -31,6 +31,6 @@
   "vars": {
     "MS_TENANT_ID": "f1aafcf0-78cb-42c9-93ec-c460da98aaaa",
     "MS_CLIENT_ID": "8cadde49-f29b-44cc-9c5c-4b8c99e8e6e5",
-    "MS_SENDER_EMAIL": "flow@jptip.co.jp"
+    "MS_SENDER_EMAIL": "one-on-one@jptip.co.jp"
   }
 }

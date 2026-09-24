@@ -13,7 +13,6 @@
     max-width: 1048px;
     padding-top: calc(var(--space-6) + 64px + var(--space-5));
   }
-  #today-group,
   #history-group {
     max-width: 1000px;
     width: 100%;
@@ -27,8 +26,7 @@
     margin-top: var(--space-6);
   }
 
-  #history-cards,
-  #today-cards {
+  #history-cards {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -55,6 +53,22 @@
     margin: 0;
     font-size: 1.125rem;
   }
+  /* 「今天」徽章：疊在卡片左上角、坐在卡片框線上，沒有底色，就是圖示本身
+     （.booking-card 本身已經是 position:relative）。用 <img> 而非圖示字型，
+     之後要換成別的圖案只要換 flag.png 這個檔案即可。 */
+  .booking-card-today-badge {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 32px;
+    height: 32px;
+    z-index: 1;
+  }
+  .booking-card-today-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 
   .wizard-nav {
     display: flex;
@@ -76,8 +90,7 @@
     body.booking-history .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
-    #history-cards,
-    #today-cards {
+    #history-cards {
       grid-template-columns: 1fr;
     }
     .wizard-nav {
@@ -98,11 +111,6 @@
 
   <div id="history-list-view">
 
-    <section class="section" id="today-group">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/flag.png" alt=""><h2 data-i18n="history.today">今天的課程</h2></div>
-      <div class="booking-cards" id="today-cards"></div>
-    </section>
-
     <section class="section" id="history-group">
       <div class="section-title"><img class="title-icon" src="../assets/icons/flash-card.png" alt=""><h2 data-i18n="history.myCourses">我的課程</h2><button type="button" class="info-btn" data-modal-open="historyRecordInfoModal" data-i18n-aria-label="common.info" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button><button type="button" class="info-btn" data-modal-open="historyTimezoneModal" data-i18n-aria-label="history.tzInfo" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
       <div class="booking-cards" id="history-cards"></div>
@@ -117,14 +125,14 @@
   <div id="history-detail-view" hidden>
     <section class="section">
       <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
-      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2><button type="button" class="info-btn" id="copy-detail-btn" data-i18n-aria-label="history.detail.copy" aria-label="複製課程資訊"><i class="fa-regular fa-copy"></i></button></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
           <span><p data-i18n="history.detail.code">預約編號</p><h3 id="detail-booking-code">—</h3></span>
         </div>
         <div class="confirm-highlight">
-          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span class="confirm-highlight-icon"><img id="detail-course-image" src="../assets/icons/books.png" alt=""></span>
           <span><p data-i18n="booking.confirm.course">課程</p><h3 id="detail-course">—</h3></span>
         </div>
         <div class="confirm-highlight-row">
@@ -143,15 +151,50 @@
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
-          <span><p data-i18n="history.detail.time">時間</p><h3 id="detail-time">—</h3></span>
+          <span><p data-i18n="history.detail.time">時間・課程長度・時區</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
     <div class="wizard-nav">
       <button type="button" class="btn red" id="cancel-booking-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
     </div>
+    <section class="section" id="rating-result-view" hidden>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
+      <div id="rating-result-entries"></div>
+    </section>
+    <section class="section" id="rating-input-view" hidden>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
+      <div class="star-rating-input" id="rating-stars-input"></div>
+      <div class="field">
+        <div class="field-float">
+          <textarea id="rating-comment-input" placeholder=" " maxlength="500"></textarea>
+          <label for="rating-comment-input"><i class="fa-solid fa-fw fa-pen"></i> <span data-i18n="history.feedback.commentLabel">課程狀況或問題反映</span></label>
+        </div>
+      </div>
+      <div class="wizard-nav">
+        <button type="button" class="btn green" id="submit-rating-btn" disabled>
+          <i class="fa-solid fa-fw fa-star"></i> <span data-i18n="booking.rating.submit">送出回饋</span>
+        </button>
+      </div>
+    </section>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="ratingConfirmModal" data-modal-persistent>
+  <div class="modal modal-wide" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon star"><i class="fa-solid fa-star"></i></div>
+    <h3 data-i18n="booking.rating.confirmTitle">確定要送出回饋嗎？</h3>
+    <div class="modal-preview">
+      <div id="rating-confirm-stars"></div>
+      <p class="text-small" id="rating-confirm-comment" hidden></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="confirm-submit-rating-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="leave.addConfirm.confirm">確定</span></button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="cancelConfirmModal" data-modal-persistent>
@@ -248,10 +291,10 @@
   const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
 
   // 課程時間統一存成 UTC+8（台灣時間）為基準，依學生個人時區設定換算顯示。
-  const STUDENT_TIMEZONE_LABEL = (me && me.timezone) || '(UTC+08:00) 台北';
+  const STUDENT_TIMEZONE_LABEL = (me && me.timezone) || 'UTC+08:00 台北';
   const STUDENT_TZ_OFFSET = parseUtcOffset(STUDENT_TIMEZONE_LABEL);
   const STUDENT_TZ_DELTA_HOURS = STUDENT_TZ_OFFSET - 8;
-  document.getElementById('history-timezone-note').textContent = t('history.allTimesIn', { tz: STUDENT_TIMEZONE_LABEL });
+  document.getElementById('history-timezone-note').textContent = t('history.allTimesIn', { tz: formatTimezoneForSentence(STUDENT_TIMEZONE_LABEL) });
 
   function shiftToStudentTz(dateStr, timeStr) {
     if (!STUDENT_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
@@ -280,6 +323,8 @@
     }
   }
 
+  // 24 小時內就要開始上課的（取消的不算）排在最前面，依上課時間由早到晚；其餘紀錄
+  // 維持原本「日期新的排前面」的排序，讓卡片列表不用再另外切一個「今天的課程」區塊。
   const records = bookings
     .map((b) => ({
       id: b.id,
@@ -292,9 +337,17 @@
       time: b.time,
       status: b.status,
       bookingCode: b.bookingCode,
+      rating: b.rating,
+      studentComment: b.studentComment,
     }))
     .filter((r) => new Date(r.date.replace(/\//g, '-')) >= cutoffDate)
-    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
+    .sort((a, b) => {
+      const aToday = isStartingSoon(a);
+      const bToday = isStartingSoon(b);
+      if (aToday !== bToday) return aToday ? -1 : 1;
+      if (aToday) return `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`);
+      return `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`);
+    });
 
   const coursesCache = await fetch('/api/courses').then((res) => (res.ok ? res.json() : []));
   function loadCourses() { return coursesCache; }
@@ -328,19 +381,23 @@
 
   function formatDateTime(r, showTz = true) {
     const { dateLabel, startTimeLabel } = computeDisplayParts(r);
-    const tzTag = showTz ? `<span class="tz-tag">(UTC${formatUtcOffset(STUDENT_TZ_OFFSET)})</span>` : '';
+    const tzTag = showTz ? `<span class="tz-tag">UTC${formatUtcOffset(STUDENT_TZ_OFFSET)}</span>` : '';
     return `${dateLabel} ${startTimeLabel}${tzTag}`;
   }
 
   function renderHistoryCard(r) {
     const s = STATUS_MAP[r.status];
+    const isToday = isStartingSoon(r);
     return `<div class="booking-card is-clickable" data-id="${r.id}">
-      <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+      ${isToday ? `<span class="booking-card-today-badge" aria-label="${t('history.today')}"><img src="../assets/icons/flag.png" alt=""></span>` : ''}
+      <div class="booking-card-status-stack">
+        <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+        ${r.status === 'attended' ? studentFeedbackPillHtml(r) : ''}
+      </div>
       <div class="booking-card-info">
-        ${r.bookingCode ? `<p class="booking-card-code">${r.bookingCode}</p>` : ''}
+        <p class="booking-card-datetime">${formatDateTime(r, false)}</p>
         <p class="booking-card-course">${r.course}</p>
         <h4>${r.studentName} ／ ${r.teacher}</h4>
-        <p class="booking-card-datetime">${formatDateTime(r, false)}</p>
       </div>
     </div>`;
   }
@@ -364,24 +421,7 @@
       bindCardClicks);
   }
 
-  function todayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-  }
-
-  function renderTodayGroup() {
-    const today = todayStr();
-    const todayRecords = records.filter((r) => r.date === today && r.status !== 'cancelled');
-    const cardsEl = document.getElementById('today-cards');
-    cardsEl.innerHTML = todayRecords.length
-      ? todayRecords.map(renderHistoryCard).join('')
-      : `<div class="booking-card-empty">${t('history.noToday')}</div>`;
-    bindCardClicks(cardsEl);
-    cardsEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
-  }
-
   renderHistoryCards();
-  renderTodayGroup();
 
   document.querySelectorAll('#history-detail-view .confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
 
@@ -395,6 +435,7 @@
     if (!record) return;
     activeRecordId = id;
     document.getElementById('detail-course').textContent = record.course;
+    setCourseHighlightIcon(document.getElementById('detail-course-image'), loadCourses().find((c) => (record.courseId != null && c.id === record.courseId) || c.name === record.course));
     document.getElementById('detail-student').textContent = record.studentName;
     document.getElementById('detail-teacher').textContent = record.teacher;
     const parts = computeDisplayParts(record);
@@ -414,6 +455,24 @@
     }
     document.querySelector('#history-detail-view .wizard-nav').hidden = record.status !== 'upcoming';
 
+    const isAttended = record.status === 'attended';
+    const alreadyRated = isAttended && (record.rating != null || !!record.studentComment);
+
+    // 送出評分之後，「為這堂課評分」換成「課程回饋」區塊（跟管理者看到的同一種樣式），但學生只看得到
+    // 自己那段；老師的評分／課堂記錄只有老師本人跟管理者看得到（後端也不會回傳給學生）。
+    document.getElementById('rating-result-view').hidden = !alreadyRated;
+    if (alreadyRated) {
+      renderFeedbackEntries(document.getElementById('rating-result-entries'), [
+        { avatar: me && me.avatar, name: record.studentName, rating: record.rating, text: record.studentComment },
+      ]);
+    }
+
+    document.getElementById('rating-input-view').hidden = !isAttended || alreadyRated;
+    if (isAttended && !alreadyRated) {
+      document.getElementById('rating-comment-input').value = '';
+      resetStarInput();
+    }
+
     window.scrollTo(0, 0);
   }
 
@@ -423,6 +482,10 @@
     document.getElementById('history-list-view').hidden = false;
     document.getElementById('back-btn-icon').className = 'fa-solid fa-fw fa-house';
   }
+
+  bindCopyDetailButton(document.getElementById('copy-detail-btn'),
+    () => { const r = records.find((x) => x.id === activeRecordId); return r ? STATUS_MAP[r.status].label : ''; },
+    () => showHistoryAlert(t('history.detail.copyFailed')));
 
   document.getElementById('back-btn').addEventListener('click', () => {
     if (!document.getElementById('history-detail-view').hidden) {
@@ -441,6 +504,13 @@
   function hoursUntilStart(record) {
     const start = new Date(`${record.date.replace(/\//g, '-')}T${record.time}:00`);
     return (start.getTime() - nowInUtc8().getTime()) / 3600000;
+  }
+
+  // 「今天」徽章／排序置頂的規則：還沒開始、但 24 小時內就會開始上課（取消的不算）。
+  function isStartingSoon(record) {
+    if (record.status === 'cancelled') return false;
+    const hrs = hoursUntilStart(record);
+    return hrs >= 0 && hrs <= 24;
   }
 
   document.getElementById('cancel-booking-btn').addEventListener('click', () => {
@@ -474,8 +544,61 @@
     record.status = 'cancelled';
     hideHistoryDetail();
     renderHistoryCards();
-    renderTodayGroup();
   });
+
+  // ==========================================================================
+  // 已完成課程的評分——選星星（必填）＋給老師的留言（選填），按「送出評分」後跳出確認
+  // modal，按確定才真的送出；點星星本身只是選取，不會送出。取消 modal 會保留目前的選取
+  // 跟留言，讓學生可以回去修改。
+  // ==========================================================================
+  let pendingRating = null;
+
+  function onStarPicked(n) {
+    pendingRating = n;
+    // 比照預約精靈的「下一步」：只在按鈕從停用變成可按的那一下跳一次（改選別的星星不會再跳）
+    setButtonEnabled(document.getElementById('submit-rating-btn'), true);
+  }
+
+  function resetStarInput() {
+    pendingRating = null;
+    document.getElementById('submit-rating-btn').disabled = true;
+    initStarRatingInput(document.getElementById('rating-stars-input'), onStarPicked);
+  }
+
+  document.getElementById('submit-rating-btn').addEventListener('click', () => {
+    if (!pendingRating) return;
+    const comment = document.getElementById('rating-comment-input').value.trim();
+    document.getElementById('rating-confirm-stars').innerHTML = starsHtml(pendingRating);
+    const commentEl = document.getElementById('rating-confirm-comment');
+    commentEl.textContent = comment;
+    commentEl.hidden = !comment;
+    document.getElementById('ratingConfirmModal').classList.add('open');
+  });
+
+  document.getElementById('confirm-submit-rating-btn').addEventListener('click', () => {
+    document.getElementById('ratingConfirmModal').classList.remove('open');
+    submitRating(pendingRating, document.getElementById('rating-comment-input').value.trim());
+  });
+
+  async function submitRating(rating, comment) {
+    const record = records.find((r) => r.id === activeRecordId);
+    if (!record) return;
+    const res = await fetch(`/api/bookings?id=${record.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating, studentComment: comment || null }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showHistoryAlert(data.error || t('booking.rating.submitFailed'));
+      return;
+    }
+    const updated = await res.json();
+    record.rating = updated.rating;
+    record.studentComment = updated.studentComment;
+    showHistoryDetail(record.id);
+    renderHistoryCards();
+  }
 })();
 </script>
 

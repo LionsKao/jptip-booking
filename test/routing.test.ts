@@ -45,11 +45,30 @@ describe('static page role gating', () => {
     expectRedirectHome(expect, res);
   });
 
-  it('/teacher/hours.html with an admin session is not redirected (admin manages teachers on their behalf)', async ({ expect }) => {
+  it('/teacher/hours with an admin session redirects home (admins use /admin/teacher-hours instead)', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
-    const res = await fetchWorker('/teacher/hours.html?teacherId=1', withCookie(cookie, { redirect: 'manual' }));
-    expect(res.status).not.toBe(302);
+    const res = await fetchWorker('/teacher/hours', withCookie(cookie, { redirect: 'manual' }));
+    expectRedirectHome(expect, res);
   });
+
+  for (const [alias, marker] of [
+    ['/admin/teacher-hours', 'hours-add-btn'],
+    ['/admin/teacher-lessons', 'lessons-timezone-note'],
+    ['/admin/teacher-leave', 'leaveConfirmModal'],
+  ] as const) {
+    it(`${alias} serves the shared teacher page to an admin`, async ({ expect }) => {
+      const cookie = await login(SEEDED.admin.email, 'admin');
+      const res = await fetchWorker(`${alias}?id=1`, withCookie(cookie, { redirect: 'manual' }));
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain(marker);
+    });
+
+    it(`${alias} with a teacher session redirects home`, async ({ expect }) => {
+      const cookie = await login(SEEDED.teacher.email, 'teacher');
+      const res = await fetchWorker(`${alias}?id=1`, withCookie(cookie, { redirect: 'manual' }));
+      expectRedirectHome(expect, res);
+    });
+  }
 
   it('/ (the login page) is never gated', async ({ expect }) => {
     const res = await fetchWorker('/', { redirect: 'manual' });

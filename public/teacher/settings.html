@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 設定</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.settings-page .page {
+    max-width: 800px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .text-input { font-variant-numeric: tabular-nums; }
+  #profile-timezone-dropdown { width: 100%; }
+  .wizard-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-5);
+  }
+  .wizard-nav .btn { min-width: 160px; }
+
+  /* 可教課程：只能看的卡片（新增／刪除在管理端的可教課程頁），卡片外觀比照管理端，多放課程圖片 */
+  #course-cap-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .course-cap-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .course-cap-row:hover { border-color: var(--color-blue); }
+  .course-cap-row img { flex: none; width: 40px; height: 40px; object-fit: contain; }
+  .course-cap-row img.is-course-photo { object-fit: cover; border-radius: 50%; }
+  .course-cap-row h4 {
+    margin: 0;
+    font-size: 1.0625rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #course-cap-list .booking-card-empty { grid-column: 1 / -1; min-height: 80px; }
+
+  @media (max-width: 848px) {
+    body.settings-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    body.settings-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+  }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+    #course-cap-list { grid-template-columns: 1fr; }
+    .field-row .form-field { grid-column: auto !important; }
+  }
+</style>
+</head>
+<body class="settings-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section" id="card-profile">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="settings.profile.title">個人資料</h2></div>
+
+    <div class="avatar-picker">
+      <span class="avatar-picker-preview"><img id="profile-avatar-preview" src="" alt=""></span>
+      <button type="button" class="btn outline sm" id="profile-avatar-random-btn"><i class="fa-solid fa-fw fa-shuffle"></i> <span data-i18n="admin.common.random">隨機</span></button>
+      <button type="button" class="btn outline sm" id="profile-avatar-upload-btn"><i class="fa-solid fa-fw fa-upload"></i> <span data-i18n="admin.common.uploadImage">上傳圖片</span></button>
+      <input type="file" id="profile-avatar-file-input" accept="image/*" hidden>
+    </div>
+
+    <div class="field-row">
+      <div class="form-field">
+        <label for="profile-name"><i class="fa-solid fa-fw fa-user"></i> <span data-i18n="admin.field.name">姓名</span></label>
+        <input type="text" id="profile-name" class="text-input" readonly>
+      </div>
+      <div class="form-field">
+        <label for="profile-email"><i class="fa-solid fa-fw fa-envelope"></i> Email</label>
+        <input type="email" id="profile-email" class="text-input" readonly>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="profile-phone"><i class="fa-solid fa-fw fa-phone"></i> <span data-i18n="admin.field.phone">手機</span></label>
+        <input type="tel" id="profile-phone" class="text-input" data-i18n-placeholder="admin.field.phonePlaceholder" placeholder="請輸入手機號碼" maxlength="15">
+      </div>
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-earth-asia"></i> <span data-i18n="admin.field.timezone">時區</span></label>
+        <div class="dropdown" id="profile-timezone-dropdown" data-placeholder="選擇時區">
+          <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.field.selectTimezone">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
+          <ul class="dropdown-menu">
+            <li data-value="UTC+08:00 台北">UTC+08:00 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+09:00 大阪、札幌、東京">UTC+09:00 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+07:00 河內、胡志明市">UTC+07:00 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+06:30 仰光">UTC+06:30 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="profile-specialty"><i class="fa-solid fa-fw fa-star"></i> <span data-i18n="admin.teachers.field.specialty">專長</span></label>
+        <input type="text" id="profile-specialty" class="text-input" data-i18n-placeholder="admin.teachers.field.specialtyPlaceholder" placeholder="例：日文會話・5 年教學經驗" maxlength="100">
+      </div>
+      <div class="form-field">
+        <label for="profile-motto"><i class="fa-solid fa-fw fa-quote-left"></i> <span data-i18n="admin.teachers.field.motto">座右銘</span></label>
+        <input type="text" id="profile-motto" class="text-input" data-i18n-placeholder="admin.teachers.field.mottoPlaceholder" placeholder="例：一緒に学び、共に成長していきましょう。" maxlength="200">
+      </div>
+    </div>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn blue" id="profile-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+    </div>
+  </section>
+
+  <section class="section" id="card-courses">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/books.png" alt=""><h2 data-i18n="admin.teachers.detail.courses.title">可教課程</h2></div>
+    <div id="course-cap-list"></div>
+  </section>
+
+  <section class="section" id="card-receipt">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.teachers.receipt.title">領收書資料</h2></div>
+
+    <div class="field-row">
+      <div class="form-field">
+        <label for="receipt-address"><i class="fa-solid fa-fw fa-house"></i> <span data-i18n="admin.teachers.receipt.address">老師地址</span></label>
+        <input type="text" id="receipt-address" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-company-name"><i class="fa-solid fa-fw fa-building"></i> <span data-i18n="admin.teachers.receipt.companyName">公司名稱</span></label>
+        <input type="text" id="receipt-company-name" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-company-address"><i class="fa-solid fa-fw fa-location-dot"></i> <span data-i18n="admin.teachers.receipt.companyAddress">公司地址</span></label>
+        <input type="text" id="receipt-company-address" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-wage"><i class="fa-solid fa-fw fa-sack-dollar"></i> <span data-i18n="admin.teachers.receipt.wage">時薪</span></label>
+        <input type="text" id="receipt-wage" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-tax"><i class="fa-solid fa-fw fa-receipt"></i> <span data-i18n="admin.teachers.receipt.tax">消費稅</span></label>
+        <input type="text" id="receipt-tax" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-bank"><i class="fa-solid fa-fw fa-building-columns"></i> <span data-i18n="admin.teachers.receipt.bank">銀行</span></label>
+        <input type="text" id="receipt-bank" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-bank-branch"><i class="fa-solid fa-fw fa-building"></i> <span data-i18n="admin.teachers.receipt.bankBranch">支店名</span></label>
+        <input type="text" id="receipt-bank-branch" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-bank-branch-no"><i class="fa-solid fa-fw fa-hashtag"></i> <span data-i18n="admin.teachers.receipt.bankBranchNo">店番</span></label>
+        <input type="text" id="receipt-bank-branch-no" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+      <div class="form-field">
+        <label for="receipt-bank-account-no"><i class="fa-solid fa-fw fa-credit-card"></i> <span data-i18n="admin.teachers.receipt.bankAccountNo">口座番号</span></label>
+        <input type="text" id="receipt-bank-account-no" class="text-input" data-i18n-placeholder="settings.notSet" placeholder="尚未設定" readonly>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="profileSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
+    <h3 data-i18n="settings.updateSuccess">已更新個人資料</h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profileAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="profileAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="admin.common.unsavedEditDesc">目前修改的資料將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="avatarCropModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" id="avatar-crop-close-btn"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <h3 data-i18n="admin.common.cropAvatar.title">裁切頭像</h3>
+    <p class="text-small" data-i18n="admin.common.cropAvatar.desc">拖曳移動、滾輪縮放，裁切範圍固定為正方形。</p>
+    <div class="crop-container">
+      <img id="avatar-crop-image" alt="">
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" id="avatar-crop-cancel-btn" style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn blue" id="avatar-crop-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmCrop">確認裁切</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="../script.js"></script>
+<script>
+(async () => {
+  // 老師自己的設定頁：頭像、手機、時區、專長、座右銘可以自己改（PATCH /api/me/profile，後端只收這幾個欄位；
+  // 時區存在領收書資料裡，後端只換 timezone 那一格，不會動到其他領收書欄位）。
+  // 姓名、Email（登入帳號）、可教課程、領收書資料由管理者設定，這裡只顯示。語言在老師主頁右上角切換。
+  const me = await fetch('/api/teachers/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((me && me.language) || getCurrentLang());
+  if (!me) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  const phoneInput = document.getElementById('profile-phone');
+  const specialtyInput = document.getElementById('profile-specialty');
+  const mottoInput = document.getElementById('profile-motto');
+  const submitBtn = document.getElementById('profile-submit-btn');
+  const receipt = me.receipt || {};
+
+  function formatPhoneDisplay(digits) {
+    const clean = (digits || '').replace(/\D/g, '');
+    return clean.length === 10 ? `${clean.slice(0, 4)}-${clean.slice(4, 7)}-${clean.slice(7)}` : (digits || '');
+  }
+
+  // 還沒設定過頭像的話先固定挑一隻動物顯示（avatarSrc(null) 每次都會重抽），沒改就不會存進去
+  let currentAvatar = me.avatar || randomAvatar();
+  let savedAvatar = currentAvatar;
+  let pendingAvatarBlob = null; // 上傳裁切後的圖片，按「確認編輯」才真的上傳
+
+  document.getElementById('profile-name').value = me.name;
+  document.getElementById('profile-email').value = me.email;
+  // 可教課程卡片：課程有封面圖就用真的課程圖片，沒有就用書本圖示（跟課程詳情的課程那格一致）
+  const allCourses = await fetch('/api/courses').then((res) => (res.ok ? res.json() : [])).catch(() => []);
+  const courseListEl = document.getElementById('course-cap-list');
+  const teachableCourses = me.courses || [];
+  if (teachableCourses.length) {
+    courseListEl.innerHTML = teachableCourses.map(() => '<div class="course-cap-row"><img alt=""><h4></h4></div>').join('');
+    courseListEl.querySelectorAll('.course-cap-row').forEach((card, i) => {
+      card.querySelector('h4').textContent = teachableCourses[i];
+      setCourseHighlightIcon(card.querySelector('img'), allCourses.find((c) => c.name === teachableCourses[i]));
+    });
+  } else {
+    courseListEl.innerHTML = '<div class="booking-card-empty"></div>';
+    courseListEl.firstChild.textContent = t('admin.teachers.courses.empty');
+  }
+  courseListEl.querySelectorAll('.course-cap-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
+  phoneInput.value = formatPhoneDisplay(me.phone);
+  specialtyInput.value = me.specialty || '';
+  mottoInput.value = me.motto || '';
+  document.getElementById('profile-avatar-preview').src = avatarSrc(currentAvatar);
+  // 沒設定時區時，教課可能時間／我的課程頁都是用 UTC+8 顯示，這裡也顯示同一個，才不會跟實際換算對不上
+  setDropdownValue('profile-timezone-dropdown', receipt.timezone || 'UTC+08:00 台北');
+
+  document.getElementById('receipt-address').value = receipt.address || '';
+  document.getElementById('receipt-company-name').value = receipt.companyName || '';
+  document.getElementById('receipt-company-address').value = receipt.companyAddress || '';
+  document.getElementById('receipt-wage').value = receipt.wage || '';
+  document.getElementById('receipt-tax').value = receipt.taxRate || '';
+  document.getElementById('receipt-bank').value = receipt.bank || '';
+  document.getElementById('receipt-bank-branch').value = receipt.bankBranch || '';
+  document.getElementById('receipt-bank-branch-no').value = receipt.bankBranchNo || '';
+  document.getElementById('receipt-bank-account-no').value = receipt.bankAccountNo || '';
+
+  function getSnapshot() {
+    return JSON.stringify({
+      avatar: currentAvatar,
+      phone: phoneInput.value,
+      timezone: getDropdownValue('profile-timezone-dropdown'),
+      specialty: specialtyInput.value,
+      motto: mottoInput.value,
+    });
+  }
+  let savedSnapshot = getSnapshot();
+  const isDirty = () => getSnapshot() !== savedSnapshot;
+
+  // 資料跟上次儲存的不一樣「確認編輯」才能按（改回原樣會再變回停用；從停用變成可按時跳一下）
+  const refreshSubmit = watchForm(document.getElementById('card-profile'), submitBtn, isDirty);
+
+  function setAvatar(newAvatar, blob) {
+    currentAvatar = newAvatar;
+    pendingAvatarBlob = blob || null;
+    refreshSubmit();
+    const img = document.getElementById('profile-avatar-preview');
+    img.src = avatarSrc(currentAvatar);
+    img.classList.remove('avatar-swap');
+    void img.offsetWidth;
+    img.classList.add('avatar-swap');
+  }
+
+  document.getElementById('profile-avatar-random-btn').addEventListener('click', () => setAvatar(randomAvatar()));
+  bindAvatarCropUpload(
+    document.getElementById('profile-avatar-upload-btn'),
+    document.getElementById('profile-avatar-file-input'),
+    (dataUrl, blob) => setAvatar(dataUrl, blob),
+  );
+
+  function showAlert(message) {
+    document.getElementById('profileAlertText').textContent = message;
+    document.getElementById('profileAlertModal').classList.add('open');
+  }
+
+  async function errorMessage(res) {
+    const data = await res.json().catch(() => ({}));
+    return data.error || t('admin.common.saveFailed');
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    submitBtn.disabled = true; // 避免連按送出兩次
+
+    if (pendingAvatarBlob) {
+      const res = await fetch('/api/me/avatar', { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: pendingAvatarBlob })
+        .catch(() => null);
+      if (!res || !res.ok) {
+        showAlert(res ? await errorMessage(res) : t('admin.common.saveFailed'));
+        refreshSubmit();
+        return;
+      }
+      // 上傳成功伺服器就已經換好頭像了；畫面上是同一張圖，不用重播切換動畫
+      currentAvatar = (await res.json()).path;
+      savedAvatar = currentAvatar;
+      pendingAvatarBlob = null;
+    }
+
+    const fields = {
+      phone: phoneInput.value,
+      timezone: getDropdownValue('profile-timezone-dropdown'),
+      specialty: specialtyInput.value,
+      motto: mottoInput.value,
+    };
+    if (currentAvatar !== savedAvatar) fields.avatar = currentAvatar; // 只剩換成動物頭像要在這裡存
+    const res = await fetch('/api/me/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields),
+    }).catch(() => null);
+    if (!res || !res.ok) {
+      showAlert(res ? await errorMessage(res) : t('admin.common.saveFailed'));
+      refreshSubmit();
+      return;
+    }
+
+    const updated = await res.json();
+    phoneInput.value = formatPhoneDisplay(updated.phone);
+    specialtyInput.value = updated.specialty || '';
+    mottoInput.value = updated.motto || '';
+    savedAvatar = currentAvatar;
+    savedSnapshot = getSnapshot();
+    refreshSubmit();
+    document.getElementById('profileSuccessModal').classList.add('open');
+  });
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (isDirty()) {
+      document.getElementById('leaveConfirmModal').classList.add('open');
+      return;
+    }
+    window.location.href = 'index.html';
+  });
+  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+})();
+</script>
+
+</body>
+</html>

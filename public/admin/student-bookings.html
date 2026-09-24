@@ -126,14 +126,14 @@
   <div id="bookings-detail-view" hidden>
     <section class="section">
       <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
-      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2><button type="button" class="info-btn" id="copy-detail-btn" data-i18n-aria-label="history.detail.copy" aria-label="複製課程資訊"><i class="fa-regular fa-copy"></i></button></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
           <span><p data-i18n="history.detail.code">預約編號</p><h3 id="detail-booking-code">—</h3></span>
         </div>
         <div class="confirm-highlight">
-          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span class="confirm-highlight-icon"><img id="detail-course-image" src="../assets/icons/books.png" alt=""></span>
           <span><p data-i18n="booking.confirm.course">課程</p><h3 id="detail-course">—</h3></span>
         </div>
         <div class="confirm-highlight-row">
@@ -152,7 +152,7 @@
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
-          <span><p data-i18n="history.detail.time">時間</p><h3 id="detail-time">—</h3></span>
+          <span><p data-i18n="history.detail.time">時間・課程長度・時區</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
@@ -238,7 +238,7 @@
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
     <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
     <h3 data-i18n="admin.bookings.tzModal.title">課程時間顯示時區</h3>
-    <p class="text-small" data-i18n="admin.bookings.tzModal.desc">管理者一律以 (UTC+08:00) 台北時間顯示，不受老師/學生個人時區設定影響。</p>
+    <p class="text-small" data-i18n="admin.bookings.tzModal.desc">管理者一律以 UTC+08:00 台北時間顯示，不受老師/學生個人時區設定影響。</p>
     <div class="modal-actions">
       <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
     </div>
@@ -387,6 +387,7 @@
     if (!booking) return;
     activeBookingId = id;
     document.getElementById('detail-course').textContent = booking.course;
+    setCourseHighlightIcon(document.getElementById('detail-course-image'), loadCourses().find((c) => (booking.courseId != null && c.id === booking.courseId) || c.name === booking.course));
     document.getElementById('detail-student').textContent = student.name;
     document.getElementById('detail-teacher').textContent = booking.teacher;
     const parts = computeDisplayParts(booking);
@@ -406,6 +407,10 @@
 
     window.scrollTo(0, 0);
   }
+
+  bindCopyDetailButton(document.getElementById('copy-detail-btn'),
+    () => { const b = student.bookings.find((x) => x.id === activeBookingId); return b ? STATUS_MAP[b.status].label : ''; },
+    () => showBookingAlert(t('history.detail.copyFailed')));
 
   function hideBookingDetail() {
     activeBookingId = null;

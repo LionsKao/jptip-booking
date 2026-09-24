@@ -42,6 +42,95 @@ async function handleOwnLanguageUpdate(request: Request, env: Env, session: Sess
   return Response.json({ language: body.language });
 }
 
+// The options every timezone dropdown offers (the admin student/teacher pages
+// and the self-service settings pages) — self-service input is held to this
+// list rather than trusted as free text.
+const TIMEZONE_LABELS = ['UTC+08:00 台北', 'UTC+09:00 大阪、札幌、東京', 'UTC+07:00 河內、胡志明市', 'UTC+06:30 仰光'];
+// Bundled animal avatars under public/assets/avatars/, e.g. '001-bear.png'.
+const BUNDLED_AVATAR_RE = /^\d{3}-[a-z0-9-]+\.png$/;
+
+// Which fields a student/teacher may change on their own settings page. Name,
+// email (the login identity), the Teams link, status, assigned courses and the
+// receipt (wage/tax/bank) stay admin-managed. An uploaded photo goes through
+// PUT /api/me/avatar instead; `avatar` here only picks a bundled animal.
+const OWN_PROFILE_FIELDS: Record<string, readonly string[]> = {
+  student: ['phone', 'timezone', 'avatar'],
+  teacher: ['phone', 'timezone', 'avatar', 'specialty', 'motto'],
+};
+const OWN_PROFILE_MAX_LENGTH: Record<string, number> = { specialty: 100, motto: 200 };
+
+async function handleOwnProfileUpdate(request: Request, env: Env, session: Session): Promise<Response> {
+  const allowed = OWN_PROFILE_FIELDS[session.role];
+  const body = await request.json<Record<string, unknown>>().catch(() => null);
+  if (!body || typeof body !== 'object') {
+    return Response.json({ error: '資料格式錯誤' }, { status: 400 });
+  }
+  const keys = Object.keys(body);
+  if (keys.length === 0) {
+    return Response.json({ error: '沒有要更新的欄位' }, { status: 400 });
+  }
+  if (keys.some((key) => !allowed.includes(key))) {
+    return Response.json({ error: '包含不能自行修改的欄位' }, { status: 400 });
+  }
+  if (keys.some((key) => typeof body[key] !== 'string')) {
+    return Response.json({ error: '資料格式錯誤' }, { status: 400 });
+  }
+  const fields = body as Record<string, string>;
+  const isTeacher = session.role === 'teacher';
+  const table = ROLE_TABLES[session.role];
+
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  if (fields.phone !== undefined) {
+    const phone = fields.phone.replace(/\D/g, '');
+    // The admin pages require a student's phone, so a student can't blank it either.
+    if (phone.length > 15 || (!isTeacher && !phone)) {
+      return Response.json({ error: '手機號碼格式不對' }, { status: 400 });
+    }
+    sets.push('phone = ?');
+    values.push(phone || null);
+  }
+  if (fields.timezone !== undefined) {
+    if (!TIMEZONE_LABELS.includes(fields.timezone)) {
+      return Response.json({ error: '不支援的時區' }, { status: 400 });
+    }
+    // A teacher's timezone lives inside the receipt blob (see teacher-basic.html);
+    // json_set keeps the rest of the receipt (wage, bank…) untouched.
+    if (isTeacher) {
+      sets.push(`receipt_json = json_set(CASE WHEN json_valid(receipt_json) THEN receipt_json ELSE '{}' END, '$.timezone', ?)`);
+    } else {
+      sets.push('timezone = ?');
+    }
+    values.push(fields.timezone);
+  }
+  if (fields.avatar !== undefined && !BUNDLED_AVATAR_RE.test(fields.avatar)) {
+    return Response.json({ error: '無效的頭像' }, { status: 400 });
+  }
+  for (const key of ['specialty', 'motto']) {
+    if (fields[key] === undefined) continue;
+    const value = fields[key].trim();
+    if (value.length > OWN_PROFILE_MAX_LENGTH[key]) {
+      return Response.json({ error: '內容太長' }, { status: 400 });
+    }
+    sets.push(`${key} = ?`);
+    values.push(value || null);
+  }
+
+  let replacedPhoto: string | null = null;
+  if (fields.avatar !== undefined) {
+    const previous = await env.DB.prepare(`SELECT photo_path FROM ${table} WHERE id = ?`).bind(session.userId).first<{ photo_path: string | null }>();
+    replacedPhoto = previous?.photo_path ?? null;
+    sets.push('photo_path = ?');
+    values.push(fields.avatar);
+  }
+
+  await env.DB.prepare(`UPDATE ${table} SET ${sets.join(', ')} WHERE id = ?`).bind(...values, session.userId).run();
+  // Switching from an uploaded photo back to an animal leaves nothing pointing at the old object.
+  if (replacedPhoto !== fields.avatar) await deleteUploadedImage(env, replacedPhoto);
+
+  return isTeacher ? handleTeacherSelf(env, session) : handleStudentSelf(env, session);
+}
+
 // 管理端頁面開始翻譯了，管理者也需要知道自己帳號存的語言——不像老師是整份
 // 名單都能撈（GET /api/teachers 任何登入身分都能看），管理者名單本來就不公開
 // 查詢，所以另外開一個窄的自查端點，只回傳自己這筆需要的欄位。
@@ -263,6 +352,19 @@ async function handleAvatarUpload(request: Request, env: Env): Promise<Response>
     return Response.json({ error: '缺少或無效的 role/id' }, { status: 400 });
   }
 
+  return storeUploadedImage(request, env, role, id);
+}
+
+// A student/teacher replacing their own photo from their settings page — the
+// role/id come from the session, never the query string.
+async function handleOwnAvatarUpload(request: Request, env: Env, session: Session): Promise<Response> {
+  return storeUploadedImage(request, env, session.role, session.userId);
+}
+
+// Uploaded R2 objects are served with a year-long immutable cache (see
+// handleAvatarGet), so every upload gets a fresh key — re-using one key would
+// leave browsers showing the previous photo. The replaced object is deleted.
+async function storeUploadedImage(request: Request, env: Env, role: string, id: number): Promise<Response> {
   const contentType = request.headers.get('Content-Type') || '';
   if (!contentType.startsWith('image/')) {
     return Response.json({ error: '檔案格式必須是圖片' }, { status: 400 });
@@ -274,13 +376,26 @@ async function handleAvatarUpload(request: Request, env: Env): Promise<Response>
   }
 
   const ext = contentType === 'image/png' ? 'png' : 'jpg';
-  const key = role === 'course' ? `courses/course-${id}.${ext}` : `avatars/${role}-${id}.${ext}`;
+  const version = Date.now();
+  const key = role === 'course' ? `courses/course-${id}-${version}.${ext}` : `avatars/${role}-${id}-${version}.${ext}`;
+
+  const table = AVATAR_ROLE_TABLES[role];
+  const previous = await env.DB.prepare(`SELECT photo_path FROM ${table} WHERE id = ?`).bind(id).first<{ photo_path: string | null }>();
 
   await env.AVATARS.put(key, body, { httpMetadata: { contentType } });
 
-  await env.DB.prepare(`UPDATE ${AVATAR_ROLE_TABLES[role]} SET photo_path = ? WHERE id = ?`).bind(key, id).run();
+  await env.DB.prepare(`UPDATE ${table} SET photo_path = ? WHERE id = ?`).bind(key, id).run();
+  await deleteUploadedImage(env, previous?.photo_path);
 
   return Response.json({ path: key });
+}
+
+// Only R2 keys are deleted — a bundled animal avatar ('001-bear.png') or a
+// legacy data: URL isn't an object in the bucket.
+async function deleteUploadedImage(env: Env, path: string | null | undefined): Promise<void> {
+  if (path && (path.startsWith('avatars/') || path.startsWith('courses/'))) {
+    await env.AVATARS.delete(path);
+  }
 }
 
 async function handleAvatarGet(request: Request, env: Env, key: string): Promise<Response> {
@@ -452,9 +567,34 @@ async function teacherRowToJson(env: Env, row: TeacherRow) {
   };
 }
 
-async function handleTeachersList(env: Env): Promise<Response> {
+// What a student (booking wizard) or teacher may see about *other* teachers:
+// only what the teacher-picker card shows. Contact info and the receipt blob
+// (wage, tax rate, bank account, home address) stay admin-only — a teacher
+// reads their own full record through /api/teachers/me instead.
+async function teacherRowToPublicJson(env: Env, row: TeacherRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    avatar: row.photo_path,
+    specialty: row.specialty,
+    motto: row.motto,
+    status: row.status,
+    courses: await teacherCourseNames(env, row.id),
+  };
+}
+
+async function handleTeachersList(env: Env, session: Session): Promise<Response> {
   const { results } = await env.DB.prepare(`SELECT * FROM teachers ORDER BY id`).all<TeacherRow>();
-  return Response.json(await Promise.all(results.map((row) => teacherRowToJson(env, row))));
+  const toJson = session.role === 'admin' ? teacherRowToJson : teacherRowToPublicJson;
+  return Response.json(await Promise.all(results.map((row) => toJson(env, row))));
+}
+
+async function handleTeacherSelf(env: Env, session: Session): Promise<Response> {
+  const row = await env.DB.prepare(`SELECT * FROM teachers WHERE id = ?`).bind(session.userId).first<TeacherRow>();
+  if (!row) {
+    return Response.json({ error: '找不到老師' }, { status: 404 });
+  }
+  return Response.json(await teacherRowToJson(env, row));
 }
 
 interface TeacherBody {
@@ -556,6 +696,13 @@ async function handleTeacherCoursesUpdate(request: Request, env: Env, teacherId:
   return Response.json({ courses: await teacherCourseNames(env, teacherId) });
 }
 
+// /admin/teacher-hours?id=1 etc. — see the alias handling at the end of fetch().
+const ADMIN_TEACHER_PAGE_ALIASES: Record<string, string> = {
+  '/admin/teacher-hours': '/teacher/hours',
+  '/admin/teacher-lessons': '/teacher/lessons',
+  '/admin/teacher-leave': '/teacher/leave',
+};
+
 const WEEKDAY_NAMES = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 
 async function handleTeacherHoursList(env: Env, teacherId: number): Promise<Response> {
@@ -594,10 +741,35 @@ async function handleTeacherLeaveList(env: Env, teacherId: number): Promise<Resp
   return Response.json(results);
 }
 
+// 老師／學生的時區欄位（例：'UTC+06:30 仰光'；舊資料可能是 '(UTC+6:30) 仰光'）解析成相對 UTC 的分鐘數——跟前端 script.js
+// 的 parseUtcOffset() 同一套規則；沒設定時區就是 UTC+8（資料庫時間基準）。
+function parseUtcOffsetMinutes(label: string | null | undefined): number {
+  const m = /UTC([+-])(\d+)(?::(\d+))?/.exec(label || '');
+  if (!m) return 8 * 60;
+  const minutes = Number(m[2]) * 60 + (m[3] ? Number(m[3]) : 0);
+  return m[1] === '-' ? -minutes : minutes;
+}
+
+// 某個時區「今天」的日期（YYYY-MM-DD）
+function todayIsoAtOffset(offsetMinutes: number): string {
+  return new Date(Date.now() + offsetMinutes * 60_000).toISOString().slice(0, 10);
+}
+
 async function handleTeacherLeaveCreate(request: Request, env: Env, teacherId: number): Promise<Response> {
   const { date } = await request.json<{ date?: string }>();
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return Response.json({ error: '缺少或無效的日期' }, { status: 400 });
+  }
+
+  // 休假只能請今天（含）以後——「今天」用老師自己時區的日期判斷，跟老師在休假申請頁日曆上
+  // 看到的一致（管理者代管時也一樣以老師的時區為準，因為是這位老師的休假日）。
+  const teacher = await env.DB.prepare(`SELECT receipt_json FROM teachers WHERE id = ?`).bind(teacherId).first<{ receipt_json: string | null }>();
+  if (!teacher) {
+    return Response.json({ error: '找不到老師' }, { status: 404 });
+  }
+  const receipt = teacher.receipt_json ? (JSON.parse(teacher.receipt_json) as { timezone?: string }) : null;
+  if (date < todayIsoAtOffset(parseUtcOffsetMinutes(receipt && receipt.timezone))) {
+    return Response.json({ error: '只能申請今天以後的休假' }, { status: 400 });
   }
 
   const row = await env.DB.prepare(
@@ -811,17 +983,29 @@ interface BookingRow {
   date: string;
   time: string;
   status: string;
+  rating: number | null;
+  student_comment: string | null;
+  teacher_rating: number | null;
+  teacher_note: string | null;
   student_name: string;
+  student_teams_link: string | null;
   teacher_name: string;
   course_name: string;
 }
 
-function bookingRowToJson(row: BookingRow) {
+// viewerRole is required (not optional) so every call site has to decide it
+// explicitly — feedback redaction lives in this one place instead of being
+// repeated (and potentially forgotten) at each call site:
+//   - rating / studentComment (student's feedback): hidden from teachers
+//   - teacherRating / teacherNote (teacher's feedback): hidden from students
+// Admins see both.
+function bookingRowToJson(row: BookingRow, viewerRole: string) {
   return {
     id: row.id,
     bookingCode: row.booking_code,
     studentId: row.student_id,
     studentName: row.student_name,
+    studentTeamsLink: row.student_teams_link,
     courseId: row.course_id,
     course: row.course_name,
     teacherId: row.teacher_id,
@@ -829,10 +1013,14 @@ function bookingRowToJson(row: BookingRow) {
     date: row.date,
     time: row.time,
     status: row.status,
+    rating: viewerRole === 'teacher' ? undefined : row.rating,
+    studentComment: viewerRole === 'teacher' ? undefined : row.student_comment,
+    teacherRating: viewerRole === 'student' ? undefined : row.teacher_rating,
+    teacherNote: viewerRole === 'student' ? undefined : row.teacher_note,
   };
 }
 
-const BOOKING_SELECT = `SELECT b.*, s.name AS student_name, t.name AS teacher_name, c.name AS course_name
+const BOOKING_SELECT = `SELECT b.*, s.name AS student_name, s.teams_link AS student_teams_link, t.name AS teacher_name, c.name AS course_name
   FROM bookings b
   JOIN students s ON s.id = b.student_id
   JOIN teachers t ON t.id = b.teacher_id
@@ -878,9 +1066,16 @@ async function handleBookingsList(request: Request, env: Env, session: Session):
     `${BOOKING_SELECT} ${where} ORDER BY b.date, b.time`
   ).bind(...values).all<BookingRow>();
 
-  const json = results.map(bookingRowToJson);
+  const json = results.map((row) => bookingRowToJson(row, session.role));
   if (redactStudentIdentity) {
-    for (const b of json) { (b as { studentId?: number }).studentId = undefined; (b as { studentName?: string }).studentName = undefined; }
+    for (const b of json) {
+      (b as { studentId?: number }).studentId = undefined;
+      (b as { studentName?: string }).studentName = undefined;
+      (b as { studentTeamsLink?: string }).studentTeamsLink = undefined;
+      // Another student's feedback on their own lesson isn't schedule info either.
+      (b as { rating?: number | null }).rating = undefined;
+      (b as { studentComment?: string | null }).studentComment = undefined;
+    }
   }
   return Response.json(json);
 }
@@ -928,7 +1123,7 @@ async function handleBookingCreate(request: Request, env: Env, session: Session)
   await env.DB.prepare(`UPDATE student_courses SET booked_count = booked_count + 1 WHERE id = ?`).bind(studentCourse.id).run();
 
   const created = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(row!.id).first<BookingRow>();
-  return Response.json(bookingRowToJson(created!), { status: 201 });
+  return Response.json(bookingRowToJson(created!, session.role), { status: 201 });
 }
 
 async function handleBookingUpdate(request: Request, env: Env, session: Session, id: number): Promise<Response> {
@@ -937,31 +1132,87 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
     return Response.json({ error: '找不到預約' }, { status: 404 });
   }
 
-  const { status } = await request.json<{ status?: string }>();
+  const { status, rating, studentComment, teacherRating, teacherNote } = await request.json<{
+    status?: string;
+    rating?: number | null;
+    studentComment?: string | null;
+    teacherRating?: number | null;
+    teacherNote?: string | null;
+  }>();
+
+  const hasStatus = status !== undefined;
+  const hasRating = rating !== undefined || studentComment !== undefined;
+  const hasTeacherFeedback = teacherRating !== undefined || teacherNote !== undefined;
+  if (!hasStatus && !hasRating && !hasTeacherFeedback) {
+    return Response.json({ error: '沒有可更新的欄位' }, { status: 400 });
+  }
+
   const VALID_STATUSES = new Set(['upcoming', 'attended', 'cancelled', 'absent', 'pending']);
-  if (!status || !VALID_STATUSES.has(status)) {
+  if (hasStatus && !VALID_STATUSES.has(status!)) {
     return Response.json({ error: '缺少或無效的狀態' }, { status: 400 });
+  }
+  if (rating !== undefined && rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+    return Response.json({ error: '評分需為 1 到 5 的整數' }, { status: 400 });
+  }
+  if (teacherRating !== undefined && teacherRating !== null && (!Number.isInteger(teacherRating) || teacherRating < 1 || teacherRating > 5)) {
+    return Response.json({ error: '評分需為 1 到 5 的整數' }, { status: 400 });
+  }
+  if (studentComment !== undefined && studentComment !== null && typeof studentComment !== 'string') {
+    return Response.json({ error: '留言格式錯誤' }, { status: 400 });
+  }
+  if (teacherNote !== undefined && teacherNote !== null && typeof teacherNote !== 'string') {
+    return Response.json({ error: '課堂記錄格式錯誤' }, { status: 400 });
   }
 
   if (session.role === 'student') {
-    if (existing.student_id !== session.userId || status !== 'cancelled') {
+    if (hasStatus && (existing.student_id !== session.userId || status !== 'cancelled')) {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    // 學生只能對自己已經上過（attended）的課評分留言，避免直接打 API 對還沒上的課評分。
+    if (hasRating && (existing.student_id !== session.userId || existing.status !== 'attended')) {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    if (hasTeacherFeedback) {
       return Response.json({ error: '未授權' }, { status: 401 });
     }
   } else if (session.role === 'teacher') {
-    if (existing.teacher_id !== session.userId || status !== 'attended') {
+    if (hasStatus && (existing.teacher_id !== session.userId || status !== 'attended')) {
       return Response.json({ error: '未授權' }, { status: 401 });
     }
-  } // admin: no restriction
+    if (hasTeacherFeedback && existing.teacher_id !== session.userId) {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    if (hasRating) {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+  } else {
+    // admin：status 不受限（沿用原本行為）。teacherRating／teacherNote 也不受限——admin 可以用
+    // /admin/teacher-lessons?id= 代管老師視角完成課程，同一支 API 會帶上
+    // 老師評分／課堂記錄，這裡如果限制只有老師本人能寫，會讓代管完成功能被擋下來。
+    // rating 維持不開放：目前沒有任何 admin 畫面會送出學生評分（admin/bookings.html
+    // 只唯讀顯示），所以 API 也不需要接受 admin 寫入。
+    if (hasRating) {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+  }
+
+  const newStatus = hasStatus ? status! : existing.status;
+  const newRating = rating !== undefined ? rating : existing.rating;
+  const newComment = studentComment !== undefined ? studentComment : existing.student_comment;
+  const newTeacherRating = teacherRating !== undefined ? teacherRating : existing.teacher_rating;
+  const newNote = teacherNote !== undefined ? teacherNote : existing.teacher_note;
+
+  await env.DB.prepare(
+    `UPDATE bookings SET status = ?, rating = ?, student_comment = ?, teacher_rating = ?, teacher_note = ? WHERE id = ?`
+  ).bind(newStatus, newRating, newComment, newTeacherRating, newNote, id).run();
 
   const oldStatus = existing.status;
-  await env.DB.prepare(`UPDATE bookings SET status = ? WHERE id = ?`).bind(status, id).run();
-
   let bookedDelta = 0;
   let attendedDelta = 0;
-  if (oldStatus !== 'cancelled' && status === 'cancelled') bookedDelta = -1;
-  if (oldStatus === 'cancelled' && status !== 'cancelled') bookedDelta = 1;
-  if (oldStatus !== 'attended' && status === 'attended') attendedDelta = 1;
-  if (oldStatus === 'attended' && status !== 'attended') attendedDelta = -1;
+  if (oldStatus !== 'cancelled' && newStatus === 'cancelled') bookedDelta = -1;
+  if (oldStatus === 'cancelled' && newStatus !== 'cancelled') bookedDelta = 1;
+  if (oldStatus !== 'attended' && newStatus === 'attended') attendedDelta = 1;
+  if (oldStatus === 'attended' && newStatus !== 'attended') attendedDelta = -1;
   if (bookedDelta || attendedDelta) {
     await env.DB.prepare(
       `UPDATE student_courses SET booked_count = booked_count + ?, attended_count = attended_count + ? WHERE id = ?`
@@ -969,7 +1220,7 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
   }
 
   const updated = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<BookingRow>();
-  return Response.json(bookingRowToJson(updated!));
+  return Response.json(bookingRowToJson(updated!, session.role));
 }
 
 // Shared "recently viewed" tracking for the admin teacher/student/course list
@@ -1086,7 +1337,12 @@ export default {
     if (url.pathname === '/api/teachers' && request.method === 'GET') {
       const session = await getSession(request, env);
       if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleTeachersList(env);
+      return handleTeachersList(env, session);
+    }
+    if (url.pathname === '/api/teachers/me' && request.method === 'GET') {
+      const session = await getSession(request, env);
+      if (!session || session.role !== 'teacher') return Response.json({ error: '未授權' }, { status: 401 });
+      return handleTeacherSelf(env, session);
     }
     if (url.pathname === '/api/teachers' && (request.method === 'POST' || request.method === 'PATCH')) {
       const session = await getSession(request, env);
@@ -1104,7 +1360,7 @@ export default {
     // Weekly hours / leave: readable by any logged-in session (the student
     // booking wizard reads them to compute bookable slots); writable by the
     // teacher themselves or an admin managing on their behalf, matching the
-    // ?teacherId= honored-only-for-admin pattern used for /teacher/* pages.
+    // ?teacherId= honored-only-for-admin pattern (the /admin/teacher-* pages).
     if (url.pathname === '/api/teachers/hours' || url.pathname === '/api/teachers/leave') {
       const session = await getSession(request, env);
       if (!session) return Response.json({ error: '未授權' }, { status: 401 });
@@ -1154,6 +1410,17 @@ export default {
       const session = await getSession(request, env);
       if (!session) return Response.json({ error: '未授權' }, { status: 401 });
       return handleOwnLanguageUpdate(request, env, session);
+    }
+    // Settings pages — a student/teacher edits a few fields of their own record.
+    if (url.pathname === '/api/me/profile' && request.method === 'PATCH') {
+      const session = await getSession(request, env);
+      if (!session || (session.role !== 'student' && session.role !== 'teacher')) return Response.json({ error: '未授權' }, { status: 401 });
+      return handleOwnProfileUpdate(request, env, session);
+    }
+    if (url.pathname === '/api/me/avatar' && request.method === 'PUT') {
+      const session = await getSession(request, env);
+      if (!session || (session.role !== 'student' && session.role !== 'teacher')) return Response.json({ error: '未授權' }, { status: 401 });
+      return handleOwnAvatarUpload(request, env, session);
     }
     if (url.pathname === '/api/students' && request.method === 'GET') {
       const session = await getSession(request, env);
@@ -1211,12 +1478,12 @@ export default {
       return handleBookingUpdate(request, env, session, id);
     }
 
-    // Admin also needs into /teacher/* — admin/teacher-detail.html links there
-    // (with a ?teacherId= param) to manage a teacher's hours/leave/lessons on
-    // their behalf.
+    // Each role's pages are gated to that role only. Admins manage a teacher's
+    // hours/leave/lessons through the /admin/teacher-* aliases below instead of
+    // entering /teacher/* themselves.
     const ALLOWED_SESSION_ROLES: Record<string, readonly string[]> = {
       admin: ['admin'],
-      teacher: ['teacher', 'admin'],
+      teacher: ['teacher'],
       student: ['student'],
     };
     const protectedRole = (['admin', 'teacher', 'student'] as const).find(
@@ -1227,6 +1494,14 @@ export default {
       if (!session || !ALLOWED_SESSION_ROLES[protectedRole].includes(session.role)) {
         return Response.redirect(new URL('/', request.url).toString(), 302);
       }
+    }
+
+    // Admin-only alias (already gated by the /admin prefix above) that serves
+    // the same HTML as the teacher's own page — the page tells the two apart
+    // by location.pathname, so the URL alone says whose view it is.
+    const adminTeacherPage = ADMIN_TEACHER_PAGE_ALIASES[url.pathname.replace(/\.html$/, '')];
+    if (adminTeacherPage) {
+      return env.ASSETS.fetch(new Request(new URL(adminTeacherPage, request.url), request));
     }
 
     return env.ASSETS.fetch(request);

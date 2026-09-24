@@ -89,7 +89,7 @@
   </section>
 
   <div class="wizard-nav">
-    <button type="button" class="btn blue" id="add-submit-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.common.add">新增</span></button>
+    <button type="button" class="btn blue" id="add-submit-btn" disabled><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.common.add">新增</span></button>
   </div>
 
 </div>
@@ -183,6 +183,10 @@
     document.getElementById('courseAddAlertText').textContent = message;
     document.getElementById('courseAddAlertModal').classList.add('open');
   }
+
+  // 必填欄位都有填「新增」才能按（從停用變成可按時跳一下）；Email 格式這類要比對的錯誤還是按下去才檢查
+  watchForm(document.querySelector('.page'), document.getElementById('add-submit-btn'),
+    () => ['add-course-name'].every((id) => document.getElementById(id).value.trim()));
 
   document.getElementById('add-submit-btn').addEventListener('click', async () => {
     const name = document.getElementById('add-course-name').value.trim();

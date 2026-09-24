@@ -132,7 +132,7 @@
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="basic-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+      <button type="button" class="btn blue" id="basic-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -210,7 +210,7 @@
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="schedule-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+      <button type="button" class="btn blue" id="schedule-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -346,8 +346,12 @@
       setStatusToggle(e.target.checked);
     });
 
+    // 換課程圖片不是表單欄位的輸入事件，要自己通知基本資料的「確認編輯」重新比對（watchForm 設定好後會換成真的 refresh）
+    let refreshBasicSubmit = () => {};
+
     function setCourseImage(newImage) {
       currentImage = newImage;
+      refreshBasicSubmit();
       const img = document.getElementById('edit-course-image-preview');
       img.src = courseImageSrc(currentImage);
       img.classList.remove('avatar-swap');
@@ -359,6 +363,7 @@
     // 上傳完成後把 currentImage 換成 R2 路徑，畫面上是同一張圖，不需要再播一次切換動畫
     function setCourseImageQuiet(newImage) {
       currentImage = newImage;
+      refreshBasicSubmit();
     }
 
     document.getElementById('edit-course-image-random-btn').addEventListener('click', () => {
@@ -490,7 +495,8 @@
 
       renderHeader();
       document.getElementById('editSuccessModal').classList.add('open');
-      initialSnapshot = getFormSnapshot();
+      savedBasicSnapshot = getBasicSnapshot();
+      refreshBasicSubmit();
     });
 
     document.getElementById('schedule-submit-btn').addEventListener('click', async () => {
@@ -505,19 +511,26 @@
       if (!ok) { showBasicAlert(t('admin.common.saveFailed')); return; }
 
       document.getElementById('editSuccessModal').classList.add('open');
-      initialSnapshot = getFormSnapshot();
+      savedScheduleSnapshot = getScheduleSnapshot();
+      refreshScheduleSubmit();
     });
 
     document.getElementById('edit-success-ok-btn').addEventListener('click', () => {
       window.location.href = `course-detail.html?id=${course.id}`;
     });
 
-    function getFormSnapshot() {
+    // 基本資料、課程時間參數兩個區塊各自有「確認編輯」、各自儲存，所以「有沒有改過」也要分開記：
+    // 存了其中一塊，另一塊還沒存的修改不能被當成已儲存（離開頁面時也還要提醒）。
+    function getBasicSnapshot() {
       return JSON.stringify({
         name: document.getElementById('edit-course-name').value,
         description: document.getElementById('edit-course-description').value,
         image: currentImage,
         status: document.getElementById('edit-status-toggle').checked,
+      });
+    }
+    function getScheduleSnapshot() {
+      return JSON.stringify({
         durationHours: document.getElementById('duration-hours').value,
         durationMinutes: document.getElementById('duration-minutes').value,
         bufferBeforeHours: document.getElementById('buffer-before-hours').value,
@@ -530,10 +543,17 @@
       });
     }
 
-    let initialSnapshot = getFormSnapshot();
+    let savedBasicSnapshot = getBasicSnapshot();
+    let savedScheduleSnapshot = getScheduleSnapshot();
+    const isBasicDirty = () => getBasicSnapshot() !== savedBasicSnapshot;
+    const isScheduleDirty = () => getScheduleSnapshot() !== savedScheduleSnapshot;
+
+    // 各區塊資料跟上次儲存的不一樣，那一塊的「確認編輯」才能按（改回原樣會再變回停用；從停用變成可按時跳一下）
+    refreshBasicSubmit = watchForm(document.getElementById('card-basic'), document.getElementById('basic-submit-btn'), isBasicDirty);
+    const refreshScheduleSubmit = watchForm(document.getElementById('card-schedule'), document.getElementById('schedule-submit-btn'), isScheduleDirty);
 
     document.getElementById('back-btn').addEventListener('click', () => {
-      if (getFormSnapshot() !== initialSnapshot) {
+      if (isBasicDirty() || isScheduleDirty()) {
         document.getElementById('leaveConfirmModal').classList.add('open');
         return;
       }

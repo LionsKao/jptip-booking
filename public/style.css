@@ -33,6 +33,7 @@
     --color-butter: var(--butter);
     --color-peach: var(--peach);
     --color-steel: #71797E;
+    --color-star: #E8A93D;
     --color-primary: var(--sky-blue);
     --font-cn: 'Manrope', 'Noto Sans TC', sans-serif;
     --font-en: 'Manrope', 'Noto Sans TC', sans-serif;
@@ -298,6 +299,7 @@
   --color-butter: var(--butter);
   --color-peach: var(--peach);
   --color-steel: #71797E;
+  --color-star: #E8A93D;
   --level-j1: hsl(0, 70%, 75%);
   --level-j2: hsl(15, 72%, 74%);
   --level-j3: hsl(30, 75%, 72%);
@@ -364,6 +366,10 @@
     font-size: var(--fs-body);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    transition: opacity .15s ease;
+  }
+  body.i18n-fade-out {
+    opacity: 0;
   }
   img {
     max-width: 100%;
@@ -697,29 +703,10 @@
   .btn:active {
     filter: brightness(0.92);
     box-shadow: var(--shadow-sm);
+    transform: scale(.96);
   }
-  .btn:disabled {
-    background: #d8d3ca;
-    color: #a89f92;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-    filter: none;
-  }
-  .btn.is-disabled {
-    background: #d8d3ca;
-    color: #a89f92;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-    filter: none;
-  }
-  .btn.is-disabled:hover {
-    box-shadow: none;
-    filter: none;
-  }
-  .btn.is-disabled:active {
-    filter: none;
+  .btn-enabled-pop {
+    animation: day-select .35s ease;
   }
   .btn.navy {
     background: var(--color-navy);
@@ -761,6 +748,22 @@
   }
   .btn.outline:active {
     background: rgba(111, 200, 232, .16);
+  }
+  .btn:disabled, .btn.is-disabled {
+    background: #d8d3ca;
+    color: #a89f92;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    filter: none;
+  }
+  .btn:disabled:hover, .btn.is-disabled:hover {
+    box-shadow: none;
+    filter: none;
+  }
+  .btn:disabled:active, .btn.is-disabled:active {
+    filter: none;
+    transform: none;
   }
   .btn.outline.green {
     color: #558035;
@@ -929,6 +932,16 @@
     background: rgba(185,166,240,.16);
     color: var(--color-purple);
   }
+  .pill.rating-star {
+    background: color-mix(in srgb, #E8A93D 20%, white);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-star) 20%, white);
+    }
+    color: color-mix(in srgb, #E8A93D 60%, black);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in srgb, var(--color-star) 60%, black);
+    }
+  }
   .pill.tone-navy {
     background: var(--color-navy);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1096,7 +1109,7 @@
     transition: background-color .15s ease, color .15s ease;
   }
   .dropdown-menu li:hover {
-    background: var(--bg-card-alt);
+    background: rgba(111,200,232,.08);
   }
   .dropdown-menu li.selected {
     background: rgba(111,200,232,.12);
@@ -1475,6 +1488,10 @@
     height: 100%;
     object-fit: contain;
   }
+  .confirm-highlight-icon img.is-course-photo {
+    object-fit: cover;
+    border-radius: 50%;
+  }
   .confirm-highlight h3 {
     margin: 0 0 4px;
     font-size: 1.375rem;
@@ -1498,8 +1515,12 @@
   .field-float label {
     order: -1;
     font-size: var(--fs-small);
-    font-weight: 600;
-    color: var(--text-main);
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .field-float label i {
+    color: var(--text-muted);
+    margin-right: 4px;
   }
   .field-float input, .field-float textarea {
     width: 100%;
@@ -1516,7 +1537,7 @@
   }
   .field-float textarea {
     min-height: 96px;
-    resize: vertical;
+    resize: none;
   }
   .field-float input:hover, .field-float textarea:hover {
     box-shadow: var(--shadow-md);
@@ -2028,6 +2049,27 @@
     gap: var(--space-2);
     margin-top: var(--space-5);
   }
+  .modal.modal-wide {
+    max-width: 480px;
+  }
+  .modal-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-md);
+    background: var(--bg-page);
+  }
+  .modal-preview .star-rating {
+    font-size: 1.25rem;
+  }
+  .modal-preview p {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
   .table-wrap {
     overflow-x: auto;
   }
@@ -2121,6 +2163,69 @@
     top: var(--space-4);
     right: var(--space-5);
   }
+  .booking-card-status-stack {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .booking-card-status-stack .booking-card-status {
+    position: static;
+  }
+  .feedback-entry + .feedback-entry {
+    margin-top: var(--space-5);
+  }
+  .feedback-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+  }
+  .feedback-name {
+    color: var(--text-main);
+    font-weight: 700;
+  }
+  .feedback-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-card-alt);
+  }
+  .feedback-stars {
+    margin-bottom: var(--space-1);
+  }
+  .feedback-text {
+    margin: 0;
+    color: var(--text-main);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .feedback-text.is-empty {
+    color: var(--text-muted);
+    opacity: .7;
+  }
+  .booking-card-feedback-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .booking-card-feedback-pill i {
+    font-size: .75em;
+  }
+  .booking-card-feedback-pill .pill-icon {
+    margin-left: 4px;
+  }
+  .booking-card-feedback-pill.tone-rose {
+    color: var(--color-rose);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in srgb, var(--color-rose) 55%, black);
+    }
+  }
   .booking-card-info {
     display: flex;
     flex-direction: column;
@@ -2148,12 +2253,59 @@
     color: var(--text-main);
     font-size: 1.125rem;
   }
+  .booking-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: var(--fs-caption);
+  }
+  .booking-card-rating .star-rating {
+    font-size: .75rem;
+  }
   .booking-card-side {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
     width: 100%;
+  }
+  .star-rating {
+    display: inline-flex;
+    gap: 2px;
+    color: var(--color-star);
+  }
+  .star-rating-input {
+    display: inline-flex;
+    gap: 2px;
+  }
+  .star-rating-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: var(--color-star);
+    font-size: 1.5rem;
+    line-height: 1;
+    transition: transform .1s ease;
+  }
+  .star-rating-btn:hover {
+    transform: scale(1.15);
+  }
+  #rating-input-view .star-rating-input, #complete-lesson-section .star-rating-input {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: var(--space-4);
+  }
+  #rating-input-view .star-rating-btn, #complete-lesson-section .star-rating-btn {
+    font-size: 2rem;
+  }
+  #rating-input-view .field {
+    max-width: none;
+  }
+  #rating-input-view .field-float, #complete-lesson-section .field-float {
+    gap: var(--space-2);
   }
   .booking-card-side .btn.sm {
     padding: 10px 20px;
@@ -2422,6 +2574,15 @@
   .text-input.input-error:focus {
     box-shadow: 0 0 0 4px rgba(255, 138, 138, .14);
   }
+  .text-input[readonly] {
+    background: var(--bg-page) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512'%3E%3Cpath fill='%238f8a87' d='M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z'/%3E%3C/svg%3E") no-repeat right 18px center / 14px 16px;
+    padding-right: 44px;
+    cursor: default;
+  }
+  .text-input[readonly]:focus {
+    border-color: var(--line);
+    box-shadow: none;
+  }
   .status-toggle-wrap {
     margin-left: auto;
     display: flex;
@@ -2469,6 +2630,23 @@
   }
   .status-toggle input:checked + .status-toggle-track .status-toggle-thumb {
     transform: translateX(32px);
+  }
+  @keyframes copy-icon-pop {
+    0% {
+      transform: scale(.5);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.25);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  .copy-icon-pop {
+    display: inline-block;
+    animation: copy-icon-pop .3s ease;
   }
   .field-info-btn, .info-btn, .quota-info-btn {
     display: inline-flex;
@@ -2651,6 +2829,13 @@
       background: color-mix(in srgb, var(--color-navy) 16%, white);
     }
     color: var(--color-navy);
+  }
+  .modal-icon.star {
+    background: color-mix(in srgb, #E8A93D 20%, white);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-star) 20%, white);
+    }
+    color: var(--color-star);
   }
 }
 @keyframes slide-out-to-left {

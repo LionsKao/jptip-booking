@@ -166,7 +166,7 @@
           </div>
         </div>
       </div>
-      <button type="button" class="btn butter" id="leave-add-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="leave.addTitle">新增休假</span></button>
+      <button type="button" class="btn butter" id="leave-add-btn" disabled><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="leave.addTitle">新增休假</span></button>
     </div>
   </section>
 
@@ -252,20 +252,19 @@
 (async () => {
   // 資料庫對應：teacher_leave(teacher_id, date)，經 /api/teachers/leave 讀寫
 
-  // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
-  // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
-  // 忽略網址上可能被竄改的 teacherId，避免老師改網址去動到別的老師的休假。
-  const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
-  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
-  const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
-  const teachersCache = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
-  function loadTeachers() { return teachersCache; }
-  const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
-  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
-  const currentTeacherRecord = loadTeachers().find((t) => t.id === currentTeacherId);
+  // 同一份頁面有兩個網址，靠網址區分是誰在看（後端也依網址分開擋權限）：
+  //   /admin/teacher-leave?id=…  管理者代管某位老師，只有管理者進得來
+  //   /teacher/leave             老師本人，只有老師進得來；一律以登入身分反查自己的資料
+  const viewingAsAdmin = window.location.pathname.startsWith('/admin/');
+  const teacherIdParam = viewingAsAdmin ? new URLSearchParams(window.location.search).get('id') : null;
+  const currentTeacherRecord = await loadCurrentTeacher(viewingAsAdmin, teacherIdParam);
+  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (currentTeacherRecord ? currentTeacherRecord.id : undefined);
 
-  // 這頁沒有語言切換鈕（已在老師主頁），純粹套用該老師帳號目前的語言。
-  await initI18n((currentTeacherRecord && currentTeacherRecord.language) || getCurrentLang());
+  // 這頁沒有語言切換鈕：管理者套用管理者自己的語言（跟其他管理端頁面一致），老師本人套用老師帳號的語言。
+  const adminMe = viewingAsAdmin ? await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null) : null;
+  await initI18n(viewingAsAdmin
+    ? ((adminMe && adminMe.language) || getCurrentLang())
+    : ((currentTeacherRecord && currentTeacherRecord.language) || getCurrentLang()));
 
   function showInfoModal(title) {
     document.getElementById('leaveInfoModalTitle').textContent = title;
@@ -345,6 +344,11 @@
   let pendingAddDate = null;
   let pendingDeleteId = null;
 
+  // 選了日期「新增休假」才能按（從停用變成可按時跳一下）
+  function refreshLeaveAddBtn() {
+    setButtonEnabled(document.getElementById('leave-add-btn'), !!getSelectedDateISO());
+  }
+
   document.getElementById('leave-add-btn').addEventListener('click', () => {
     const dateISO = getSelectedDateISO();
     if (!dateISO) {
@@ -380,6 +384,7 @@
     leaveDays.push(created);
     document.querySelectorAll('.datepicker-grid button.selected').forEach((b) => b.classList.remove('selected'));
     resetDateLabel();
+    refreshLeaveAddBtn();
     renderLeaveTable();
   });
 
@@ -411,10 +416,25 @@
     datePopover.classList.toggle('open');
   });
 
+  // 休假只能請今天（含）以後的日期：日曆每次畫好（含切換月份）都把今天以前的日子標成停用，
+  // 比照預約精靈 refreshDayDisabledStates() 的做法（.disabled 會讓按鈕點不到、變淡）。
+  function disablePastDays() {
+    const picker = document.querySelector('[data-datepicker]');
+    if (!picker || picker.dataset.year === undefined) return;
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    document.querySelectorAll('.datepicker-grid button:not(.muted)').forEach((btn) => {
+      const d = new Date(Number(picker.dataset.year), Number(picker.dataset.month), Number(btn.textContent));
+      btn.classList.toggle('disabled', d < today0);
+    });
+  }
+  document.querySelector('[data-datepicker]').addEventListener('datepicker:rendered', disablePastDays);
+  disablePastDays();
+
   document.querySelector('[data-datepicker]').addEventListener('datepicker:change', () => {
     const dateISO = getSelectedDateISO();
     if (dateISO) dateLabel.textContent = formatLeaveDate(dateISO);
     datePopover.classList.remove('open');
+    refreshLeaveAddBtn();
   });
 
   document.addEventListener('click', (e) => {
@@ -428,7 +448,7 @@
   }
 
   function goBack() {
-    window.location.href = viewingAsAdmin ? `../admin/teacher-detail.html?id=${teacherIdParam}` : 'index.html';
+    window.location.href = viewingAsAdmin ? `teacher-detail.html?id=${teacherIdParam}` : 'index.html';
   }
 
   document.getElementById('back-btn').addEventListener('click', () => {

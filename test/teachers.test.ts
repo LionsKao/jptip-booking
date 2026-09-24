@@ -28,6 +28,46 @@ describe('GET /api/teachers', () => {
     expect(teacher1.courses).toEqual([]);
     expect(teacher1.status).toBe('active');
   });
+
+  it('gives students and teachers only the teacher-picker fields, never contact info or the receipt', async ({ expect }) => {
+    for (const who of [SEEDED.student, SEEDED.teacher]) {
+      const cookie = await login(who.email, who.role);
+      const list = (await (await fetchWorker('/api/teachers', withCookie(cookie))).json()) as Record<string, unknown>[];
+      expect(list.length).toBeGreaterThan(0);
+      for (const teacher of list) {
+        expect(Object.keys(teacher).sort()).toEqual(['avatar', 'courses', 'id', 'motto', 'name', 'specialty', 'status']);
+      }
+    }
+  });
+});
+
+describe('GET /api/teachers/me', () => {
+  it('returns the logged-in teacher their own full record, receipt included', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const list = (await (await fetchWorker('/api/teachers', withCookie(adminCookie))).json()) as Record<string, unknown>[];
+    const teacher1 = list.find((t) => t.email === SEEDED.teacher.email)!;
+    await fetchWorker(`/api/teachers?id=${teacher1.id}`, withCookie(adminCookie, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receipt: { timezone: 'UTC+06:30 仰光', bankAccountNo: '1234567' } }),
+    }));
+
+    const cookie = await login(SEEDED.teacher.email, 'teacher');
+    const res = await fetchWorker('/api/teachers/me', withCookie(cookie));
+    expect(res.status).toBe(200);
+    const me = (await res.json()) as Record<string, unknown>;
+    expect(me.id).toBe(teacher1.id);
+    expect(me.email).toBe(SEEDED.teacher.email);
+    expect(me.receipt).toEqual({ timezone: 'UTC+06:30 仰光', bankAccountNo: '1234567' });
+  });
+
+  it('is 401 for a student, an admin, or no session', async ({ expect }) => {
+    expect((await fetchWorker('/api/teachers/me')).status).toBe(401);
+    for (const who of [SEEDED.student, SEEDED.admin]) {
+      const cookie = await login(who.email, who.role);
+      expect((await fetchWorker('/api/teachers/me', withCookie(cookie))).status).toBe(401);
+    }
+  });
 });
 
 describe('POST /api/teachers', () => {
@@ -198,10 +238,10 @@ describe('/api/teachers/leave', () => {
   it('upserts the same date instead of duplicating it', async ({ expect }) => {
     const cookie = await login(SEEDED.teacher.email, 'teacher');
     await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2026-10-01' }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2099-10-01' }),
     }));
     await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2026-10-01' }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2099-10-01' }),
     }));
     const list = (await (await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie))).json()) as unknown[];
     expect(list).toHaveLength(1);
@@ -210,16 +250,36 @@ describe('/api/teachers/leave', () => {
   it('deletes a leave day', async ({ expect }) => {
     const cookie = await login(SEEDED.teacher.email, 'teacher');
     const created = (await (await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2026-10-05' }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2099-10-05' }),
     }))).json()) as { id: number };
     const res = await fetchWorker(`/api/teachers/leave?teacherId=1&id=${created.id}`, withCookie(cookie, { method: 'DELETE' }));
     expect(res.status).toBe(200);
   });
 
+  it('rejects a leave day before today', async ({ expect }) => {
+    const cookie = await login(SEEDED.teacher.email, 'teacher');
+    const res = await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2000-01-01' }),
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it("judges \"today\" in the teacher's own timezone: today is allowed, yesterday is not", async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const teacher = (await (await createTeacher(cookie, { receipt: { timezone: '(UTC+6:30) 仰光' } })).json()) as { id: number };
+    const dayAt = (offsetDays: number) => new Date(Date.now() + (6.5 * 60 + offsetDays * 24 * 60) * 60_000).toISOString().slice(0, 10);
+    const post = (date: string) => fetchWorker(`/api/teachers/leave?teacherId=${teacher.id}`, withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }),
+    }));
+
+    expect((await post(dayAt(-1))).status).toBe(400);
+    expect((await post(dayAt(0))).status).toBe(201);
+  });
+
   it('is 404 deleting a leave day that does not belong to that teacher', async ({ expect }) => {
     const cookie = await login(SEEDED.teacher.email, 'teacher');
     const created = (await (await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2026-10-06' }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: '2099-10-06' }),
     }))).json()) as { id: number };
 
     const teacher2Cookie = await login('teacher2@jptip.co.jp', 'teacher');

@@ -88,10 +88,10 @@
         <div class="dropdown" id="edit-timezone-dropdown" data-placeholder="選擇時區">
           <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.field.selectTimezone">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
-            <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+07:00) 河內、胡志明市">(UTC+07:00) 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+06:30) 仰光">(UTC+06:30) 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+08:00 台北">UTC+08:00 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+09:00 大阪、札幌、東京">UTC+09:00 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+07:00 河內、胡志明市">UTC+07:00 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+06:30 仰光">UTC+06:30 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
       </div>
@@ -104,7 +104,7 @@
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="edit-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+      <button type="button" class="btn blue" id="edit-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -199,15 +199,19 @@
     document.getElementById('edit-teams-link').value = student.teamsLink || '';
     document.getElementById('edit-avatar-preview').src = avatarSrc(currentAvatar);
     setStatusToggle(student.status !== 'inactive');
-    setDropdownValue('edit-timezone-dropdown', student.timezone || '(UTC+08:00) 台北');
+    setDropdownValue('edit-timezone-dropdown', student.timezone || 'UTC+08:00 台北');
   }
 
   document.getElementById('edit-status-toggle').addEventListener('change', (e) => {
     setStatusToggle(e.target.checked);
   });
 
+  // 換頭像不是表單欄位的輸入事件，要自己通知「確認編輯」重新比對（watchForm 設定好後會換成真的 refresh）
+  let refreshEditSubmit = () => {};
+
   function setAvatar(newAvatar) {
     currentAvatar = newAvatar;
+    refreshEditSubmit();
     const avatarImg = document.getElementById('edit-avatar-preview');
     avatarImg.src = avatarSrc(currentAvatar);
     avatarImg.classList.remove('avatar-swap');
@@ -220,6 +224,7 @@
   function setAvatarQuiet(newAvatar) {
     currentAvatar = newAvatar;
     student.avatar = newAvatar;
+    refreshEditSubmit();
   }
 
   document.getElementById('edit-avatar-random-btn').addEventListener('click', () => {
@@ -334,6 +339,7 @@
     document.getElementById('edit-phone').value = formatPhoneDisplay(student.phone);
     document.getElementById('basicInfoSuccessModal').classList.add('open');
     initialBasicInfoSnapshot = getBasicInfoSnapshot();
+    refreshEditSubmit();
   });
 
   renderBasicInfo();
@@ -350,6 +356,10 @@
     });
   }
   let initialBasicInfoSnapshot = getBasicInfoSnapshot();
+
+  // 資料跟上次儲存的不一樣「確認編輯」才能按（改回原樣會再變回停用；從停用變成可按時跳一下）
+  refreshEditSubmit = watchForm(document.querySelector('.page'), document.getElementById('edit-submit-btn'),
+    () => getBasicInfoSnapshot() !== initialBasicInfoSnapshot);
 
   document.getElementById('back-btn').addEventListener('click', () => {
     if (getBasicInfoSnapshot() !== initialBasicInfoSnapshot) {

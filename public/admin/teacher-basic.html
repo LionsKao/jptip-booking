@@ -107,10 +107,10 @@
         <div class="dropdown" id="receipt-timezone-dropdown" data-placeholder="選擇時區">
           <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.field.selectTimezone">選擇時區</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
           <ul class="dropdown-menu">
-            <li data-value="(UTC+08:00) 台北">(UTC+08:00) 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+09:00) 大阪、札幌、東京">(UTC+09:00) 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+07:00) 河內、胡志明市">(UTC+07:00) 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
-            <li data-value="(UTC+06:30) 仰光">(UTC+06:30) 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+08:00 台北">UTC+08:00 台北<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+09:00 大阪、札幌、東京">UTC+09:00 大阪、札幌、東京<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+07:00 河內、胡志明市">UTC+07:00 河內、胡志明市<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
+            <li data-value="UTC+06:30 仰光">UTC+06:30 仰光<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
           </ul>
         </div>
       </div>
@@ -127,7 +127,7 @@
     </div>
 
     <div class="wizard-nav">
-      <button type="button" class="btn blue" id="edit-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+      <button type="button" class="btn blue" id="edit-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -181,7 +181,7 @@
     </div>
 
     <div class="receipt-submit-row">
-      <button type="button" class="btn blue" id="receipt-submit-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+      <button type="button" class="btn blue" id="receipt-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </section>
 
@@ -275,8 +275,12 @@
       setStatusToggle(e.target.checked);
     });
 
+    // 換頭像不是表單欄位的輸入事件，要自己通知基本資料的「確認編輯」重新比對（watchForm 設定好後會換成真的 refresh）
+    let refreshBasicSubmit = () => {};
+
     function setAvatar(newAvatar) {
       currentAvatar = newAvatar;
+      refreshBasicSubmit();
       const avatarImg = document.getElementById('edit-avatar-preview');
       avatarImg.src = avatarSrc(currentAvatar);
       avatarImg.classList.remove('avatar-swap');
@@ -287,6 +291,7 @@
     // 上傳完成後把 currentAvatar 換成 R2 路徑，畫面上是同一張圖，不需要再播一次切換動畫
     function setAvatarQuiet(newAvatar) {
       currentAvatar = newAvatar;
+      refreshBasicSubmit();
     }
 
     document.getElementById('edit-avatar-random-btn').addEventListener('click', () => {
@@ -405,7 +410,8 @@
       }
       document.getElementById('edit-phone').value = formatPhoneDisplay(phone);
       document.getElementById('editSuccessModal').classList.add('open');
-      initialSnapshot = getFormSnapshot();
+      savedBasicSnapshot = getBasicSnapshot();
+      refreshBasicSubmit();
     });
 
     teacher.receipt = teacher.receipt || {};
@@ -418,7 +424,7 @@
     document.getElementById('receipt-bank-branch-no').value = teacher.receipt.bankBranchNo || '';
     document.getElementById('receipt-bank-account-no').value = teacher.receipt.bankAccountNo || '';
     setDropdownValue('receipt-tax-dropdown', teacher.receipt.taxRate || '0%');
-    setDropdownValue('receipt-timezone-dropdown', teacher.receipt.timezone || '(UTC+09:00) 大阪、札幌、東京');
+    setDropdownValue('receipt-timezone-dropdown', teacher.receipt.timezone || 'UTC+09:00 大阪、札幌、東京');
 
     document.getElementById('receipt-wage').addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/[^0-9]/g, '');
@@ -444,10 +450,13 @@
         return;
       }
       document.getElementById('editSuccessModal').classList.add('open');
-      initialSnapshot = getFormSnapshot();
+      savedReceiptSnapshot = getReceiptSnapshot();
+      refreshReceiptSubmit();
     });
 
-    function getFormSnapshot() {
+    // 基本資料、領收書資料兩個區塊各自有「確認編輯」、各自儲存，所以「有沒有改過」也要分開記：
+    // 存了其中一塊，另一塊還沒存的修改不能被當成已儲存（離開頁面時也還要提醒）。
+    function getBasicSnapshot() {
       return JSON.stringify({
         avatar: currentAvatar,
         name: document.getElementById('edit-name').value,
@@ -456,12 +465,16 @@
         specialty: document.getElementById('edit-specialty').value,
         motto: document.getElementById('edit-motto').value,
         status: document.getElementById('edit-status-toggle').checked,
+        timezone: getDropdownValue('receipt-timezone-dropdown'),
+      });
+    }
+    function getReceiptSnapshot() {
+      return JSON.stringify({
         address: document.getElementById('receipt-address').value,
         companyName: document.getElementById('receipt-company-name').value,
         companyAddress: document.getElementById('receipt-company-address').value,
         wage: document.getElementById('receipt-wage').value,
         taxRate: getDropdownValue('receipt-tax-dropdown'),
-        timezone: getDropdownValue('receipt-timezone-dropdown'),
         bank: document.getElementById('receipt-bank').value,
         bankBranch: document.getElementById('receipt-bank-branch').value,
         bankBranchNo: document.getElementById('receipt-bank-branch-no').value,
@@ -469,10 +482,17 @@
       });
     }
 
-    let initialSnapshot = getFormSnapshot();
+    let savedBasicSnapshot = getBasicSnapshot();
+    let savedReceiptSnapshot = getReceiptSnapshot();
+    const isBasicDirty = () => getBasicSnapshot() !== savedBasicSnapshot;
+    const isReceiptDirty = () => getReceiptSnapshot() !== savedReceiptSnapshot;
+
+    // 各區塊資料跟上次儲存的不一樣，那一塊的「確認編輯」才能按（改回原樣會再變回停用；從停用變成可按時跳一下）
+    refreshBasicSubmit = watchForm(document.getElementById('card-basic'), document.getElementById('edit-submit-btn'), isBasicDirty);
+    const refreshReceiptSubmit = watchForm(document.getElementById('card-receipt'), document.getElementById('receipt-submit-btn'), isReceiptDirty);
 
     document.getElementById('back-btn').addEventListener('click', () => {
-      if (getFormSnapshot() !== initialSnapshot) {
+      if (isBasicDirty() || isReceiptDirty()) {
         document.getElementById('leaveConfirmModal').classList.add('open');
         return;
       }

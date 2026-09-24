@@ -616,23 +616,43 @@
 
     const allSlots = getDisplaySlotMinutes(course);
     const bookableSlots = dateISO ? new Set(getBookableSlotsForDate(course, teacherId, dateISO)) : new Set();
-    container.innerHTML = allSlots.map((m) => {
-      const bookable = dateISO && bookableSlots.has(m);
-      return `<div class="time-slot${bookable ? '' : ' disabled'}">${minutesToTime(m)}</div>`;
-    }).join('');
-    if (dateISO && bookableSlots.size === 0) {
-      container.insertAdjacentHTML('beforeend', `<p class="text-small" style="color:var(--text-muted); grid-column:1/-1;">${t('booking.noSlotsThisDate')}</p>`);
+
+    // 換日期時，同一門課的時段清單（allSlots）不會變，只有「這天可不可訂」會變。
+    // 盡量重用既有的 .time-slot 元素、只切換 disabled class，讓 .time-slot 本來就
+    // 有的 CSS transition（border-color/background-color/color）真的播放「亮起來／
+    // 暗下去」的動畫——整批砍掉重建的話，新元素沒有「前一個狀態」可以 animate。
+    const existing = [...container.querySelectorAll('.time-slot')];
+    const wantedTimes = allSlots.map(minutesToTime);
+    const sameSlotSet = existing.length === wantedTimes.length
+      && existing.every((slot, i) => slot.textContent === wantedTimes[i]);
+
+    if (sameSlotSet) {
+      existing.forEach((slot, i) => {
+        const bookable = dateISO && bookableSlots.has(allSlots[i]);
+        slot.classList.toggle('disabled', !bookable);
+        slot.classList.remove('selected');
+      });
+    } else {
+      container.innerHTML = allSlots.map((m) => {
+        const bookable = dateISO && bookableSlots.has(m);
+        return `<div class="time-slot${bookable ? '' : ' disabled'}">${minutesToTime(m)}</div>`;
+      }).join('');
+      container.querySelectorAll('.time-slot').forEach((slot) => {
+        applyTiltEffect(slot, 28);
+        slot.addEventListener('click', () => {
+          if (slot.classList.contains('disabled')) return;
+          container.querySelectorAll('.time-slot').forEach((s) => s.classList.remove('selected'));
+          slot.classList.add('selected');
+          refreshNextButtonState(4);
+        });
+      });
     }
 
-    container.querySelectorAll('.time-slot').forEach((slot) => {
-      applyTiltEffect(slot, 28);
-      slot.addEventListener('click', () => {
-        if (slot.classList.contains('disabled')) return;
-        container.querySelectorAll('.time-slot').forEach((s) => s.classList.remove('selected'));
-        slot.classList.add('selected');
-        refreshNextButtonState(4);
-      });
-    });
+    const emptyNote = container.querySelector('.time-slots-empty-note');
+    if (emptyNote) emptyNote.remove();
+    if (dateISO && bookableSlots.size === 0) {
+      container.insertAdjacentHTML('beforeend', `<p class="text-small time-slots-empty-note" style="color:var(--text-muted); grid-column:1/-1;">${t('booking.noSlotsThisDate')}</p>`);
+    }
   }
 
   // ------------------------------------------------------------------------
@@ -855,7 +875,12 @@
     if (!rule) return;
     const stepEl = document.querySelector(`.booking-step[data-step="${step}"]`);
     const nextBtn = stepEl.querySelector('[data-wizard-next]');
-    nextBtn.classList.toggle('is-disabled', !rule.isComplete(stepEl));
+    const wasDisabled = nextBtn.classList.contains('is-disabled');
+    const nowDisabled = !rule.isComplete(stepEl);
+    nextBtn.classList.toggle('is-disabled', nowDisabled);
+    // 只在真的從「不能按」變成「可以按」的那個瞬間跳一下，避免每次重新檢查（例如
+    // 換日期但時段還沒選完）都重播動畫。
+    if (wasDisabled && !nowDisabled) playEnabledPop(nextBtn);
   }
 
   document.querySelector('[data-datepicker]').addEventListener('datepicker:rendered', refreshDayDisabledStates);

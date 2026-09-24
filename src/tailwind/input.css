@@ -46,6 +46,9 @@
   --color-butter:  var(--butter);
   --color-peach:   var(--peach);
   --color-steel:   #71797E;
+  /* 評分星星專用色——不能沿用 --color-orange（已經代表「待處理」狀態）或
+     --color-butter（太淺，圖示/文字用會看不清楚）。 */
+  --color-star:    #E8A93D;
 
   /* 課程等級色階 — J1（紅）到 J13（紫）彩虹漸層，依人眼感知手動調整色相分佈，避免綠色佔比過重 */
   --level-j1:  hsl(0, 70%, 75%);
@@ -137,6 +140,7 @@
   --color-butter:  var(--butter);
   --color-peach:   var(--peach);
   --color-steel:   #71797E;
+  --color-star:    #E8A93D;
 
   --color-primary: var(--sky-blue);
   --color-success: var(--grass);
@@ -214,6 +218,12 @@
     font-size: var(--fs-body);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    /* 切換語言時淡出/淡入用（見 script.js 的 renderLangSwitch）——只在使用者主動
+       切換語言時觸發，不影響第一次載入頁面的 initI18n()。 */
+    transition: opacity .15s ease;
+  }
+  body.i18n-fade-out {
+    opacity: 0;
   }
 
   img { max-width: 100%; display: block; }
@@ -452,17 +462,13 @@
     transition: background-color .2s ease, box-shadow .2s ease, transform .15s ease, filter .2s ease;
   }
   .btn:hover { box-shadow: var(--shadow-md); filter: brightness(1.06); }
-  .btn:active { filter: brightness(0.92); box-shadow: var(--shadow-sm); }
-  .btn:disabled {
-    background: #d8d3ca; color: #a89f92; cursor: not-allowed;
-    box-shadow: none; transform: none; filter: none;
-  }
-  .btn.is-disabled {
-    background: #d8d3ca; color: #a89f92; cursor: not-allowed;
-    box-shadow: none; transform: none; filter: none;
-  }
-  .btn.is-disabled:hover { box-shadow: none; filter: none; }
-  .btn.is-disabled:active { filter: none; }
+  .btn:active { filter: brightness(0.92); box-shadow: var(--shadow-sm); transform: scale(.96); }
+
+  /* 「下一步」按鈕從 disabled 變成可以按的那一刻，跳一下提示使用者可以繼續了
+     （見 booking.html 的 refreshNextButtonState()，只在真的從 disabled → 可按
+     這個瞬間才會加上這個 class，不是每次重新檢查都跳）。沿用跟選取日期/時段
+     同一個 day-select 動畫，跟站內其他「選好了」的回饋視覺一致。 */
+  .btn-enabled-pop { animation: day-select .35s ease; }
 
   .btn.navy   { background: var(--color-navy); }
   .btn.blue   { background: var(--color-blue); }
@@ -481,6 +487,17 @@
   }
   .btn.outline:hover { background: rgba(111, 200, 232, .08); box-shadow: inset 0 0 0 2px var(--color-primary), var(--shadow-sm); }
   .btn.outline:active { background: rgba(111, 200, 232, .16); }
+
+  /* 停用狀態一定要寫在所有按鈕顏色（.blue／.green／.butter／.outline…）之後：權重相同時
+     寫在後面的才會生效，寫在前面的話底色會被按鈕顏色蓋掉，停用的按鈕只有文字變灰
+     （.butter 連文字顏色都自己設，停用跟可按看起來完全一樣）。 */
+  .btn:disabled,
+  .btn.is-disabled {
+    background: #d8d3ca; color: #a89f92; cursor: not-allowed;
+    box-shadow: none; transform: none; filter: none;
+  }
+  .btn:disabled:hover, .btn.is-disabled:hover { box-shadow: none; filter: none; }
+  .btn:disabled:active, .btn.is-disabled:active { filter: none; transform: none; }
 
   .btn.outline.green {
     color: #558035;
@@ -572,6 +589,9 @@
   .pill.cancelled { background: rgba(255,143,163,.16); color: color-mix(in srgb, var(--color-red) 65%, black); }
   .pill.info      { background: rgba(111,200,232,.14); color: color-mix(in srgb, var(--color-blue) 65%, black); }
   .pill.undefined { background: rgba(185,166,240,.16); color: var(--color-purple); }
+  /* 學生課程卡片的評分徽章——淺黃色底，用跟星星輸入元件一樣的 --color-star，
+     文字/圖示混 60% 黑加深，避免跟 .pill.tone-butter 一樣淺到看不清楚。 */
+  .pill.rating-star { background: color-mix(in srgb, var(--color-star) 20%, white); color: color-mix(in srgb, var(--color-star) 60%, black); }
 
   .pill.tone-navy   { background: color-mix(in srgb, var(--color-navy) 16%, white);   color: var(--color-navy); }
   .pill.tone-blue   { background: color-mix(in srgb, var(--color-blue) 16%, white);   color: var(--color-blue); }
@@ -658,7 +678,7 @@
     font-size: var(--fs-body);
     transition: background-color .15s ease, color .15s ease;
   }
-  .dropdown-menu li:hover { background: var(--bg-card-alt); }
+  .dropdown-menu li:hover { background: rgba(111,200,232,.08); }
   .dropdown-menu li.selected { background: rgba(111,200,232,.12); color: var(--color-blue); font-weight: 600; }
   .dropdown-menu li .select-badge { display: none; }
 
@@ -980,6 +1000,8 @@
   }
   .status-card .btn { min-width: 220px; }
   .confirm-highlight-icon img { width: 100%; height: 100%; object-fit: contain; }
+  /* 真的課程封面圖（setCourseHighlightIcon）：圓形裁切，跟課程管理列表一致 */
+  .confirm-highlight-icon img.is-course-photo { object-fit: cover; border-radius: 50%; }
   .confirm-highlight h3 { margin: 0 0 4px; font-size: 1.375rem; font-variant-numeric: tabular-nums; }
   .confirm-highlight p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
@@ -992,12 +1014,17 @@
     @apply flex flex-col relative;
     gap: 6px;
   }
+  /* 顏色/字重比照 .form-field label（admin 基本資料表單那套），兩套欄位 label
+     風格保持一致。 */
   .field-float label {
     order: -1;
     font-size: var(--fs-small);
-    font-weight: 600;
-    color: var(--text-main);
+    font-weight: 700;
+    color: var(--text-muted);
   }
+  /* 比照 .form-field label 那套「灰色圖示 + 文字」的欄位標籤樣式，讓 field-float
+     的 label 也能加圖示（沒加圖示的地方這條規則不會有作用）。 */
+  .field-float label i { color: var(--text-muted); margin-right: 4px; }
   .field-float input,
   .field-float textarea {
     width: 100%;
@@ -1012,7 +1039,9 @@
     transition: border-color .2s ease, box-shadow .2s ease;
     outline: none;
   }
-  .field-float textarea { min-height: 96px; resize: vertical; }
+  /* textarea 一律不給使用者手動拉高度——拉長會把卡片/區塊撐得不好看，需要更高的
+     地方用 min-height 調整即可，不要開放 resize。 */
+  .field-float textarea { min-height: 96px; resize: none; }
   .field-float input:hover,
   .field-float textarea:hover {
     box-shadow: var(--shadow-md);
@@ -1405,6 +1434,22 @@
   .modal-close:hover { background: var(--line); }
   .modal h3 { font-size: 1.5rem; margin-bottom: var(--space-2); }
   .modal-actions { display: flex; gap: var(--space-2); margin-top: var(--space-5); }
+  /* 評分／完成課程的確認 modal 裡有預覽框（.modal-preview），預設 420px 會讓留言很快就斷行，放寬一點 */
+  .modal.modal-wide { max-width: 480px; }
+  /* 確認 modal 裡「即將送出的內容」預覽（評分星星＋留言／課堂記錄），用淺底色框起來，
+     跟標題、按鈕拉開距離（學生送出評分、老師完成課程共用）。 */
+  .modal-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-md);
+    background: var(--bg-page);
+  }
+  .modal-preview .star-rating { font-size: 1.25rem; }
+  .modal-preview p { margin: 0; white-space: pre-wrap; word-break: break-word; }
 
   /* ========================================================================
      Table
@@ -1492,13 +1537,97 @@
     border-color: var(--color-blue);
   }
   .booking-card-status { position: absolute; top: var(--space-4); right: var(--space-5); }
+  /* 學生「我的課程」卡片：狀態 pill 下面疊一個評分 pill（見 booking-history.html 的
+     renderHistoryCard）。狀態 pill 本身在別的頁面（老師／管理端）還是單獨用絕對定位，
+     所以覆寫只 scope 在這個外層容器裡，不影響其他頁面的 .booking-card-status。 */
+  .booking-card-status-stack {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .booking-card-status-stack .booking-card-status { position: static; }
+  /* 「課程回饋」區塊裡每個人一段（renderFeedbackEntries，script.js）：大頭照＋名字、星星、留言。
+     管理端預約紀錄、老師我的課程、學生預約紀錄共用。 */
+  .feedback-entry + .feedback-entry { margin-top: var(--space-5); }
+  .feedback-label { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); }
+  .feedback-name { color: var(--text-main); font-weight: 700; }
+  .feedback-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--bg-card-alt); }
+  .feedback-stars { margin-bottom: var(--space-1); }
+  .feedback-text { margin: 0; color: var(--text-main); white-space: pre-wrap; word-break: break-word; }
+  .feedback-text.is-empty { color: var(--text-muted); opacity: .7; }
+
+  /* 已完成課堂卡片上的回饋標籤（feedbackPillHtml，script.js）：「★ 評分 💬 0/1」。
+     學生黃（.rating-star）、老師粉紅（.tone-rose）。共用的 .tone-rose 文字是淺粉紅，
+     在小標籤上對比不夠，這裡比照 .rating-star 把文字壓深。 */
+  /* tabular-nums：數字等寬，學生／老師兩個標籤不會因為「1」比「0」窄而寬度不一 */
+  .booking-card-feedback-pill { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+  .booking-card-feedback-pill i { font-size: .75em; }
+  .booking-card-feedback-pill .pill-icon { margin-left: 4px; }
+  .booking-card-feedback-pill.tone-rose { color: color-mix(in srgb, var(--color-rose) 55%, black); }
   .booking-card-info { display: flex; flex-direction: column; gap: 2px; }
   .booking-card-info > :first-child { padding-right: 90px; }
   .booking-card-info h4 { margin: 0; font-size: 1.125rem; color: var(--text-muted); }
   .booking-card-info p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); font-weight: 600; }
   .booking-card-info .booking-card-datetime { font-variant-numeric: tabular-nums; font-size: var(--fs-small); }
   .booking-card-info .booking-card-course { color: var(--text-main); font-size: 1.125rem; }
+  .booking-card-rating { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: var(--fs-caption); }
+  .booking-card-rating .star-rating { font-size: .75rem; }
   .booking-card-side { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); width: 100%; }
+
+  /* ========================================================================
+     Star rating — .star-rating is the read-only display (card badges, teacher/
+     admin views); .star-rating-btn is the clickable picker (student's own
+     rating input in booking-history.html).
+     ======================================================================== */
+  .star-rating {
+    display: inline-flex;
+    gap: 2px;
+    color: var(--color-star);
+  }
+  .star-rating-input {
+    display: inline-flex;
+    gap: 2px;
+  }
+  .star-rating-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: var(--color-star);
+    font-size: 1.5rem;
+    line-height: 1;
+    transition: transform .1s ease;
+  }
+  .star-rating-btn:hover { transform: scale(1.15); }
+
+  /* 評分輸入區的客製排版：學生評分（booking-history.html #rating-input-view）跟老師
+     完成課程（lessons.html #complete-lesson-section）共用——星星置中、放大，留言框改滿版寬。
+     只 scope 在這兩個區塊，不影響其他頁面既有的 .field / .star-rating 用法。（textarea
+     不能拉高度是全域規則，見上面 .field-float textarea 的 resize: none。） */
+  #rating-input-view .star-rating-input,
+  #complete-lesson-section .star-rating-input {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: var(--space-4);
+  }
+  #rating-input-view .star-rating-btn,
+  #complete-lesson-section .star-rating-btn {
+    font-size: 2rem;
+  }
+  #rating-input-view .field {
+    max-width: none;
+  }
+  /* 留言／課堂記錄欄位的 label 跟輸入框之間留多一點空間（預設 .field-float 的 6px 對這裡
+     來說有點擠），學生、老師兩邊一致。 */
+  #rating-input-view .field-float,
+  #complete-lesson-section .field-float {
+    gap: var(--space-2);
+  }
   .booking-card-side .btn.sm { padding: 10px 20px; }
 
   /* Pagination */
@@ -1726,6 +1855,17 @@
   .text-input.input-error:focus {
     box-shadow: 0 0 0 4px rgba(255, 138, 138, .14);
   }
+  /* 設定頁「由管理者設定、只能看」的欄位：底色換成頁面底色、右側內嵌灰色鎖頭（Font Awesome fa-lock
+     的路徑，顏色同 --text-muted），點進去也不會出現可編輯的藍框 */
+  .text-input[readonly] {
+    background: var(--bg-page) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512'%3E%3Cpath fill='%238f8a87' d='M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z'/%3E%3C/svg%3E") no-repeat right 18px center / 14px 16px;
+    padding-right: 44px;
+    cursor: default;
+  }
+  .text-input[readonly]:focus {
+    border-color: var(--line);
+    box-shadow: none;
+  }
 
   .status-toggle-wrap {
     margin-left: auto;
@@ -1771,6 +1911,18 @@
   }
   .status-toggle input:checked + .status-toggle-track { background: var(--color-green); }
   .status-toggle input:checked + .status-toggle-track .status-toggle-thumb { transform: translateX(32px); }
+
+  /* 複製按鈕（課程詳情標題旁）圖示切換（複製圖示 ↔ 打勾）時的小彈跳動畫，
+     學生預約紀錄與管理端預約紀錄共用。 */
+  @keyframes copy-icon-pop {
+    0% { transform: scale(.5); opacity: 0; }
+    60% { transform: scale(1.25); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .copy-icon-pop {
+    display: inline-block;
+    animation: copy-icon-pop .3s ease;
+  }
 
   /* ========================================================================
      Inline "info" icon button — a faded (?) icon that darkens on hover, used
@@ -1963,6 +2115,7 @@
   .modal-icon.info     { background: rgba(111, 200, 232, .18); color: var(--color-blue); }
   .modal-icon.timezone { background: rgba(159, 148, 220, .2); color: var(--color-purple); }
   .modal-icon.navy     { background: color-mix(in srgb, var(--color-navy) 16%, white); color: var(--color-navy); }
+  .modal-icon.star     { background: color-mix(in srgb, var(--color-star) 20%, white); color: var(--color-star); } /* 跟評分星星同一色系 */
 }
 
 /* ==========================================================================

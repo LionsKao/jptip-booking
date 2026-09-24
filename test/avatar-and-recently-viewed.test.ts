@@ -26,10 +26,10 @@ describe('PUT /api/avatar/upload', () => {
     const res = await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie));
     expect(res.status).toBe(200);
     const { path } = (await res.json()) as { path: string };
-    expect(path).toBe('avatars/teacher-1.jpg');
+    expect(path).toMatch(/^avatars\/teacher-1-\d+\.jpg$/);
 
     const row = await env.DB.prepare(`SELECT photo_path FROM teachers WHERE id = 1`).first<{ photo_path: string }>();
-    expect(row?.photo_path).toBe('avatars/teacher-1.jpg');
+    expect(row?.photo_path).toBe(path);
 
     const stored = await env.AVATARS.get(path);
     expect(stored).not.toBeNull();
@@ -46,10 +46,21 @@ describe('PUT /api/avatar/upload', () => {
 
     const res = await fetchWorker(`/api/avatar/upload?role=course&id=${created.id}`, uploadInit(cookie, FAKE_JPEG, 'image/png'));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ path: `courses/course-${created.id}.png` });
+    const { path } = (await res.json()) as { path: string };
+    expect(path).toMatch(new RegExp(`^courses/course-${created.id}-\\d+\\.png$`));
 
     const row = await env.DB.prepare(`SELECT photo_path FROM courses WHERE id = ?`).bind(created.id).first<{ photo_path: string }>();
-    expect(row?.photo_path).toBe(`courses/course-${created.id}.png`);
+    expect(row?.photo_path).toBe(path);
+  });
+
+  it('gives every upload a fresh key (the served image is cached as immutable) and deletes the replaced one', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const first = ((await (await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie))).json()) as { path: string }).path;
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    const second = ((await (await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie))).json()) as { path: string }).path;
+    expect(second).not.toBe(first);
+    expect(await env.AVATARS.get(first)).toBeNull();
+    expect(await env.AVATARS.get(second)).not.toBeNull();
   });
 
   it('rejects an invalid role even for an admin', async ({ expect }) => {

@@ -218,6 +218,67 @@ describe('PATCH /api/bookings', () => {
     expect(((await res.json()) as Record<string, unknown>).status).toBe('absent');
   });
 
+  it('feedback visibility: students never see teacherRating/teacherNote, teachers never see rating/studentComment, admins see both', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const course = await makeBookableCourse(adminCookie, '會話課 O');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const booking = await createBooking(studentCookie, course.id, '2026-11-22');
+    const patch = (cookie: string, body: unknown) => fetchWorker(`/api/bookings?id=${booking.id}`, withCookie(cookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }));
+
+    const teacherCookie = await login(SEEDED.teacher.email, 'teacher');
+    expect((await patch(teacherCookie, { status: 'attended', teacherRating: 3, teacherNote: '老師的課堂記錄' })).status).toBe(200);
+    const ratedRes = await patch(studentCookie, { rating: 4, studentComment: '學生的留言' });
+    expect(ratedRes.status).toBe(200);
+
+    // PATCH responses are redacted the same way as the list.
+    const ratedJson = (await ratedRes.json()) as Record<string, unknown>;
+    expect(ratedJson.rating).toBe(4);
+    expect(ratedJson).not.toHaveProperty('teacherRating');
+    expect(ratedJson).not.toHaveProperty('teacherNote');
+
+    const find = async (cookie: string) => {
+      const list = (await (await fetchWorker('/api/bookings', withCookie(cookie))).json()) as Record<string, unknown>[];
+      return list.find((b) => b.id === booking.id)!;
+    };
+
+    const asStudent = await find(studentCookie);
+    expect(asStudent.rating).toBe(4);
+    expect(asStudent.studentComment).toBe('學生的留言');
+    expect(asStudent).not.toHaveProperty('teacherRating');
+    expect(asStudent).not.toHaveProperty('teacherNote');
+
+    const asTeacher = await find(teacherCookie);
+    expect(asTeacher.teacherRating).toBe(3);
+    expect(asTeacher.teacherNote).toBe('老師的課堂記錄');
+    expect(asTeacher).not.toHaveProperty('rating');
+    expect(asTeacher).not.toHaveProperty('studentComment');
+
+    const asAdmin = await find(adminCookie);
+    expect(asAdmin.rating).toBe(4);
+    expect(asAdmin.studentComment).toBe('學生的留言');
+    expect(asAdmin.teacherRating).toBe(3);
+    expect(asAdmin.teacherNote).toBe('老師的課堂記錄');
+
+    // Another student browsing this teacher's schedule sees neither party's feedback.
+    const student2Cookie = await login('student2@jptip.co.jp', 'student');
+    const schedule = (await (await fetchWorker('/api/bookings?teacherId=1', withCookie(student2Cookie))).json()) as Record<string, unknown>[];
+    const asOtherStudent = schedule.find((b) => b.id === booking.id)!;
+    expect(asOtherStudent).not.toHaveProperty('rating');
+    expect(asOtherStudent).not.toHaveProperty('studentComment');
+    expect(asOtherStudent).not.toHaveProperty('teacherNote');
+    expect(asOtherStudent).not.toHaveProperty('teacherRating');
+
+    // Writes are scoped the same way: a student can't set teacherRating, a teacher can't set rating,
+    // another teacher can't rate this lesson, and out-of-range values are rejected.
+    expect((await patch(studentCookie, { teacherRating: 5 })).status).toBe(401);
+    expect((await patch(teacherCookie, { rating: 5 })).status).toBe(401);
+    const teacher2Cookie = await login('teacher2@jptip.co.jp', 'teacher');
+    expect((await patch(teacher2Cookie, { teacherRating: 5 })).status).toBe(401);
+    expect((await patch(teacherCookie, { teacherRating: 6 })).status).toBe(400);
+  });
+
   it('is 404 for a booking that does not exist', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const res = await fetchWorker('/api/bookings?id=999999', withCookie(cookie, {

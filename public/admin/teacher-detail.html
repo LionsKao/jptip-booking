@@ -140,16 +140,16 @@
       window.location.href = `teacher-basic.html?id=${teacher.id}`;
     });
     document.getElementById('leave-entry-card').addEventListener('click', () => {
-      window.location.href = `../teacher/leave.html?teacherId=${teacher.id}`;
+      window.location.href = `teacher-leave?id=${teacher.id}`;
     });
     document.getElementById('hours-entry-card').addEventListener('click', () => {
-      window.location.href = `../teacher/hours.html?teacherId=${teacher.id}`;
+      window.location.href = `teacher-hours?id=${teacher.id}`;
     });
     document.getElementById('courses-entry-card').addEventListener('click', () => {
       window.location.href = `teacher-courses.html?id=${teacher.id}`;
     });
     document.getElementById('lessons-entry-card').addEventListener('click', () => {
-      window.location.href = `../teacher/lessons.html?teacherId=${teacher.id}`;
+      window.location.href = `teacher-lessons?id=${teacher.id}`;
     });
 
     document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));

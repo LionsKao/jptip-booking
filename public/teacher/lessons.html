@@ -29,8 +29,7 @@
   }
   .wizard-nav .btn { min-width: 160px; }
 
-  #lessons-cards,
-  #today-cards {
+  #lessons-cards {
     grid-template-columns: repeat(2, 1fr);
   }
   .booking-card-info {
@@ -51,8 +50,18 @@
     margin: 0;
     font-size: 1.125rem;
   }
+  /* 「今天」徽章：疊在卡片左上角、坐在卡片框線上，沒有底色，就是圖示本身
+     （.booking-card 本身已經是 position:relative）。用 <img> 而非圖示字型，
+     之後要換成別的圖案只要換 flag.png 這個檔案即可。 */
+  .booking-card-today-badge {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 32px;
+    height: 32px;
+    z-index: 1;
+  }
 
-  #today-group,
   #lessons-group {
     max-width: 1000px;
     width: 100%;
@@ -88,8 +97,7 @@
     body.teacher-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
-    #lessons-cards,
-    #today-cards {
+    #lessons-cards {
       grid-template-columns: 1fr;
     }
   }
@@ -105,11 +113,6 @@
 
   <div id="lessons-list-view">
 
-    <section class="section" id="today-group">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/flag.png" alt=""><h2 data-i18n="history.today">今天的課程</h2></div>
-      <div class="booking-cards" id="today-cards"></div>
-    </section>
-
     <section class="section" id="lessons-group">
       <div class="section-title"><img class="title-icon" src="../assets/icons/coming-soon.png" alt=""><h2 data-i18n="history.myCourses">我的課程</h2><button type="button" class="info-btn" data-modal-open="lessonsRecordInfoModal" data-i18n-aria-label="common.info" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button><button type="button" class="info-btn" data-modal-open="lessonsTimezoneModal" data-i18n-aria-label="history.tzInfo" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
       <div class="booking-cards" id="lessons-cards"></div>
@@ -124,14 +127,14 @@
   <div id="lesson-detail-view" hidden>
     <section class="section">
       <span class="ribbon-clip" id="detail-status-ribbon" hidden><span class="course-ribbon" id="detail-status-ribbon-text"></span></span>
-      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2></div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/clipboard.png" alt=""><h2 data-i18n="history.detail.title">課程詳情</h2><button type="button" class="info-btn" id="copy-detail-btn" data-i18n-aria-label="history.detail.copy" aria-label="複製課程資訊"><i class="fa-regular fa-copy"></i></button></div>
       <div class="confirm-summary">
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/invoice.png" alt=""></span>
           <span><p data-i18n="history.detail.code">預約編號</p><h3 id="detail-booking-code">—</h3></span>
         </div>
         <div class="confirm-highlight">
-          <span class="confirm-highlight-icon"><img src="../assets/icons/books.png" alt=""></span>
+          <span class="confirm-highlight-icon"><img id="detail-course-image" src="../assets/icons/books.png" alt=""></span>
           <span><p data-i18n="booking.confirm.course">課程</p><h3 id="detail-course">—</h3></span>
         </div>
         <div class="confirm-highlight-row">
@@ -150,16 +153,47 @@
         </div>
         <div class="confirm-highlight">
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
-          <span><p data-i18n="history.detail.time">時間</p><h3 id="detail-time">—</h3></span>
+          <span><p data-i18n="history.detail.time">時間・課程長度・時區</p><h3 id="detail-time">—</h3></span>
         </div>
       </div>
     </section>
-    <div class="wizard-nav">
-      <button type="button" class="btn blue" id="open-meeting-btn" data-i18n="lessons.openMeeting">開啟會議室</button>
-      <button type="button" class="btn green" id="complete-lesson-btn" data-i18n="lessons.completeLesson">完成課程</button>
-    </div>
+    <section class="section" id="lesson-feedback" hidden>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
+      <div id="lesson-feedback-entries"></div>
+    </section>
+    <section class="section" id="meeting-room-section">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/online-training.png" alt=""><h2 data-i18n="lessons.openMeeting">開啟會議室</h2></div>
+      <div class="wizard-nav">
+        <button type="button" class="btn blue" id="open-meeting-btn"><i class="fa-solid fa-fw fa-video"></i> <span data-i18n="lessons.openMeeting">開啟會議室</span></button>
+      </div>
+    </section>
+    <section class="section" id="complete-lesson-section">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
+      <div class="star-rating-input" id="complete-teacher-stars"></div>
+      <div class="field" style="max-width:none;">
+        <div class="field-float">
+          <textarea id="complete-teacher-note" placeholder=" " maxlength="500"></textarea>
+          <label for="complete-teacher-note"><i class="fa-solid fa-fw fa-pen"></i> <span data-i18n="history.feedback.commentLabel">課程狀況或問題反映</span></label>
+        </div>
+      </div>
+      <div class="wizard-nav">
+        <button type="button" class="btn green" id="complete-lesson-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="lessons.completeLesson">完成課程</span></button>
+      </div>
+    </section>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="meetingRoomAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-fw fa-exclamation"></i></div>
+    <h3 data-i18n="dashboard.meetingRoomAlert.title">尚未設定會議室連結</h3>
+    <p class="text-small" data-i18n="lessons.meetingRoomAlert.desc">這位學生還沒有設定會議室連結，請聯繫管理者協助設定。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="notEndedModal">
@@ -175,10 +209,14 @@
 </div>
 
 <div class="modal-overlay" id="completeConfirmModal" data-modal-persistent>
-  <div class="modal" style="text-align:center;">
+  <div class="modal modal-wide" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
+    <div class="modal-icon star"><i class="fa-solid fa-star"></i></div>
     <h3 data-i18n="lessons.completeConfirm.title">確定要完成課程嗎？</h3>
+    <div class="modal-preview" id="complete-confirm-preview" hidden>
+      <div id="complete-confirm-stars" hidden></div>
+      <p class="text-small" id="complete-confirm-note" hidden></p>
+    </div>
     <div class="modal-actions">
       <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
       <button class="btn green" id="confirm-complete-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="leave.addConfirm.confirm">確定</span></button>
@@ -226,25 +264,27 @@
 (async () => {
   // 資料庫對應：bookings(booking_code, student_id, course_id, teacher_id, date, time, status)，經 /api/bookings 讀寫
   // 課程時間統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
-  // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
-  // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
-  // 忽略網址上可能被竄改的 teacherId，避免老師改網址去看到別的老師的課程。
-  const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
-  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
-  const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
-  const teachersCache = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
-  function loadTeachers() { return teachersCache; }
-  const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
-  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
-  const currentTeacher = loadTeachers().find((t) => t.id === currentTeacherId);
+  // 同一份頁面有兩個網址，靠網址區分是誰在看（後端也依網址分開擋權限）：
+  //   /admin/teacher-lessons?id=…  管理者代管某位老師，只有管理者進得來
+  //   /teacher/lessons             老師本人，只有老師進得來；一律以登入身分反查自己的資料
+  const viewingAsAdmin = window.location.pathname.startsWith('/admin/');
+  const teacherIdParam = viewingAsAdmin ? new URLSearchParams(window.location.search).get('id') : null;
+  const currentTeacher = await loadCurrentTeacher(viewingAsAdmin, teacherIdParam);
+  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (currentTeacher ? currentTeacher.id : undefined);
 
-  // 這頁沒有語言切換鈕（已在老師主頁），純粹套用該老師帳號目前的語言。
-  await initI18n((currentTeacher && currentTeacher.language) || getCurrentLang());
+  // 這頁沒有語言切換鈕：管理者套用管理者自己的語言（跟其他管理端頁面一致），老師本人套用老師帳號的語言。
+  const adminMe = viewingAsAdmin ? await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null) : null;
+  await initI18n(viewingAsAdmin
+    ? ((adminMe && adminMe.language) || getCurrentLang())
+    : ((currentTeacher && currentTeacher.language) || getCurrentLang()));
 
-  const TEACHER_TIMEZONE_LABEL = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone) || '(UTC+08:00) 台北';
-  const TEACHER_TZ_OFFSET = parseUtcOffset(TEACHER_TIMEZONE_LABEL);
+  const TEACHER_TIMEZONE_LABEL = (currentTeacher && currentTeacher.receipt && currentTeacher.receipt.timezone) || 'UTC+08:00 台北';
+  // 管理者代管時一律用 UTC+8 顯示（跟教課可能時間頁、其他管理端頁面一致），老師本人才依自己的時區換算
+  const TEACHER_TZ_OFFSET = viewingAsAdmin ? 8 : parseUtcOffset(TEACHER_TIMEZONE_LABEL);
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
-  document.getElementById('lessons-timezone-note').textContent = t('history.allTimesIn', { tz: TEACHER_TIMEZONE_LABEL });
+  document.getElementById('lessons-timezone-note').textContent = viewingAsAdmin
+    ? t('admin.bookings.tzModal.desc')
+    : t('history.allTimesIn', { tz: formatTimezoneForSentence(TEACHER_TIMEZONE_LABEL) });
 
   function shiftToTeacherTz(dateStr, timeStr) {
     if (!TEACHER_TZ_DELTA_HOURS) return { date: dateStr, time: timeStr };
@@ -269,8 +309,11 @@
       date: b.date.replace(/-/g, '/'),
       time: b.time,
       student: b.studentName,
+      studentTeamsLink: b.studentTeamsLink,
       status: b.status,
       bookingCode: b.bookingCode,
+      teacherRating: b.teacherRating,
+      teacherNote: b.teacherNote,
     };
   }
 
@@ -341,30 +384,44 @@
     return { dateLabel, timeLabel, startTimeLabel: shifted.time, durationLabel };
   }
 
-  const sortedLessonsAsc = [...visibleLessons].sort((a, b) =>
-    `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)
-  );
-  const sortedLessonsDesc = [...visibleLessons].sort((a, b) =>
-    `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)
-  );
+  function hoursUntilStart(lesson) {
+    const start = new Date(`${lesson.date.replace(/\//g, '-')}T${lesson.time}:00`);
+    return (start.getTime() - Date.now()) / 3600000;
+  }
+
+  // 「今天」徽章／排序置頂的規則：還沒開始、但 24 小時內就會開始上課（取消的不算）。
+  function isStartingSoon(lesson) {
+    if (lesson.status === 'cancelled') return false;
+    const hrs = hoursUntilStart(lesson);
+    return hrs >= 0 && hrs <= 24;
+  }
+
+  // 24 小時內就要開始上課的排在最前面，依上課時間由早到晚；其餘紀錄維持原本
+  // 「日期新的排前面」的排序，讓卡片列表不用再另外切一個「今天的課程」區塊。
+  const sortedLessons = [...visibleLessons].sort((a, b) => {
+    const aSoon = isStartingSoon(a);
+    const bSoon = isStartingSoon(b);
+    if (aSoon !== bSoon) return aSoon ? -1 : 1;
+    if (aSoon) return `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`);
+    return `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`);
+  });
 
   const lessonsPageState = { page: 1 };
-
-  function todayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-  }
 
   function renderLessonCard(l) {
     const s = STATUS_MAP[l.status];
     const parts = computeDisplayParts(l);
+    const isToday = isStartingSoon(l);
     return `<div class="booking-card is-clickable" data-id="${l.id}">
-      <span class="${s.cls} booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+      ${isToday ? `<span class="booking-card-today-badge" aria-label="${t('history.today')}"><img src="../assets/icons/flag.png" alt=""></span>` : ''}
+      <div class="booking-card-status-stack">
+        <span class="${s.cls} booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
+        ${l.status === 'attended' ? teacherFeedbackPillHtml(l) : ''}
+      </div>
       <div class="booking-card-info">
-        ${l.bookingCode ? `<p class="booking-card-code">${l.bookingCode}</p>` : ''}
+        <p class="booking-card-datetime">${parts.dateLabel} ${parts.startTimeLabel}</p>
         <p class="booking-card-course">${l.course}</p>
         <h4>${l.student} ／ ${currentTeacher.name}</h4>
-        <p class="booking-card-datetime">${parts.dateLabel} ${parts.startTimeLabel}</p>
       </div>
     </div>`;
   }
@@ -377,26 +434,14 @@
     containerEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
   }
 
-  function renderTodayGroup() {
-    const today = todayStr();
-    const todayLessons = sortedLessonsAsc.filter((l) => l.date === today && l.status !== 'cancelled');
-    const cardsEl = document.getElementById('today-cards');
-    cardsEl.innerHTML = todayLessons.length
-      ? todayLessons.map(renderLessonCard).join('')
-      : `<div class="booking-card-empty">${t('history.noToday')}</div>`;
-    bindCardClicks(cardsEl);
-    cardsEl.querySelectorAll('.booking-card-empty').forEach((card) => applyTiltEffect(card));
-  }
-
   function renderLessonsCards() {
     const cardsEl = document.getElementById('lessons-cards');
-    paginate(sortedLessonsDesc, 10, renderLessonCard,
+    paginate(sortedLessons, 10, renderLessonCard,
       cardsEl, document.getElementById('lessons-pagination'), lessonsPageState,
       `<div class="booking-card-empty">${t('history.noRecords')}</div>`,
       bindCardClicks);
   }
 
-  renderTodayGroup();
   renderLessonsCards();
 
   if (viewingAsAdmin) {
@@ -408,7 +453,7 @@
       hideLessonDetail();
       return;
     }
-    window.location.href = viewingAsAdmin ? `../admin/teacher-detail.html?id=${teacherIdParam}` : 'index.html';
+    window.location.href = viewingAsAdmin ? `teacher-detail.html?id=${teacherIdParam}` : 'index.html';
   });
 
   // ==========================================================================
@@ -421,6 +466,7 @@
     if (!lesson) return;
     activeLessonId = id;
     document.getElementById('detail-course').textContent = lesson.course;
+    setCourseHighlightIcon(document.getElementById('detail-course-image'), loadCourses().find((c) => (lesson.courseId != null && c.id === lesson.courseId) || c.name === lesson.course));
     document.getElementById('detail-student').textContent = lesson.student;
     document.getElementById('detail-teacher').textContent = currentTeacher.name;
     const parts = computeDisplayParts(lesson);
@@ -438,10 +484,28 @@
       ribbonText.textContent = ribbon.label;
       ribbonText.className = `course-ribbon ${ribbon.tone}`;
     }
-    document.querySelector('#lesson-detail-view .wizard-nav').hidden = lesson.status !== 'upcoming';
+    const isUpcoming = lesson.status === 'upcoming';
+    document.getElementById('meeting-room-section').hidden = !isUpcoming;
+    document.getElementById('complete-lesson-section').hidden = !isUpcoming;
+    document.getElementById('complete-teacher-note').value = '';
+    if (isUpcoming) resetTeacherStarInput();
+
+    // 按了完成課程之後才有「課程回饋」，而且老師只看得到自己那段；學生評分／留言只有學生本人
+    // 跟管理者看得到（後端也不會回傳給老師）。
+    const isAttended = lesson.status === 'attended';
+    document.getElementById('lesson-feedback').hidden = !isAttended;
+    if (isAttended) {
+      renderFeedbackEntries(document.getElementById('lesson-feedback-entries'), [
+        { avatar: currentTeacher && currentTeacher.avatar, name: currentTeacher && currentTeacher.name, rating: lesson.teacherRating, text: lesson.teacherNote },
+      ]);
+    }
 
     window.scrollTo(0, 0);
   }
+
+  bindCopyDetailButton(document.getElementById('copy-detail-btn'),
+    () => { const l = lessons.find((x) => x.id === activeLessonId); return l ? STATUS_MAP[l.status].label : ''; },
+    () => showLessonsAlert(t('history.detail.copyFailed')));
 
   function hideLessonDetail() {
     activeLessonId = null;
@@ -455,10 +519,28 @@
     return new Date(start.getTime() + LESSON_DURATION_MINUTES * 60 * 1000);
   }
 
-  // TODO: 之後老師設定專屬會議室連結後，改成開啟該連結
+  // 開的是這堂課學生自己的會議室連結（學生基本資料裡設定的那個），老師要跟這個
+  // 學生約在同一個會議室碰面，不是老師自己的連結。
   document.getElementById('open-meeting-btn').addEventListener('click', () => {
-    window.open('https://www.google.com', '_blank');
+    const lesson = lessons.find((l) => l.id === activeLessonId);
+    if (lesson && lesson.studentTeamsLink) {
+      window.open(lesson.studentTeamsLink, '_blank');
+    } else {
+      document.getElementById('meetingRoomAlertModal').classList.add('open');
+    }
   });
+
+  // 老師評分（必填，跟學生一致）：選了星星「完成課程」才能按，按鈕從停用變成可按時跳一下
+  // （改選別的星星不會再跳）。點星星只是選取，跟課程狀況一起在按「完成課程」→ 確認 modal 後才送出。
+  let pendingTeacherRating = null;
+  function resetTeacherStarInput() {
+    pendingTeacherRating = null;
+    document.getElementById('complete-lesson-btn').disabled = true;
+    initStarRatingInput(document.getElementById('complete-teacher-stars'), (n) => {
+      pendingTeacherRating = n;
+      setButtonEnabled(document.getElementById('complete-lesson-btn'), true);
+    });
+  }
 
   document.getElementById('complete-lesson-btn').addEventListener('click', () => {
     const lesson = lessons.find((l) => l.id === activeLessonId);
@@ -467,6 +549,14 @@
       document.getElementById('notEndedModal').classList.add('open');
       return;
     }
+    const starsEl = document.getElementById('complete-confirm-stars');
+    starsEl.hidden = !pendingTeacherRating;
+    if (pendingTeacherRating) starsEl.innerHTML = starsHtml(pendingTeacherRating);
+    const note = document.getElementById('complete-teacher-note').value.trim();
+    const noteEl = document.getElementById('complete-confirm-note');
+    noteEl.textContent = note;
+    noteEl.hidden = !note;
+    document.getElementById('complete-confirm-preview').hidden = !pendingTeacherRating && !note;
     document.getElementById('completeConfirmModal').classList.add('open');
   });
 
@@ -475,19 +565,24 @@
     document.getElementById('completeConfirmModal').classList.remove('open');
     if (!lesson) return;
 
+    const noteInput = document.getElementById('complete-teacher-note');
+    const note = noteInput.value.trim();
     const res = await fetch(`/api/bookings?id=${lesson.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'attended' }),
+      body: JSON.stringify({ status: 'attended', teacherRating: pendingTeacherRating, teacherNote: note || null }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       showLessonsAlert(data.error || t('lessons.error.updateFailed'));
       return;
     }
-    lesson.status = 'attended';
+    const updated = await res.json();
+    lesson.status = updated.status;
+    lesson.teacherRating = updated.teacherRating;
+    lesson.teacherNote = updated.teacherNote;
+    noteInput.value = '';
     hideLessonDetail();
-    renderTodayGroup();
     renderLessonsCards();
   });
 })();

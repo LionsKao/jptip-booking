@@ -106,7 +106,7 @@
         <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.teachers.courses.selectPlaceholder">選擇課程</span><i class="fa-solid fa-fw fa-chevron-down"></i></button>
         <ul class="dropdown-menu" id="add-course-menu"></ul>
       </div>
-      <button type="button" class="btn butter" id="add-course-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.teachers.courses.addTitle">新增可教課程</span></button>
+      <button type="button" class="btn butter" id="add-course-btn" disabled><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.teachers.courses.addTitle">新增可教課程</span></button>
     </div>
   </section>
 
@@ -191,12 +191,19 @@
         li.classList.add('selected');
         courseDropdownLabel.textContent = li.dataset.value;
         courseDropdown.classList.remove('open');
+        refreshAddCourseBtn();
       });
     });
+
+    // 選了課程「新增可教課程」才能按（從停用變成可按時跳一下）
+    function refreshAddCourseBtn() {
+      setButtonEnabled(document.getElementById('add-course-btn'), !!getDropdownValue('add-course-dropdown'));
+    }
 
     function resetCourseDropdown() {
       courseMenu.querySelectorAll('li.selected').forEach((li) => li.classList.remove('selected'));
       courseDropdownLabel.textContent = t('admin.teachers.courses.selectPlaceholder');
+      refreshAddCourseBtn();
     }
 
     function updateCourseDropdownOptions() {

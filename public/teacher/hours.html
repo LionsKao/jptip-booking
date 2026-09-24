@@ -165,7 +165,7 @@
 <div class="page">
 
   <section class="section section-narrow">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2 data-i18n="hours.addTitle">新增時段</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/clock.png" alt=""><h2 data-i18n="hours.addTitle">新增時段</h2><button type="button" class="info-btn" data-modal-open="hoursTimezoneModal" data-i18n-aria-label="history.tzInfo" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
     <div class="row hours-add-row hours-add-row-day">
       <div class="dropdown" id="hours-day-dropdown" data-placeholder="星期">
         <button type="button" class="dropdown-trigger"><span class="label" data-i18n="hours.dayPlaceholder">星期</span><span class="arrow"></span></button>
@@ -245,7 +245,7 @@
           <li data-value="21:00">21:00<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>
         </ul>
       </div>
-      <button type="button" class="btn butter" id="hours-add-btn"><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="hours.addTitle">新增時段</span></button>
+      <button type="button" class="btn butter" id="hours-add-btn" disabled><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="hours.addTitle">新增時段</span></button>
     </div>
   </section>
 
@@ -284,6 +284,18 @@
     <div class="hours-day-slots" id="hours-day-星期日"></div>
   </section>
 
+</div>
+
+<div class="modal-overlay" id="hoursTimezoneModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
+    <h3 data-i18n="hours.tzModal.title">時段顯示時區</h3>
+    <p class="text-small" id="hours-timezone-note"></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="hoursAddSuccessModal" data-modal-persistent>
@@ -339,24 +351,29 @@
 (async () => {
   // 資料庫對應：teacher_hours(teacher_id, day_of_week, start_time, end_time)，經 /api/teachers/hours 讀寫
 
-  // 這個頁面本身已經由後端依 session cookie 擋過（只有本人老師或管理者能進來）。
-  // teacherId query string 只信任管理者：老師本人一律以登入身分反查自己的資料，
-  // 忽略網址上可能被竄改的 teacherId，避免老師改網址去動到別的老師的時段。
-  const teacherIdParam = new URLSearchParams(window.location.search).get('teacherId');
-  const session = await fetch('/api/session').then((res) => (res.ok ? res.json() : null)).catch(() => null);
-  const viewingAsAdmin = !!(session && session.role === 'admin' && teacherIdParam);
-  const teachersCache = await fetch('/api/teachers').then((res) => (res.ok ? res.json() : []));
-  function loadTeachers() { return teachersCache; }
-  const selfTeacher = !viewingAsAdmin && session ? loadTeachers().find((t) => t.email === session.email) : null;
-  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (selfTeacher ? selfTeacher.id : undefined);
+  // 同一份頁面有兩個網址，靠網址區分是誰在看（後端也依網址分開擋權限）：
+  //   /admin/teacher-hours?id=…  管理者代管某位老師，只有管理者進得來
+  //   /teacher/hours             老師本人，只有老師進得來；一律以登入身分反查自己的資料
+  const viewingAsAdmin = window.location.pathname.startsWith('/admin/');
+  const teacherIdParam = viewingAsAdmin ? new URLSearchParams(window.location.search).get('id') : null;
+  const currentTeacherRecord = await loadCurrentTeacher(viewingAsAdmin, teacherIdParam);
+  const currentTeacherId = viewingAsAdmin ? Number(teacherIdParam) : (currentTeacherRecord ? currentTeacherRecord.id : undefined);
 
-  // 時段統一存成 UTC+8（台灣時間）為基準；顯示給老師看時，依老師基本資料設定的時區（+8／+9）換算顯示
-  const currentTeacherRecord = loadTeachers().find((t) => t.id === currentTeacherId);
-  const TEACHER_TZ_OFFSET = parseUtcOffset(currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone);
+  // 時段統一存成 UTC+8（台灣時間）為基準；老師本人看時依老師基本資料設定的時區換算顯示，
+  // 管理者代管時一律用 UTC+8 顯示（跟其他管理端頁面一致，不受老師個人時區影響）
+  const TEACHER_TZ_OFFSET = viewingAsAdmin ? 8 : parseUtcOffset(currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone);
   const TEACHER_TZ_DELTA_HOURS = TEACHER_TZ_OFFSET - 8;
 
-  // 這頁沒有語言切換鈕（已在老師主頁），純粹套用該老師帳號目前的語言。
-  await initI18n((currentTeacherRecord && currentTeacherRecord.language) || getCurrentLang());
+  // 這頁沒有語言切換鈕：管理者套用管理者自己的語言（跟其他管理端頁面一致），老師本人套用老師帳號的語言。
+  const adminMe = viewingAsAdmin ? await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null) : null;
+  await initI18n(viewingAsAdmin
+    ? ((adminMe && adminMe.language) || getCurrentLang())
+    : ((currentTeacherRecord && currentTeacherRecord.language) || getCurrentLang()));
+  // 時區不再標在每一筆時段後面，統一收進「新增時段」旁地球按鈕的說明 modal
+  const TEACHER_TIMEZONE_LABEL = (currentTeacherRecord && currentTeacherRecord.receipt && currentTeacherRecord.receipt.timezone) || 'UTC+08:00 台北';
+  document.getElementById('hours-timezone-note').textContent = viewingAsAdmin
+    ? t('admin.bookings.tzModal.desc')
+    : t('hours.allTimesIn', { tz: formatTimezoneForSentence(TEACHER_TIMEZONE_LABEL) });
   // 星期下拉選單的 value 要維持固定中文 key（跟資料庫一致），顯示文字才翻譯——
   // 幫每個 <li> 補上 data-label，選取後下拉會顯示翻譯文字而不是中文 key。
   document.querySelectorAll('#hours-day-dropdown .dropdown-menu li[data-value]').forEach((li) => {
@@ -405,14 +422,14 @@
       const slots = availability.filter((h) => h.day === wd.key)
         .sort((a, b) => shiftHourString(a.start, TEACHER_TZ_DELTA_HOURS).localeCompare(shiftHourString(b.start, TEACHER_TZ_DELTA_HOURS)));
       container.innerHTML = slots.length
-        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)} (UTC${formatUtcOffset(TEACHER_TZ_OFFSET)})</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button></div>`).join('')
+        ? slots.map((h) => `<div class="hours-slot-row"><span>${shiftHourString(h.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(h.end, TEACHER_TZ_DELTA_HOURS)}</span><button type="button" class="btn sm red" data-id="${h.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button></div>`).join('')
         : `<p class="hours-day-empty">${t('hours.empty')}</p>`;
       container.querySelectorAll('.hours-slot-row, .hours-day-empty').forEach((card) => applyTiltEffect(card));
       container.querySelectorAll('button[data-id]').forEach((btn) => {
         btn.addEventListener('click', () => {
           pendingDeleteId = Number(btn.dataset.id);
           const slot = availability.find((h) => h.id === pendingDeleteId);
-          document.getElementById('hoursDeleteConfirmText').textContent = slot ? `${weekdayLabel(slot.day)} ${slot.start} - ${slot.end}` : '';
+          document.getElementById('hoursDeleteConfirmText').textContent = slot ? `${weekdayLabel(slot.day)} ${shiftHourString(slot.start, TEACHER_TZ_DELTA_HOURS)} - ${shiftHourString(slot.end, TEACHER_TZ_DELTA_HOURS)}` : '';
           document.getElementById('hoursDeleteConfirmModal').classList.add('open');
         });
       });
@@ -436,15 +453,30 @@
     renderHoursTable();
   });
 
+  // 星期、開始、結束都選了「新增時段」才能按（從停用變成可按時跳一下）；時間先後、重疊
+  // 這種要比對的錯誤還是按下去才檢查、跳提示。
+  function refreshHoursAddBtn() {
+    const ready = ['hours-day-dropdown', 'hours-start-dropdown', 'hours-end-dropdown'].every((id) => getDropdownValue(id));
+    setButtonEnabled(document.getElementById('hours-add-btn'), ready);
+  }
+  ['hours-day-dropdown', 'hours-start-dropdown', 'hours-end-dropdown'].forEach((id) => {
+    document.getElementById(id).addEventListener('dropdown:change', refreshHoursAddBtn);
+  });
+
   document.getElementById('hours-add-btn').addEventListener('click', async () => {
     const day = getDropdownValue('hours-day-dropdown');
-    const start = getDropdownValue('hours-start-dropdown');
-    const end = getDropdownValue('hours-end-dropdown');
+    const localStart = getDropdownValue('hours-start-dropdown');
+    const localEnd = getDropdownValue('hours-end-dropdown');
 
-    if (!day || !start || !end || start >= end) {
+    if (!day || !localStart || !localEnd || localStart >= localEnd) {
       showHoursAlert(t('hours.error.invalidTime'));
       return;
     }
+    // 下拉選單選的是老師自己時區的時間（跟下面列表顯示的一致），存進資料庫前
+    // 要換回 UTC+8 基準。選單範圍 08:00–21:00，現有時區（+6:30～+9）換算後
+    // 不會跨日，所以星期不用跟著調整。
+    const start = shiftHourString(localStart, -TEACHER_TZ_DELTA_HOURS);
+    const end = shiftHourString(localEnd, -TEACHER_TZ_DELTA_HOURS);
     const overlaps = availability.some((h) => h.day === day && start < h.end && end > h.start);
     if (overlaps) {
       showHoursAlert(t('hours.error.overlap'));
@@ -473,7 +505,7 @@
   }
 
   document.getElementById('back-btn').addEventListener('click', () => {
-    window.location.href = viewingAsAdmin ? `../admin/teacher-detail.html?id=${teacherIdParam}` : 'index.html';
+    window.location.href = viewingAsAdmin ? `teacher-detail.html?id=${teacherIdParam}` : 'index.html';
   });
 })();
 </script>
