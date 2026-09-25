@@ -4,7 +4,8 @@ export interface Env {
   AVATARS: R2Bucket;
   // 寄驗證碼 Email 用的 Microsoft Graph（client credentials）：租用戶／應用程式 ID 跟寄件信箱是
   // wrangler.jsonc 的 vars，MS_CLIENT_SECRET 是 Worker secret。沒設定 secret 就不寄信
-  // （本機開發用 ALLOW_ANY_OTP 任意驗證碼登入，測試也不會真的寄出信件）。
+  // （本機開發用 ALLOW_ANY_OTP 任意驗證碼登入，測試也不會真的寄出信件）。本機想真的寄信測試，
+  // 把 secret 放進 .dev.vars 即可，寄出的信標題會加上「[測試]」（見 mailSubjectPrefix）。
   MS_TENANT_ID?: string;
   MS_CLIENT_ID?: string;
   MS_SENDER_EMAIL?: string;
@@ -340,7 +341,15 @@ function otpEmailHtml(origin: string, code: string, lang: SupportedLanguage): st
 </body></html>`;
 }
 
+// 本機（localhost）寄出的信標題前面加上「[測試]」，在共用信箱的寄件備份裡跟正式寄出的信分得出來
+function mailSubjectPrefix(origin: string): string {
+  const host = new URL(origin).hostname;
+  return ['localhost', '127.0.0.1', '[::1]'].includes(host) ? '[測試] ' : '';
+}
+
 // 寄出驗證碼信件；寄不出去就丟出錯誤（錯誤訊息不含驗證碼本身）。
+// 寄出的信會留在寄件信箱（共用信箱）的寄件備份，當作寄信紀錄：要查某個人有沒有收到驗證碼信，
+// 直接去共用信箱找。備份裡看得到驗證碼（5 分鐘內有效），共用信箱的存取權限只開給信任的人。
 async function sendOtpEmail(env: Env, origin: string, to: string, code: string, lang: SupportedLanguage): Promise<void> {
   const token = await getGraphToken(env);
   const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(env.MS_SENDER_EMAIL ?? '')}/sendMail`, {
@@ -348,11 +357,11 @@ async function sendOtpEmail(env: Env, origin: string, to: string, code: string, 
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message: {
-        subject: OTP_EMAIL_TEXT[lang].subject,
+        subject: `${mailSubjectPrefix(origin)}${OTP_EMAIL_TEXT[lang].subject}`,
         body: { contentType: 'HTML', content: otpEmailHtml(origin, code, lang) },
         toRecipients: [{ emailAddress: { address: to } }],
       },
-      saveToSentItems: false,
+      saveToSentItems: true,
     }),
   });
   if (!res.ok) throw new Error(`sendMail failed: ${res.status} ${await res.text()}`);

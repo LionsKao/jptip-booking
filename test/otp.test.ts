@@ -154,6 +154,26 @@ describe('verification email via Microsoft Graph', () => {
     expect(mail.message.toRecipients).toEqual([{ emailAddress: { address: student.email } }]);
     expect(mail.message.subject).toBe('【JPTIP】ログイン認証コード');
     expect(mail.message.body.content).toContain(code);
+    // 寄件備份要留著：共用信箱的寄件備份就是寄信紀錄
+    expect((JSON.parse(send.body) as { saveToSentItems: boolean }).saveToSentItems).toBe(true);
+  });
+
+  // 本機寄出的信標題加上「[測試]」，在共用信箱的寄件備份裡跟正式寄出的信分得出來
+  it('prefixes the subject with [測試] only when sent from localhost', async ({ expect }) => {
+    const student = await createStudentAccount();
+    env.MS_CLIENT_SECRET = 'test-secret';
+    const calls = mockGraph();
+    const subjects: string[] = [];
+    for (const origin of ['http://localhost:12345', 'https://example.com']) {
+      await backdateOtpRequests(student.email, 'student', 31);
+      const res = await exports.default.fetch(`${origin}/api/otp/request`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: student.email, role: 'student' }),
+      });
+      expect(res.status).toBe(200);
+      const send = calls.filter((c) => c.url.startsWith('https://graph.microsoft.com/')).at(-1)!;
+      subjects.push((JSON.parse(send.body) as { message: { subject: string } }).message.subject);
+    }
+    expect(subjects).toEqual(['[測試] 【JPTIP】您的登入驗證碼', '【JPTIP】您的登入驗證碼']);
   });
 
   it('reports a send failure and voids the code that never reached the user', async ({ expect }) => {
