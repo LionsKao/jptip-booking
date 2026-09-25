@@ -300,6 +300,9 @@
   "admin.students.courses.empty": "沒有購買課程",
   "admin.students.courses.sessions": "堂數",
   "admin.students.courses.withSessions": "{{name}}（{{n}} 堂）",
+  "admin.students.courses.edit": "修改堂數",
+  "admin.students.courses.editModal.title": "修改總堂數",
+  "admin.students.courses.editModal.desc": "已預約 {{booked}} 堂、已上課 {{attended}} 堂，總堂數不能少於已預約的堂數。",
 
   "admin.common.deleteFailed": "刪除失敗，請稍後再試",
   "admin.common.hourUnit": "時",
@@ -360,5 +363,7 @@
   "apiError.cannotComplete": "這堂課無法標記為完成",
   "apiError.teacherUnavailable": "這位老師目前無法預約這門課程，請重新選擇老師",
   "apiError.slotUnavailable": "老師這個時段沒有開放預約，請重新選擇",
-  "apiError.textTooLong": "最多只能輸入 {{max}} 個字"
+  "apiError.textTooLong": "最多只能輸入 {{max}} 個字",
+  "apiError.courseAlreadyOwned": "這位學生已經有這門課程，要加購請直接修改總堂數",
+  "apiError.sessionsBelowBooked": "已預約 {{booked}} 堂，總堂數不能少於 {{booked}} 堂"
 }

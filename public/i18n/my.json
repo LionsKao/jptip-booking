@@ -300,6 +300,9 @@
   "admin.students.courses.empty": "သင်တန်း မဝယ်ယူရသေးပါ",
   "admin.students.courses.sessions": "သင်ခန်းစာအရေအတွက်",
   "admin.students.courses.withSessions": "{{name}} ({{n}} ကြိမ်)",
+  "admin.students.courses.edit": "အရေအတွက် ပြင်မည်",
+  "admin.students.courses.editModal.title": "စုစုပေါင်း သင်ခန်းစာအရေအတွက် ပြောင်းမည်",
+  "admin.students.courses.editModal.desc": "ဘွတ်ကင်လုပ်ပြီး {{booked}} ကြိမ်၊ တက်ရောက်ပြီး {{attended}} ကြိမ်။ စုစုပေါင်းအရေအတွက်သည် ဘွတ်ကင်လုပ်ပြီးသော အရေအတွက်ထက် မနည်းရပါ။",
 
   "admin.common.deleteFailed": "ဖျက်၍မရပါ၊ နောက်မှ ထပ်စမ်းကြည့်ပါ",
   "admin.common.hourUnit": "နာရီ",
@@ -360,5 +363,7 @@
   "apiError.cannotComplete": "ဤသင်ခန်းစာကို ပြီးဆုံးအဖြစ် မှတ်သား၍မရပါ",
   "apiError.teacherUnavailable": "ဤဆရာနှင့် ဤသင်တန်းကို ယခု ဘွတ်ကင်လုပ်၍မရပါ။ အခြားဆရာကို ပြန်ရွေးပါ",
   "apiError.slotUnavailable": "ဆရာသည် ဤအချိန်တွင် ဘွတ်ကင်လက်ခံခြင်း မရှိပါ။ ပြန်လည်ရွေးချယ်ပါ",
-  "apiError.textTooLong": "စာလုံး {{max}} လုံးအထိသာ ထည့်နိုင်ပါသည်"
+  "apiError.textTooLong": "စာလုံး {{max}} လုံးအထိသာ ထည့်နိုင်ပါသည်",
+  "apiError.courseAlreadyOwned": "ဤကျောင်းသားတွင် ဤသင်တန်း ရှိပြီးဖြစ်သည်၊ ထပ်ဝယ်ပါက စုစုပေါင်းအရေအတွက်ကို ပြင်ဆင်ပါ",
+  "apiError.sessionsBelowBooked": "{{booked}} ကြိမ် ဘွတ်ကင်လုပ်ပြီးဖြစ်သဖြင့် စုစုပေါင်းအရေအတွက်သည် {{booked}} ထက် မနည်းရပါ"
 }

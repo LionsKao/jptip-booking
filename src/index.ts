@@ -1159,11 +1159,45 @@ async function handleStudentCourseCreate(request: Request, env: Env, studentId: 
     return Response.json({ error: '找不到課程' }, { status: 404 });
   }
 
+  // 同一個學生的同一門課只會有一筆：加購、補課、堂數打錯都用 PATCH 改總堂數。有兩筆的話，
+  // 預約時不知道該扣哪一筆，畫面上也只看得到其中一筆的堂數。
   const row = await env.DB.prepare(
-    `INSERT INTO student_courses (student_id, course_id, total_sessions) VALUES (?, ?, ?) RETURNING *`
-  ).bind(studentId, course.id, totalSessions ?? course.default_sessions).first<Omit<StudentCourseRow, 'course_name'>>();
+    `INSERT INTO student_courses (student_id, course_id, total_sessions)
+     SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM student_courses WHERE student_id = ? AND course_id = ?)
+     RETURNING *`
+  ).bind(studentId, course.id, totalSessions ?? course.default_sessions, studentId, course.id).first<Omit<StudentCourseRow, 'course_name'>>();
+  if (!row) {
+    return apiError(409, 'courseAlreadyOwned', '這位學生已經有這門課程，請直接修改總堂數');
+  }
 
-  return Response.json(studentCourseRowToJson({ ...row!, course_name: course.name }), { status: 201 });
+  return Response.json(studentCourseRowToJson({ ...row, course_name: course.name }), { status: 201 });
+}
+
+// 管理者修改已購買課程的總堂數（加購、補課、當初打錯）。不能少於已預約的堂數（booked_count
+// 包含已上課、缺席與還沒上的預約），改完重算 status：已上課達到總堂數是 completed，否則變回
+// ongoing，所以已完成的課程加購後學生就能繼續預約。
+async function handleStudentCourseUpdate(request: Request, env: Env, studentId: number, studentCourseId: number): Promise<Response> {
+  const { totalSessions } = await request.json<{ totalSessions?: unknown }>();
+  if (!isValidSessionCount(totalSessions)) {
+    return Response.json({ error: `堂數需為 1 到 ${MAX_SESSIONS} 的整數` }, { status: 400 });
+  }
+  // booked_count <= ? 放在同一個 UPDATE：修改的同時學生剛好又預約一堂，也不會改到比已預約還少
+  const row = await env.DB.prepare(
+    `UPDATE student_courses
+     SET total_sessions = ?1,
+         status = CASE WHEN attended_count >= ?1 THEN 'completed' ELSE 'ongoing' END
+     WHERE id = ?2 AND student_id = ?3 AND booked_count <= ?1
+     RETURNING *`
+  ).bind(totalSessions, studentCourseId, studentId).first<Omit<StudentCourseRow, 'course_name'>>();
+  if (!row) {
+    const existing = await env.DB.prepare(
+      `SELECT booked_count FROM student_courses WHERE id = ? AND student_id = ?`
+    ).bind(studentCourseId, studentId).first<{ booked_count: number }>();
+    if (!existing) return Response.json({ error: '找不到課程' }, { status: 404 });
+    return apiError(400, 'sessionsBelowBooked', `總堂數不能少於已預約的 ${existing.booked_count} 堂`, { booked: existing.booked_count });
+  }
+  const course = await env.DB.prepare(`SELECT name FROM courses WHERE id = ?`).bind(row.course_id).first<{ name: string }>();
+  return Response.json(studentCourseRowToJson({ ...row, course_name: course?.name ?? '' }));
 }
 
 async function handleStudentCourseDelete(env: Env, studentId: number, studentCourseId: number): Promise<Response> {
@@ -1792,10 +1826,12 @@ async function route(request: Request, env: Env): Promise<Response> {
 
     if (request.method === 'GET') return handleStudentCoursesList(env, studentId);
     if (request.method === 'POST') return handleStudentCourseCreate(request, env, studentId);
-    if (request.method === 'DELETE') {
+    if (request.method === 'PATCH' || request.method === 'DELETE') {
       const scId = Number(url.searchParams.get('id'));
       if (!Number.isInteger(scId) || scId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
-      return handleStudentCourseDelete(env, studentId, scId);
+      return request.method === 'PATCH'
+        ? handleStudentCourseUpdate(request, env, studentId, scId)
+        : handleStudentCourseDelete(env, studentId, scId);
     }
   }
 

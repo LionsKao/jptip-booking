@@ -300,6 +300,9 @@
   "admin.students.courses.empty": "No courses purchased",
   "admin.students.courses.sessions": "Sessions",
   "admin.students.courses.withSessions": "{{name}} ({{n}} sessions)",
+  "admin.students.courses.edit": "Edit Sessions",
+  "admin.students.courses.editModal.title": "Change Total Sessions",
+  "admin.students.courses.editModal.desc": "{{booked}} booked, {{attended}} attended. The total can’t be less than the number booked.",
 
   "admin.common.deleteFailed": "Deletion failed, please try again later",
   "admin.common.hourUnit": "hr",
@@ -360,5 +363,7 @@
   "apiError.cannotComplete": "This lesson cannot be marked as complete",
   "apiError.teacherUnavailable": "This teacher can't be booked for this course right now. Please choose another teacher.",
   "apiError.slotUnavailable": "The teacher isn't available at this time. Please choose another slot.",
-  "apiError.textTooLong": "Please enter no more than {{max}} characters"
+  "apiError.textTooLong": "Please enter no more than {{max}} characters",
+  "apiError.courseAlreadyOwned": "This student already has this course — edit its total sessions instead",
+  "apiError.sessionsBelowBooked": "{{booked}} sessions are already booked — the total can’t be less than {{booked}}"
 }

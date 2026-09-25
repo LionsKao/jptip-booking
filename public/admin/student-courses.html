@@ -34,7 +34,7 @@
     transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
   }
   .course-row:hover { border-color: var(--color-blue); }
-  .course-row h4 { margin: 0 0 8px; padding-right: 90px; line-height: 1.4; }
+  .course-row h4 { margin: 0 0 8px; padding-right: 200px; line-height: 1.4; }
   .course-count { margin: 0; color: var(--text-muted); font-size: var(--fs-small); line-height: 1.4; }
   .course-count-value { font-variant-numeric: tabular-nums; }
 
@@ -79,12 +79,19 @@
 
   .booking-card-empty { min-height: 138px; }
 
-  .course-delete-btn {
+  /* 修改堂數／刪除按鈕：靠右置中，有「進行中／已上課」緞帶時往左移，不壓到緞帶 */
+  .course-row-actions {
     position: absolute;
     top: 50%;
     right: var(--space-3);
     transform: translateY(-50%);
+    display: flex;
+    gap: var(--space-2);
   }
+  .course-row.has-ribbon .course-row-actions { right: 72px; }
+
+  /* 修改總堂數視窗的輸入框置中 */
+  .edit-sessions-input { justify-content: center; margin: var(--space-4) 0 var(--space-3); }
 
   @media (max-width: 1048px) {
     body.admin-page .page {
@@ -99,6 +106,14 @@
     }
     #course-list {
       grid-template-columns: 1fr;
+    }
+    /* 手機寬度放不下名稱＋按鈕，按鈕改排在堂數下面 */
+    .course-row h4 { padding-right: 70px; }
+    .course-row-actions,
+    .course-row.has-ribbon .course-row-actions {
+      position: static;
+      transform: none;
+      margin-top: var(--space-3);
     }
     .course-add-row {
       flex-direction: column;
@@ -174,6 +189,24 @@
     <div class="modal-actions">
       <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
       <button class="btn red" id="delete-course-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-trash"></i> <span data-i18n="admin.teachers.courses.deleteConfirm.confirm">確定刪除</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editSessionsModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-pen-to-square"></i></div>
+    <h3 data-i18n="admin.students.courses.editModal.title">修改總堂數</h3>
+    <p class="text-small" id="editSessionsCourseName"></p>
+    <div class="course-sessions-input edit-sessions-input">
+      <input type="text" id="edit-sessions-input" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="3" data-i18n-aria-label="admin.students.courses.sessions" aria-label="堂數">
+      <span data-i18n="admin.common.sessionUnit">堂</span>
+    </div>
+    <p class="text-small" id="editSessionsDesc"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn blue" id="edit-sessions-confirm-btn" style="flex:1;" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
     </div>
   </div>
 </div>
@@ -254,32 +287,41 @@
     document.getElementById('basicInfoAlertModal').classList.add('open');
   }
 
+  // attended/booked 是伺服器算好的 "N/D" 字串，D 是這筆的總堂數
+  function courseCounts(c) {
+    const [booked, total] = (c.booked || '0/16').split('/').map(Number);
+    const attended = parseInt((c.attended || '0/16').split('/')[0], 10);
+    return { booked, attended, total };
+  }
+
   function renderCourses() {
     const listEl = document.getElementById('course-list');
     listEl.innerHTML = student.courses.length
       ? student.courses.map((c) => {
-          // attended/booked 已經是伺服器算好的 "N/D" 字串，直接顯示即可；
-          // D（總堂數）改用伺服器回傳的分母，不再寫死 16。
-          const [bookedNum, totalSessions] = (c.booked || '0/16').split('/').map(Number);
-          const attendedNum = parseInt((c.attended || '0/16').split('/')[0], 10);
+          const { booked: bookedNum, attended: attendedNum, total: totalSessions } = courseCounts(c);
           const isComplete = bookedNum >= totalSessions && attendedNum >= totalSessions;
           const isEmpty = bookedNum === 0 && attendedNum === 0;
           const ribbon = isComplete
             ? `<span class="ribbon-clip"><span class="course-ribbon tone-green">${t('status.attended')}</span></span>`
             : (!isEmpty ? `<span class="ribbon-clip"><span class="course-ribbon tone-blue">${t('admin.students.courses.inProgress')}</span></span>` : '');
+          // 加購、補課、當初堂數打錯都用「修改堂數」；還沒有任何預約的才能刪除
+          const editBtn = `<button type="button" class="btn sm blue course-edit-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-pen-to-square"></i> ${t('admin.students.courses.edit')}</button>`;
           const deleteBtn = isEmpty
             ? `<button type="button" class="btn sm red course-delete-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>`
             : '';
           const counts = `<p class="course-count">${t('booking.quota.booked')}<b class="course-count-value">${c.booked}</b></p><p class="course-count">${t('booking.quota.attended')}<b class="course-count-value">${c.attended}</b></p>`;
-          return `<div class="course-row">
+          return `<div class="course-row${ribbon ? ' has-ribbon' : ''}">
             ${ribbon}
-            ${deleteBtn}
             <h4>${escapeHtml(c.name)}</h4>
             ${counts}
+            <div class="course-row-actions">${editBtn}${deleteBtn}</div>
           </div>`;
         }).join('')
       : `<div class="booking-card-empty">${t('admin.students.courses.empty')}</div>`;
     listEl.querySelectorAll('.course-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
+    listEl.querySelectorAll('.course-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openEditSessions(Number(btn.dataset.id)));
+    });
     listEl.querySelectorAll('.course-delete-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         pendingDeleteCourseId = Number(btn.dataset.id);
@@ -304,6 +346,72 @@
     }
     student.courses = student.courses.filter((c) => c.id !== id);
     pendingDeleteCourseId = null;
+    renderCourses();
+  });
+
+  // 修改總堂數：不能少於已預約的堂數（後端也會擋），跟原本一樣就不用送出
+  const editSessionsInput = document.getElementById('edit-sessions-input');
+  const editSessionsConfirmBtn = document.getElementById('edit-sessions-confirm-btn');
+  let pendingEditCourseId = null;
+
+  function getEditSessionsValue() {
+    const course = student.courses.find((c) => c.id === pendingEditCourseId);
+    if (!course) return null;
+    const { booked, total } = courseCounts(course);
+    const n = Number(editSessionsInput.value);
+    return Number.isInteger(n) && n >= Math.max(1, booked) && n <= 999 && n !== total ? n : null;
+  }
+
+  function openEditSessions(id) {
+    const course = student.courses.find((c) => c.id === id);
+    if (!course) return;
+    pendingEditCourseId = id;
+    const { booked, attended, total } = courseCounts(course);
+    document.getElementById('editSessionsCourseName').textContent = course.name;
+    document.getElementById('editSessionsDesc').textContent = t('admin.students.courses.editModal.desc', { booked, attended });
+    editSessionsInput.value = total;
+    setButtonEnabled(editSessionsConfirmBtn, false);
+    document.getElementById('editSessionsModal').classList.add('open');
+    // 視窗淡入（visibility 過場）剛開始的那一刻還算隱藏，這時 focus 會失敗，所以稍等一下
+    setTimeout(() => {
+      editSessionsInput.focus();
+      editSessionsInput.select();
+    }, 50);
+  }
+
+  editSessionsInput.addEventListener('input', () => {
+    editSessionsInput.value = editSessionsInput.value.replace(/[^0-9]/g, '');
+    setButtonEnabled(editSessionsConfirmBtn, getEditSessionsValue() !== null);
+  });
+  editSessionsInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !editSessionsConfirmBtn.disabled) editSessionsConfirmBtn.click();
+  });
+
+  editSessionsConfirmBtn.addEventListener('click', async () => {
+    const totalSessions = getEditSessionsValue();
+    if (pendingEditCourseId == null || totalSessions === null) return;
+    const id = pendingEditCourseId;
+    setButtonEnabled(editSessionsConfirmBtn, false);
+    const res = await fetch(`/api/students/courses?studentId=${studentId}&id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ totalSessions }),
+    });
+    document.getElementById('editSessionsModal').classList.remove('open');
+    pendingEditCourseId = null;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showAlert(apiErrorMessage(data, 'admin.common.saveFailed'));
+      // 例如開著視窗時學生又預約了幾堂：重新讀一次，畫面上的已預約堂數才會是最新的
+      const fresh = await fetch(`/api/students/courses?studentId=${studentId}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (fresh) {
+        student.courses = fresh;
+        renderCourses();
+      }
+      return;
+    }
+    const updated = await res.json();
+    student.courses = student.courses.map((c) => (c.id === id ? updated : c));
     renderCourses();
   });
 

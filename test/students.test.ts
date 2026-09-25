@@ -177,4 +177,81 @@ describe('/api/students/courses', () => {
     const blockedDelete = await fetchWorker(`/api/students/courses?studentId=1&id=${enrollment2.id}`, withCookie(cookie, { method: 'DELETE' }));
     expect(blockedDelete.status).toBe(400);
   });
+
+  // 同一門課只能有一筆，加購改用 PATCH 修改總堂數（有兩筆的話預約時不知道該扣哪一筆）
+  it('refuses to add a course the student already has, but other students can still add it', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const course = (await (await fetchWorker('/api/courses', withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: '重複購買 E' }),
+    }))).json()) as { name: string };
+    const enroll = (studentId: number) => fetchWorker(`/api/students/courses?studentId=${studentId}`, withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseName: course.name }),
+    }));
+
+    expect((await enroll(1)).status).toBe(201);
+    const again = await enroll(1);
+    expect(again.status).toBe(409);
+    expect(((await again.json()) as { code: string }).code).toBe('courseAlreadyOwned');
+    expect((await enroll(2)).status).toBe(201);
+  });
+
+  it('PATCH changes totalSessions (admin only), never below the booked count, and reopens a completed enrollment', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const course = (await (await fetchWorker('/api/courses', withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: '加購測試 F' }),
+    }))).json()) as { id: number; name: string };
+    const enrollment = (await (await fetchWorker('/api/students/courses?studentId=1', withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseName: course.name, totalSessions: 2 }),
+    }))).json()) as { id: number };
+    const patch = (body: Record<string, unknown>, studentId = 1, sessionCookie = cookie) =>
+      fetchWorker(`/api/students/courses?studentId=${studentId}&id=${enrollment.id}`, withCookie(sessionCookie, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      }));
+
+    await makeTeacherBookable(course.id);
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const book = (days: number) => fetchWorker('/api/bookings', withCookie(studentCookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId: course.id, teacherId: 1, date: new Date(Date.now() + 8 * 3_600_000 + days * 86_400_000).toISOString().slice(0, 10), time: '10:00' }),
+    }));
+    const bookingIds: number[] = [];
+    for (const days of [12, 13]) {
+      const res = await book(days);
+      expect(res.status).toBe(201);
+      bookingIds.push(((await res.json()) as { id: number }).id);
+    }
+    expect((await book(14)).status).toBe(400);
+
+    // 已預約 2 堂：改成 1 堂會被擋，並告訴前端已預約幾堂
+    const below = await patch({ totalSessions: 1 });
+    expect(below.status).toBe(400);
+    expect(await below.json()).toMatchObject({ code: 'sessionsBelowBooked', params: { booked: 2 } });
+    for (const bad of [0, 1000, 1.5, '3', undefined]) {
+      expect((await patch({ totalSessions: bad })).status).toBe(400);
+    }
+    expect((await patch({ totalSessions: 3 }, 1, studentCookie)).status).toBe(401);
+    expect((await patch({ totalSessions: 3 }, 2)).status).toBe(404);
+
+    // 兩堂都上完 → completed；加購到 4 堂 → 變回 ongoing，學生可以繼續預約
+    for (const id of bookingIds) {
+      await fetchWorker(`/api/bookings?id=${id}`, withCookie(cookie, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'attended' }),
+      }));
+    }
+    const list = async () => ((await (await fetchWorker('/api/students/courses?studentId=1', withCookie(cookie))).json()) as Record<string, unknown>[])
+      .find((c) => c.id === enrollment.id)!;
+    expect((await list()).status).toBe('completed');
+
+    const reopened = await patch({ totalSessions: 4 });
+    expect(reopened.status).toBe(200);
+    expect(await reopened.json()).toMatchObject({ id: enrollment.id, name: course.name, status: 'ongoing', booked: '2/4', attended: '2/4' });
+
+    // 改回已上課的堂數 → 又是 completed，學生不能再預約
+    expect(await (await patch({ totalSessions: 2 })).json()).toMatchObject({ status: 'completed', attended: '2/2' });
+    expect((await book(14)).status).toBe(400);
+
+    expect(await (await patch({ totalSessions: 4 })).json()).toMatchObject({ status: 'ongoing' });
+    expect((await book(14)).status).toBe(201);
+    expect((await list()).booked).toBe('3/4');
+  });
 });

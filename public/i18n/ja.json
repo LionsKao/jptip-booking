@@ -300,6 +300,9 @@
   "admin.students.courses.empty": "購入したコースがありません",
   "admin.students.courses.sessions": "回数",
   "admin.students.courses.withSessions": "{{name}}（{{n}}回）",
+  "admin.students.courses.edit": "回数を変更",
+  "admin.students.courses.editModal.title": "合計回数を変更",
+  "admin.students.courses.editModal.desc": "予約済み {{booked}} 回・受講済み {{attended}} 回です。合計回数は予約済みの回数より少なくできません。",
 
   "admin.common.deleteFailed": "削除に失敗しました。しばらくしてから再度お試しください",
   "admin.common.hourUnit": "時間",
@@ -360,5 +363,7 @@
   "apiError.cannotComplete": "この授業は完了にできません",
   "apiError.teacherUnavailable": "この講師は現在このコースを予約できません。講師を選び直してください",
   "apiError.slotUnavailable": "この時間帯は講師の予約受付時間外です。選び直してください",
-  "apiError.textTooLong": "入力できるのは{{max}}文字までです"
+  "apiError.textTooLong": "入力できるのは{{max}}文字までです",
+  "apiError.courseAlreadyOwned": "この生徒はすでにこのコースを購入済みです。追加購入の場合は合計回数を変更してください",
+  "apiError.sessionsBelowBooked": "すでに {{booked}} 回予約されているため、合計回数を {{booked}} 回より少なくできません"
 }
