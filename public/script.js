@@ -870,9 +870,9 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role: card.dataset.role }),
       });
-      const data = await res.json();
       if (!res.ok) {
-        showLoginAlert(data.error || t('login.error.sendFailed'), 'error');
+        // 用翻譯好的訊息（後端的錯誤訊息是中文），例如信件寄送失敗
+        showLoginAlert(t('login.error.sendFailed'), 'error');
         return;
       }
       otpBoxes.forEach((b) => { b.disabled = false; b.value = ''; b.classList.remove('filled', 'error'); });

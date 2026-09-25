@@ -1,5 +1,5 @@
 import { env, exports } from 'cloudflare:workers';
-import { afterEach, describe, it } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { fetchWorker, latestOtpCode, login, requestOtp, SEEDED, verifyOtp, withCookie } from './helpers';
 
 async function otpRowCount(email: string, role: string): Promise<number> {
@@ -19,7 +19,26 @@ async function createStudentAccount(overrides: Record<string, unknown> = {}): Pr
 
 afterEach(() => {
   env.ALLOW_ANY_OTP = 'false';
+  env.MS_CLIENT_SECRET = '';
+  vi.restoreAllMocks();
 });
+
+// 攔截寄信用的 Microsoft Graph 呼叫（不會真的寄出），記錄送出的內容。token 的 expires_in 給 0，
+// 讓每個測試都重新取 token，不受前一個測試快取的影響。
+function mockGraph(sendMailStatus = 202) {
+  const calls: { url: string; body: string; auth: string | null }[] = [];
+  const realFetch = globalThis.fetch;
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.startsWith('https://login.microsoftonline.com/') || url.startsWith('https://graph.microsoft.com/')) {
+      calls.push({ url, body: String(init?.body ?? ''), auth: new Headers(init?.headers).get('Authorization') });
+      if (url.startsWith('https://login.microsoftonline.com/')) return Response.json({ access_token: 'test-token', expires_in: 0 });
+      return new Response(null, { status: sendMailStatus });
+    }
+    return realFetch(input, init);
+  });
+  return calls;
+}
 
 describe('POST /api/otp/request', () => {
   it('rejects an invalid email format', async ({ expect }) => {
@@ -70,6 +89,48 @@ describe('POST /api/otp/request', () => {
     expect(await res.json()).toEqual({ ok: true });
     const code = await latestOtpCode(SEEDED.teacher.email, 'teacher');
     expect(code).toMatch(/^\d{6}$/);
+  });
+});
+
+describe('verification email via Microsoft Graph', () => {
+  it("sends the code from the sender mailbox to the account's address, in the account's language", async ({ expect }) => {
+    env.MS_CLIENT_SECRET = 'test-secret';
+    await env.DB.prepare(`UPDATE teachers SET language = 'ja' WHERE email = ?`).bind(SEEDED.teacher.email).run();
+    const calls = mockGraph();
+
+    const res = await requestOtp(SEEDED.teacher.email, 'teacher');
+    expect(res.status).toBe(200);
+    const code = await latestOtpCode(SEEDED.teacher.email, 'teacher');
+
+    const token = calls.find((c) => c.url.startsWith('https://login.microsoftonline.com/'))!;
+    expect(new URLSearchParams(token.body).get('grant_type')).toBe('client_credentials');
+    expect(new URLSearchParams(token.body).get('client_secret')).toBe('test-secret');
+
+    const send = calls.find((c) => c.url.startsWith('https://graph.microsoft.com/'))!;
+    expect(send.url).toBe('https://graph.microsoft.com/v1.0/users/one-on-one%40jptip.co.jp/sendMail');
+    expect(send.auth).toBe('Bearer test-token');
+    const mail = JSON.parse(send.body) as { message: { subject: string; body: { content: string }; toRecipients: { emailAddress: { address: string } }[] } };
+    expect(mail.message.toRecipients).toEqual([{ emailAddress: { address: SEEDED.teacher.email } }]);
+    expect(mail.message.subject).toBe('【JPTIP】ログイン認証コード');
+    expect(mail.message.body.content).toContain(code);
+
+    await env.DB.prepare(`UPDATE teachers SET language = 'zh-Hant' WHERE email = ?`).bind(SEEDED.teacher.email).run();
+  });
+
+  it('reports a send failure and voids the code that never reached the user', async ({ expect }) => {
+    env.MS_CLIENT_SECRET = 'test-secret';
+    mockGraph(500);
+    const res = await requestOtp(SEEDED.admin.email, 'admin');
+    expect(res.status).toBe(502);
+    const row = await env.DB.prepare(`SELECT used FROM otp_codes WHERE email = ? ORDER BY id DESC LIMIT 1`).bind(SEEDED.admin.email).first<{ used: number }>();
+    expect(row?.used).toBe(1);
+  });
+
+  it('sends nothing for an unknown email', async ({ expect }) => {
+    env.MS_CLIENT_SECRET = 'test-secret';
+    const calls = mockGraph();
+    expect((await requestOtp('nobody@jptip.co.jp', 'student')).status).toBe(200);
+    expect(calls).toHaveLength(0);
   });
 });
 

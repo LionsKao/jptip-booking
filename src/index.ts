@@ -2,17 +2,17 @@ export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
   AVATARS: R2Bucket;
-  TEAMS_WEBHOOK_URL?: string;
+  // 寄驗證碼 Email 用的 Microsoft Graph（client credentials）：租用戶／應用程式 ID 跟寄件信箱是
+  // wrangler.jsonc 的 vars，MS_CLIENT_SECRET 是 Worker secret。沒設定 secret 就不寄信
+  // （本機開發用 ALLOW_ANY_OTP 任意驗證碼登入，測試也不會真的寄出信件）。
+  MS_TENANT_ID?: string;
+  MS_CLIENT_ID?: string;
+  MS_SENDER_EMAIL?: string;
+  MS_CLIENT_SECRET?: string;
   // Dev/test-site only: when 'true', /api/otp/verify accepts any 6-digit code.
   // Must never be set in the production deployment's vars/secrets.
   ALLOW_ANY_OTP?: string;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  student: '學生',
-  teacher: '老師',
-  admin: '管理者',
-};
 
 const ROLE_TABLES: Record<string, string> = {
   student: 'students',
@@ -214,7 +214,7 @@ async function handleSessionInfo(request: Request, env: Env): Promise<Response> 
   return Response.json(session);
 }
 
-// 帳號被停用時，已經登入的裝置也要立刻登出（停用的帳號也不能再取得驗證碼，見 findActiveAccountId）
+// 帳號被停用時，已經登入的裝置也要立刻登出（停用的帳號也不能再取得驗證碼，見 findActiveAccount）
 async function revokeSessions(env: Env, role: string, userId: number): Promise<void> {
   await env.DB.prepare(`DELETE FROM sessions WHERE role = ? AND user_id = ?`).bind(role, userId).run();
 }
@@ -227,55 +227,136 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   return Response.json({ ok: true }, { headers: { 'Set-Cookie': clearSessionCookieHeader(request) } });
 }
 
-async function sendToTeams(env: Env, role: string, email: string, code: string): Promise<void> {
-  if (!env.TEAMS_WEBHOOK_URL) return;
-  try {
-    const adaptiveCard = {
-      type: 'AdaptiveCard',
-      $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
-      version: '1.4',
-      body: [
-        {
-          type: 'TextBlock',
-          text: `【JPTIP】${ROLE_LABELS[role] ?? role}登入驗證碼`,
-          weight: 'Bolder',
-          size: 'Medium',
-          wrap: true,
-        },
-        {
-          type: 'TextBlock',
-          text: `${email} 的驗證碼是：**${code}**`,
-          wrap: true,
-        },
-        {
-          type: 'TextBlock',
-          text: '5 分鐘內有效，請勿提供給他人。',
-          wrap: true,
-          isSubtle: true,
-          size: 'Small',
-        },
-      ],
-    };
+// ==========================================================================
+// 驗證碼 Email——透過 Microsoft Graph 用 one-on-one@jptip.co.jp 寄出（需要 Azure 應用程式
+// 註冊有 Mail.Send 應用程式權限）。信件內容依帳號設定的語言，版面沿用 public/email.html 的範本。
+// ==========================================================================
+let cachedGraphToken: { token: string; expiresAt: number } | null = null;
+let warnedMissingMailSecret = false;
 
-    const res = await fetch(env.TEAMS_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(adaptiveCard),
-    });
-    if (!res.ok) {
-      console.error('[teams webhook] non-OK response', res.status, await res.text());
-    }
-  } catch (err) {
-    console.error('[teams webhook] failed', err);
-  }
+async function getGraphToken(env: Env): Promise<string> {
+  if (cachedGraphToken && cachedGraphToken.expiresAt - 60_000 > Date.now()) return cachedGraphToken.token;
+  const res = await fetch(`https://login.microsoftonline.com/${env.MS_TENANT_ID}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: env.MS_CLIENT_ID ?? '',
+      client_secret: env.MS_CLIENT_SECRET ?? '',
+      scope: 'https://graph.microsoft.com/.default',
+      grant_type: 'client_credentials',
+    }),
+  });
+  if (!res.ok) throw new Error(`token request failed: ${res.status} ${await res.text()}`);
+  const data = await res.json<{ access_token: string; expires_in: number }>();
+  cachedGraphToken = { token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return data.access_token;
 }
 
-// 帳號存在而且沒有被停用才回傳 id（管理者沒有停用這回事）
-async function findActiveAccountId(env: Env, role: string, email: string): Promise<number | null> {
+const OTP_EMAIL_TEXT: Record<SupportedLanguage, { subject: string; brand: string; greeting: string; intro: string; expiry: string; ignore: string; auto: string }> = {
+  'zh-Hant': {
+    subject: '【JPTIP】您的登入驗證碼',
+    brand: 'JPTIP 線上一對一',
+    greeting: '您好，',
+    intro: '您正在登入 JPTIP 預約系統，請於 <strong>5 分鐘內</strong>輸入以下驗證碼完成登入：',
+    expiry: '驗證碼將於 5 分鐘後失效，請勿將驗證碼提供給任何人。',
+    ignore: '如果這不是您本人的操作，請忽略這封信件即可，不會影響您的帳號安全。',
+    auto: '此為系統自動寄送信件，請勿直接回覆。',
+  },
+  ja: {
+    subject: '【JPTIP】ログイン認証コード',
+    brand: 'JPTIP オンライン1対1',
+    greeting: 'こんにちは。',
+    intro: 'JPTIP 予約システムへのログインが行われています。<strong>5分以内</strong>に以下の認証コードを入力して、ログインを完了してください：',
+    expiry: '認証コードの有効期限は5分です。認証コードは誰にも教えないでください。',
+    ignore: 'お心当たりがない場合は、このメールを破棄してください。アカウントの安全には影響ありません。',
+    auto: 'このメールはシステムから自動送信されています。ご返信いただいてもお答えできません。',
+  },
+  en: {
+    subject: '[JPTIP] Your login verification code',
+    brand: 'JPTIP Online 1-on-1',
+    greeting: 'Hello,',
+    intro: 'You are signing in to the JPTIP booking system. Enter the code below within <strong>5 minutes</strong> to finish logging in:',
+    expiry: 'This code expires in 5 minutes. Never share it with anyone.',
+    ignore: "If you didn't try to sign in, you can safely ignore this email — your account is not affected.",
+    auto: 'This is an automated message. Please do not reply.',
+  },
+  vi: {
+    subject: '[JPTIP] Mã xác thực đăng nhập của bạn',
+    brand: 'JPTIP Học trực tuyến 1 kèm 1',
+    greeting: 'Xin chào,',
+    intro: 'Bạn đang đăng nhập vào hệ thống đặt lịch JPTIP. Vui lòng nhập mã xác thực dưới đây trong vòng <strong>5 phút</strong> để hoàn tất đăng nhập:',
+    expiry: 'Mã xác thực sẽ hết hạn sau 5 phút. Vui lòng không cung cấp mã cho bất kỳ ai.',
+    ignore: 'Nếu đây không phải là thao tác của bạn, vui lòng bỏ qua email này, tài khoản của bạn vẫn an toàn.',
+    auto: 'Đây là email tự động từ hệ thống, vui lòng không trả lời.',
+  },
+  my: {
+    subject: '[JPTIP] သင်၏ အကောင့်ဝင်ရန် အတည်ပြုကုဒ်',
+    brand: 'JPTIP အွန်လိုင်း တစ်ဦးချင်း',
+    greeting: 'မင်္ဂလာပါ၊',
+    intro: 'သင်သည် JPTIP ဘွတ်ကင်စနစ်သို့ အကောင့်ဝင်နေပါသည်။ အကောင့်ဝင်ခြင်း ပြီးမြောက်ရန် အောက်ပါ အတည်ပြုကုဒ်ကို <strong>၅ မိနစ်အတွင်း</strong> ထည့်သွင်းပါ-',
+    expiry: 'အတည်ပြုကုဒ်သည် ၅ မိနစ်အကြာတွင် သက်တမ်းကုန်ပါမည်။ မည်သူ့ကိုမျှ မပေးပါနှင့်။',
+    ignore: 'ဤလုပ်ဆောင်ချက်ကို သင်ကိုယ်တိုင် မလုပ်ခဲ့ပါက ဤအီးမေးလ်ကို လျစ်လျူရှုနိုင်ပါသည်၊ သင့်အကောင့် လုံခြုံမှုကို မထိခိုက်ပါ။',
+    auto: 'ဤအီးမေးလ်ကို စနစ်မှ အလိုအလျောက် ပို့ခြင်းဖြစ်ပါသည်၊ ပြန်စာ မပို့ပါနှင့်။',
+  },
+};
+
+function otpEmailHtml(origin: string, code: string, lang: SupportedLanguage): string {
+  const text = OTP_EMAIL_TEXT[lang];
+  return `<!doctype html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#FFF8EC;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8EC;">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:24px;border:3px solid #F0E6D8;overflow:hidden;font-family:'Manrope','Noto Sans TC',sans-serif;">
+        <tr><td style="background:#3AA0C9;padding:28px 32px;text-align:center;">
+          <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 10px;">
+            <tr><td width="56" height="56" style="background:#ffffff;border-radius:50%;text-align:center;vertical-align:middle;">
+              <img src="${origin}/assets/icons/key.png" width="32" height="32" alt="" style="display:inline-block;vertical-align:middle;">
+            </td></tr>
+          </table>
+          <div style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:.02em;">${text.brand}</div>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <div style="font-size:15px;color:#454545;margin-bottom:20px;">${text.greeting}</div>
+          <div style="font-size:15px;color:#454545;line-height:1.8;margin-bottom:24px;">${text.intro}</div>
+          <div style="text-align:center;margin-bottom:28px;">
+            <span style="display:inline-block;font-size:32px;font-weight:800;letter-spacing:.3em;color:#1F6E8C;background:#E3F4FA;border-radius:16px;padding:16px 28px;">${code}</span>
+          </div>
+          <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">${text.expiry}<br>${text.ignore}</div>
+        </td></tr>
+        <tr><td style="padding:20px 32px;background:#FFF8EC;text-align:center;border-top:3px solid #F0E6D8;">
+          <div style="font-size:12px;color:#8f8a87;line-height:1.6;">${text.auto}<br>© JPTIP</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+// 寄出驗證碼信件；寄不出去就丟出錯誤（錯誤訊息不含驗證碼本身）。
+async function sendOtpEmail(env: Env, origin: string, to: string, code: string, lang: SupportedLanguage): Promise<void> {
+  const token = await getGraphToken(env);
+  const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(env.MS_SENDER_EMAIL ?? '')}/sendMail`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: {
+        subject: OTP_EMAIL_TEXT[lang].subject,
+        body: { contentType: 'HTML', content: otpEmailHtml(origin, code, lang) },
+        toRecipients: [{ emailAddress: { address: to } }],
+      },
+      saveToSentItems: false,
+    }),
+  });
+  if (!res.ok) throw new Error(`sendMail failed: ${res.status} ${await res.text()}`);
+}
+
+// 帳號存在而且沒有被停用才回傳（管理者沒有停用這回事）；language 用來決定驗證碼信件的語言
+async function findActiveAccount(env: Env, role: string, email: string): Promise<{ id: number; language: string } | null> {
   const row = role === 'admin'
-    ? await env.DB.prepare(`SELECT id FROM admins WHERE email = ?`).bind(email).first<{ id: number }>()
-    : await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ? AND status != 'inactive'`).bind(email).first<{ id: number }>();
-  return row ? row.id : null;
+    ? await env.DB.prepare(`SELECT id, language FROM admins WHERE email = ?`).bind(email).first<{ id: number; language: string }>()
+    : await env.DB.prepare(`SELECT id, language FROM ${ROLE_TABLES[role]} WHERE email = ? AND status != 'inactive'`).bind(email).first<{ id: number; language: string }>();
+  return row ?? null;
 }
 
 // 防暴力猜碼：每組驗證碼最多試 OTP_MAX_TRIES_PER_CODE 次；同一個帳號 1 小時內錯誤累計達
@@ -326,7 +407,8 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
 
   // 查無帳號或帳號已停用時，回應跟成功完全一樣（只是不發驗證碼），不讓人藉此試出
   // 哪些 Email 有註冊。
-  if (!(await findActiveAccountId(env, role, email))) {
+  const account = await findActiveAccount(env, role, email);
+  if (!account) {
     return Response.json({ ok: true });
   }
 
@@ -339,11 +421,24 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
      VALUES (?, ?, ?, datetime('now', '+8 hours', '+5 minutes'))`
   ).bind(email, role, code).run();
 
-  // TODO: also send by email once Cloudflare Email Routing / Workers Send Email or
-  // Microsoft Graph is set up for the jptip.co.jp domain. For now the code goes to
-  // the Teams channel webhook (if configured) and is always persisted in D1.
-  console.log(`[otp] ${role} ${email} code=${code}`);
-  await sendToTeams(env, role, email, code);
+  if (!env.MS_CLIENT_SECRET) {
+    // 本機開發／測試環境沒有設定寄信用的 secret：不寄信（本機用 ALLOW_ANY_OTP 任意驗證碼登入）。
+    // 正式環境一定要有 MS_CLIENT_SECRET，否則沒有人收得到驗證碼。
+    if (env.ALLOW_ANY_OTP !== 'true' && !warnedMissingMailSecret) {
+      warnedMissingMailSecret = true;
+      console.error('[otp] MS_CLIENT_SECRET is not set — verification emails cannot be sent');
+    }
+    return Response.json({ ok: true });
+  }
+  try {
+    const lang = isSupportedLanguage(account.language) ? account.language : 'zh-Hant';
+    await sendOtpEmail(env, new URL(request.url).origin, email, code, lang);
+  } catch (err) {
+    // 寄不出去的碼直接作廢；log 只記錯誤原因，不記驗證碼
+    console.error('[otp] failed to send verification email', err);
+    await env.DB.prepare(`UPDATE otp_codes SET used = 1 WHERE email = ? AND role = ? AND code = ?`).bind(email, role, code).run();
+    return Response.json({ error: '驗證碼寄送失敗，請稍後再試' }, { status: 502 });
+  }
 
   return Response.json({ ok: true });
 }
@@ -368,11 +463,10 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
   }
 
   // 驗證碼發出後帳號才被停用的話，這裡也要擋（回一樣的錯誤訊息，不透露帳號狀態）。
-  const accountId = await findActiveAccountId(env, role, email);
-  if (!accountId) {
+  const account = await findActiveAccount(env, role, email);
+  if (!account) {
     return Response.json({ error: '驗證碼錯誤或已過期' }, { status: 400 });
   }
-  const account = { id: accountId };
 
   const token = randomToken();
   const maxAgeSeconds = SESSION_DAYS * 24 * 60 * 60;

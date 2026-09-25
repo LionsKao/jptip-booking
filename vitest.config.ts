@@ -18,6 +18,9 @@ export default defineConfig(async () => {
             // .dev.vars happens to have locally (same var wrangler dev
             // reads) — tests that need the bypass flip it themselves.
             ALLOW_ANY_OTP: 'false',
+            // 同理：不管 .dev.vars 有沒有放真的寄信 secret，測試一律不寄出真的 Email
+            // （需要測寄信的測試自己設定並攔截 fetch）。
+            MS_CLIENT_SECRET: '',
           },
         },
       }),
