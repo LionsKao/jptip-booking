@@ -410,5 +410,9 @@
   "emailVar.time": "Giờ học (múi giờ người nhận)",
   "emailVar.timezone": "Múi giờ người nhận, ví dụ UTC+08:00",
   "emailVar.bookingCode": "Mã đặt lịch",
-  "emailVar.siteUrl": "Địa chỉ hệ thống đặt lịch"
+  "emailVar.siteUrl": "Địa chỉ hệ thống đặt lịch",
+  "leave.hasBookings.title": "Ngày này đã có {{count}} lịch đặt",
+  "leave.hasBookings.desc": "Không thể nghỉ vào ngày đã có học viên đặt lịch. Vui lòng liên hệ quản trị viên để xử lý các lịch đặt này trước, khi ngày này không còn lịch đặt thì mới thêm được ngày nghỉ.",
+  "leave.hasBookings.adminDesc": "Vui lòng xử lý các lịch đặt của học viên trong ngày này tại “Lịch sử đặt lịch” trước, khi ngày này không còn lịch đặt thì mới thêm được ngày nghỉ.",
+  "apiError.leaveHasBookings": "Ngày này đã có {{count}} lịch đặt nên không thể thêm ngày nghỉ"
 }

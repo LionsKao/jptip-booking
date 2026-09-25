@@ -410,5 +410,9 @@
   "emailVar.time": "Class start time (recipient’s timezone)",
   "emailVar.timezone": "Recipient’s timezone, e.g. UTC+08:00",
   "emailVar.bookingCode": "Booking code",
-  "emailVar.siteUrl": "Booking system URL"
+  "emailVar.siteUrl": "Booking system URL",
+  "leave.hasBookings.title": "This day already has {{count}} booking(s)",
+  "leave.hasBookings.desc": "You can’t take a day off when students have booked it. Please contact an admin to handle these bookings first — you can add the day off once there are no bookings left.",
+  "leave.hasBookings.adminDesc": "Handle the students’ bookings for this day in “Booking Records” first — you can add the day off once there are no bookings left.",
+  "apiError.leaveHasBookings": "This day already has {{count}} booking(s), so it can’t be added as a day off"
 }

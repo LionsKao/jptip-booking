@@ -410,5 +410,9 @@
   "emailVar.time": "授業開始時刻（受信者のタイムゾーン）",
   "emailVar.timezone": "受信者のタイムゾーン（例：UTC+08:00）",
   "emailVar.bookingCode": "予約番号",
-  "emailVar.siteUrl": "予約システムのURL"
+  "emailVar.siteUrl": "予約システムのURL",
+  "leave.hasBookings.title": "この日はすでに{{count}}件の予約があります",
+  "leave.hasBookings.desc": "生徒の予約がある日は休暇を追加できません。先に管理者に連絡してこれらの予約の対応を依頼し、この日の予約がなくなってから休暇を追加してください。",
+  "leave.hasBookings.adminDesc": "先に「予約履歴」でこの日の生徒の予約を処理してください。この日の予約がなくなってから休暇を追加できます。",
+  "apiError.leaveHasBookings": "この日はすでに{{count}}件の予約があるため、休暇を追加できません"
 }

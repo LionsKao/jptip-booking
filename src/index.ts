@@ -938,6 +938,15 @@ async function handleTeacherLeaveCreate(request: Request, env: Env, teacherId: n
     return apiError(400, 'leaveInPast', '只能申請今天以後的休假');
   }
 
+  // 這天已經有學生預約（還沒上、也沒取消的課）就不能請假：不然預約還在，學生照常來上課老師卻不在。
+  // 老師要自己聯絡管理者處理那幾堂課（管理者取消時學生會收到取消通知、堂數退還），這天沒有預約了才能請假。
+  const booked = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM bookings WHERE teacher_id = ? AND date = ? AND status IN ('upcoming', 'pending')`
+  ).bind(teacherId, date).first<{ n: number }>();
+  if (booked && booked.n > 0) {
+    return apiError(409, 'leaveHasBookings', `這天已經有 ${booked.n} 堂預約，請先聯絡管理者處理這些預約`, { count: booked.n });
+  }
+
   const row = await env.DB.prepare(
     `INSERT INTO teacher_leave (teacher_id, date) VALUES (?, ?) ON CONFLICT (teacher_id, date) DO UPDATE SET date = excluded.date RETURNING id`
   ).bind(teacherId, date).first<{ id: number }>();

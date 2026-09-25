@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { fetchWorker, login, SEEDED, withCookie } from './helpers';
+import { fetchWorker, login, makeTeacherBookable, SEEDED, withCookie } from './helpers';
 
 async function createTeacher(cookie: string, overrides: Record<string, unknown> = {}) {
   return fetchWorker('/api/teachers', withCookie(cookie, {
@@ -288,6 +288,31 @@ describe('/api/teachers/leave', () => {
 
     expect((await post(dayAt(-1))).status).toBe(400);
     expect((await post(dayAt(0))).status).toBe(201);
+  });
+
+  // 這天已經有學生預約就不能請假，要先請管理者處理那幾堂課（取消後才能請假）
+  it('refuses a leave day that already has bookings, until they are cancelled', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const json = (method: string, body: unknown) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const course = (await (await fetchWorker('/api/courses', withCookie(adminCookie, json('POST', { name: '請假擋預約測試' })))).json()) as { id: number; name: string };
+    await makeTeacherBookable(course.id);
+    await fetchWorker('/api/students/courses?studentId=1', withCookie(adminCookie, json('POST', { courseName: course.name })));
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const date = new Date(Date.now() + 8 * 3_600_000 + 12 * 86_400_000).toISOString().slice(0, 10);
+    const booking = (await (await fetchWorker('/api/bookings', withCookie(studentCookie, json('POST', { courseId: course.id, teacherId: 1, date, time: '10:00' })))).json()) as { id: number };
+
+    const teacherCookie = await login(SEEDED.teacher.email, 'teacher');
+    const addLeave = (cookie: string) => fetchWorker('/api/teachers/leave?teacherId=1', withCookie(cookie, json('POST', { date })));
+    for (const cookie of [teacherCookie, adminCookie]) {
+      const blocked = await addLeave(cookie);
+      expect(blocked.status).toBe(409);
+      expect(await blocked.json()).toMatchObject({ code: 'leaveHasBookings', params: { count: 1 } });
+    }
+    const leave = (await (await fetchWorker('/api/teachers/leave?teacherId=1', withCookie(teacherCookie))).json()) as { date: string }[];
+    expect(leave.some((l) => l.date === date)).toBe(false);
+
+    await fetchWorker(`/api/bookings?id=${booking.id}`, withCookie(studentCookie, json('PATCH', { status: 'cancelled' })));
+    expect((await addLeave(teacherCookie)).status).toBe(201);
   });
 
   it('is 404 deleting a leave day that does not belong to that teacher', async ({ expect }) => {

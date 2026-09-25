@@ -18,6 +18,12 @@
     max-width: 800px;
   }
 
+  /* 已經有學生預約的日子用淡黃色底標出來（這天不能請假，要先請管理者處理那幾堂課）；
+     選取中的日子還是藍色，今天以前的日子本來就不能選，不標 */
+  .datepicker-grid button.has-booking:not(.selected):not(.disabled) {
+    background: color-mix(in srgb, var(--color-butter) 55%, #fff);
+  }
+
   .leave-datepicker-row {
     display: flex;
     align-items: flex-start;
@@ -221,6 +227,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="leaveHasBookingsModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="leaveHasBookingsTitle"></h3>
+    <p class="text-small" id="leaveHasBookingsDesc"></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="leaveDeleteConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -349,7 +367,19 @@
     setButtonEnabled(document.getElementById('leave-add-btn'), !!getSelectedDateISO());
   }
 
-  document.getElementById('leave-add-btn').addEventListener('click', () => {
+  // 這天已經有學生預約（還沒上、也沒取消的課）就不能請假：老師要先聯絡管理者處理那幾堂課，
+  // 管理者代為新增時則是先到預約紀錄處理，這天沒有預約之後才能新增休假（後端也會擋）
+  function showHasBookingsModal(count) {
+    document.getElementById('leaveHasBookingsTitle').textContent = t('leave.hasBookings.title', { count });
+    document.getElementById('leaveHasBookingsDesc').textContent = t(viewingAsAdmin ? 'leave.hasBookings.adminDesc' : 'leave.hasBookings.desc');
+    document.getElementById('leaveHasBookingsModal').classList.add('open');
+  }
+  async function countBookingsOn(dateISO) {
+    const bookings = await fetch(`/api/bookings?teacherId=${currentTeacherId}&date=${dateISO}`).then((res) => (res.ok ? res.json() : [])).catch(() => []);
+    return bookings.filter((b) => b.date === dateISO && (b.status === 'upcoming' || b.status === 'pending')).length;
+  }
+
+  document.getElementById('leave-add-btn').addEventListener('click', async () => {
     const dateISO = getSelectedDateISO();
     if (!dateISO) {
       showInfoModal(t('leave.selectDateFirst'));
@@ -357,6 +387,11 @@
     }
     if (leaveDays.some((l) => l.date === dateISO)) {
       showInfoModal(t('leave.error.alreadyExists'));
+      return;
+    }
+    const bookedCount = await countBookingsOn(dateISO);
+    if (bookedCount > 0) {
+      showHasBookingsModal(bookedCount);
       return;
     }
     pendingAddDate = dateISO;
@@ -377,7 +412,11 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showInfoModal(apiErrorMessage(data, 'hours.error.addFailed'));
+      if (data.code === 'leaveHasBookings') {
+        showHasBookingsModal(data.params.count);
+      } else {
+        showInfoModal(apiErrorMessage(data, 'hours.error.addFailed'));
+      }
       return;
     }
     const created = await res.json();
@@ -429,6 +468,22 @@
   }
   document.querySelector('[data-datepicker]').addEventListener('datepicker:rendered', disablePastDays);
   disablePastDays();
+
+  // 這位老師還沒上、也沒取消的預約落在哪幾天（日曆每次畫好、含切換月份，都重新標一次）
+  let bookedDates = new Set();
+  function markBookedDays() {
+    const picker = document.querySelector('[data-datepicker]');
+    if (!picker || picker.dataset.year === undefined) return;
+    const ym = `${picker.dataset.year}-${String(Number(picker.dataset.month) + 1).padStart(2, '0')}`;
+    document.querySelectorAll('.datepicker-grid button:not(.muted)').forEach((btn) => {
+      btn.classList.toggle('has-booking', bookedDates.has(`${ym}-${btn.textContent.padStart(2, '0')}`));
+    });
+  }
+  document.querySelector('[data-datepicker]').addEventListener('datepicker:rendered', markBookedDays);
+  fetch(`/api/bookings?teacherId=${currentTeacherId}`).then((res) => (res.ok ? res.json() : [])).then((bookings) => {
+    bookedDates = new Set(bookings.filter((b) => b.status === 'upcoming' || b.status === 'pending').map((b) => b.date));
+    markBookedDays();
+  }).catch(() => {});
 
   document.querySelector('[data-datepicker]').addEventListener('datepicker:change', () => {
     const dateISO = getSelectedDateISO();
