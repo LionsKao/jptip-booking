@@ -332,7 +332,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showBasicAlert(data.error || t('admin.common.saveFailed'));
+      showBasicAlert(apiErrorMessage(data, 'admin.common.saveFailed'));
       return;
     }
 

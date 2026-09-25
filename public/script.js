@@ -294,6 +294,14 @@ function t(key, params) {
   return text;
 }
 
+// API 錯誤回應要顯示給使用者時用：後端的 error 是中文，使用者操作時可能碰到的錯誤會另外帶 code
+// （見 src/index.ts 的 apiError），這裡換成目前語言的翻譯；沒有 code 的錯誤（通常是程式或
+// 資料問題，使用者也無從處理）就顯示呼叫端給的通用訊息。
+function apiErrorMessage(data, fallbackKey) {
+  const key = data && data.code ? `apiError.${data.code}` : '';
+  return key && i18nDict[key] ? t(key, data.params) : t(fallbackKey);
+}
+
 function applyTranslations(root = document) {
   root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });

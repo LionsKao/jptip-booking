@@ -299,7 +299,7 @@
     document.getElementById('deleteCourseConfirmModal').classList.remove('open');
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showAlert(data.error || t('admin.common.deleteFailed'));
+      showAlert(apiErrorMessage(data, 'admin.common.deleteFailed'));
       return;
     }
     student.courses = student.courses.filter((c) => c.id !== id);
@@ -338,7 +338,7 @@
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       pendingCourseName = null;
-      showAlert(data.error || t('hours.error.addFailed'));
+      showAlert(apiErrorMessage(data, 'hours.error.addFailed'));
       return;
     }
     const created = await res.json();

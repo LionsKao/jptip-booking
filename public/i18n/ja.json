@@ -345,5 +345,20 @@
   "admin.bookings.cancelledConfirm.desc": "生徒の予約回数が1回返還されます。",
   "admin.bookings.tzModal.title": "授業時間の表示タイムゾーン",
   "admin.bookings.tzModal.desc": "管理者は常に UTC+08:00 台北時間で表示され、講師／生徒個人のタイムゾーン設定の影響を受けません。",
-  "admin.bookings.updateFailed": "更新に失敗しました。しばらくしてから再度お試しください"
+  "admin.bookings.updateFailed": "更新に失敗しました。しばらくしてから再度お試しください",
+
+  "apiError.emailTaken": "このEmailはすでに使用されています",
+  "apiError.leaveInPast": "休暇は今日以降の日付のみ申請できます",
+  "apiError.courseHasRecords": "このコースには予約または受講記録があるため削除できません",
+  "apiError.notEnrolled": "予約できるこのコースがありません",
+  "apiError.noSessionsLeft": "このコースの回数はすべて予約済みです",
+  "apiError.bookingTooLate": "この時間帯は授業開始まで{{hours}}時間を切ったため予約できません。別の時間帯を選び直してください",
+  "apiError.bookingTooFar": "予約できるのは{{days}}日以内の授業のみです。日付を選び直してください",
+  "apiError.slotTaken": "この時間帯はちょうど予約されました。選び直してください",
+  "apiError.cannotCancel": "この授業はキャンセルできません",
+  "apiError.cancelTooLate": "授業開始まで{{hours}}時間を切っているため、キャンセルできません。必要な場合は管理者にご連絡ください。",
+  "apiError.cannotComplete": "この授業は完了にできません",
+  "apiError.teacherUnavailable": "この講師は現在このコースを予約できません。講師を選び直してください",
+  "apiError.slotUnavailable": "この時間帯は講師の予約受付時間外です。選び直してください",
+  "apiError.textTooLong": "入力できるのは{{max}}文字までです"
 }

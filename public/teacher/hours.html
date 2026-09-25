@@ -446,7 +446,7 @@
     const res = await fetch(`/api/teachers/hours?teacherId=${currentTeacherId}&id=${idToDelete}`, { method: 'DELETE' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHoursAlert(data.error || t('hours.error.deleteFailed'));
+      showHoursAlert(apiErrorMessage(data, 'hours.error.deleteFailed'));
       return;
     }
     availability = availability.filter((h) => h.id !== idToDelete);
@@ -490,7 +490,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHoursAlert(data.error || t('hours.error.addFailed'));
+      showHoursAlert(apiErrorMessage(data, 'hours.error.addFailed'));
       return;
     }
     const created = await res.json();

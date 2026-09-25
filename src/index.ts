@@ -29,6 +29,13 @@ function isSupportedLanguage(value: unknown): value is SupportedLanguage {
   return typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
 }
 
+// 使用者操作時可能碰到的錯誤（Email 重複、時段被搶走、超過取消期限…）多帶一個 code，前端
+// script.js 的 apiErrorMessage() 用它找目前介面語言的翻譯（i18n 的 apiError.<code>，params 是
+// 裡面的 {{變數}}）。error 維持中文說明方便看 API 回應除錯；沒帶 code 的錯誤前端只顯示通用的失敗訊息。
+function apiError(status: number, code: string, error: string, params?: Record<string, number>): Response {
+  return Response.json(params ? { error, code, params } : { error, code }, { status });
+}
+
 // Self-service language switch — the student/teacher/admin themselves updates
 // only this one field on their own row (identified by session.userId, never a
 // client-supplied id), separate from the admin-only full-profile PATCH.
@@ -810,7 +817,7 @@ async function handleTeacherCreate(request: Request, env: Env): Promise<Response
     return Response.json({ error: '請填寫姓名與有效的 Email' }, { status: 400 });
   }
   if (await env.DB.prepare(`SELECT id FROM teachers WHERE email = ?`).bind(email).first()) {
-    return Response.json({ error: 'Email 已被使用' }, { status: 400 });
+    return apiError(400, 'emailTaken', 'Email 已被使用');
   }
 
   const row = await env.DB.prepare(
@@ -847,6 +854,9 @@ async function handleTeacherUpdate(request: Request, env: Env): Promise<Response
   }
 
   const body = await request.json<TeacherBody>();
+  if (body.email !== undefined && await env.DB.prepare(`SELECT id FROM teachers WHERE email = ? AND id != ?`).bind(String(body.email).trim(), id).first()) {
+    return apiError(400, 'emailTaken', 'Email 已被使用');
+  }
   const sets: string[] = [];
   const values: unknown[] = [];
   for (const key of Object.keys(TEACHER_FIELD_COLUMNS) as (keyof typeof TEACHER_FIELD_COLUMNS)[]) {
@@ -964,7 +974,7 @@ async function handleTeacherLeaveCreate(request: Request, env: Env, teacherId: n
   }
   const receipt = teacher.receipt_json ? (JSON.parse(teacher.receipt_json) as { timezone?: string }) : null;
   if (date < todayIsoAtOffset(parseUtcOffsetMinutes(receipt && receipt.timezone))) {
-    return Response.json({ error: '只能申請今天以後的休假' }, { status: 400 });
+    return apiError(400, 'leaveInPast', '只能申請今天以後的休假');
   }
 
   const row = await env.DB.prepare(
@@ -1046,7 +1056,7 @@ async function handleStudentCreate(request: Request, env: Env): Promise<Response
     return Response.json({ error: '請填寫姓名與有效的 Email' }, { status: 400 });
   }
   if (await env.DB.prepare(`SELECT id FROM students WHERE email = ?`).bind(email).first()) {
-    return Response.json({ error: 'Email 已被使用' }, { status: 400 });
+    return apiError(400, 'emailTaken', 'Email 已被使用');
   }
 
   const row = await env.DB.prepare(
@@ -1082,6 +1092,9 @@ async function handleStudentUpdate(request: Request, env: Env): Promise<Response
   }
 
   const body = await request.json<StudentBody>();
+  if (body.email !== undefined && await env.DB.prepare(`SELECT id FROM students WHERE email = ? AND id != ?`).bind(String(body.email).trim(), id).first()) {
+    return apiError(400, 'emailTaken', 'Email 已被使用');
+  }
   const sets: string[] = [];
   const values: unknown[] = [];
   for (const key of Object.keys(STUDENT_FIELD_COLUMNS) as (keyof StudentBody)[]) {
@@ -1161,7 +1174,7 @@ async function handleStudentCourseDelete(env: Env, studentId: number, studentCou
     return Response.json({ error: '找不到課程' }, { status: 404 });
   }
   if (row.booked_count > 0 || row.attended_count > 0) {
-    return Response.json({ error: '已有預約或上課紀錄，無法刪除' }, { status: 400 });
+    return apiError(400, 'courseHasRecords', '已有預約或上課紀錄，無法刪除');
   }
   await env.DB.prepare(`DELETE FROM student_courses WHERE id = ?`).bind(studentCourseId).run();
   return Response.json({ ok: true });
@@ -1285,6 +1298,11 @@ async function generateBookingCode(env: Env, date: string, time: string): Promis
   return `${date.replace(/-/g, '')}-${time.replace(':', '')}-${seq}`;
 }
 
+// 'HH:MM' 欄位換算成當天的第幾分鐘（SQL 運算式）
+function sqlTimeMinutes(column: string): string {
+  return `(CAST(substr(${column}, 1, 2) AS INTEGER) * 60 + CAST(substr(${column}, 4, 2) AS INTEGER))`;
+}
+
 // 上課日期時間一律以 UTC+8（台北時間）儲存，預約／取消的時限也都以 UTC+8 判斷，不受瀏覽器所在時區影響。
 function hoursUntilUtc8(date: string, time: string): number {
   return (Date.parse(`${date}T${time}:00+08:00`) - Date.now()) / 3_600_000;
@@ -1306,10 +1324,10 @@ async function handleBookingCreate(request: Request, env: Env, session: Session)
     `SELECT id, booked_count, total_sessions FROM student_courses WHERE student_id = ? AND course_id = ? AND status = 'ongoing'`
   ).bind(session.userId, courseId).first<{ id: number; booked_count: number; total_sessions: number }>();
   if (!studentCourse) {
-    return Response.json({ error: '尚未報名此課程' }, { status: 400 });
+    return apiError(400, 'notEnrolled', '尚未報名此課程');
   }
   if (studentCourse.booked_count >= studentCourse.total_sessions) {
-    return Response.json({ error: '課程堂數已用完' }, { status: 400 });
+    return apiError(400, 'noSessionsLeft', '課程堂數已用完');
   }
 
   // 課程的「不可預約／不可取消」時數與「最久可預約的日期」——預約精靈只在畫面上把不能選的
@@ -1317,37 +1335,77 @@ async function handleBookingCreate(request: Request, env: Env, session: Session)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time) || Number.isNaN(hoursUntilUtc8(date, time))) {
     return Response.json({ error: '無效的日期或時間' }, { status: 400 });
   }
-  const course = await env.DB.prepare(`SELECT min_lead_hours, max_lead_days FROM courses WHERE id = ?`).bind(courseId).first<{ min_lead_hours: number; max_lead_days: number }>();
+  const course = await env.DB.prepare(
+    `SELECT min_lead_hours, max_lead_days, duration_minutes, buffer_before_minutes, buffer_after_minutes FROM courses WHERE id = ?`
+  ).bind(courseId).first<{ min_lead_hours: number; max_lead_days: number; duration_minutes: number; buffer_before_minutes: number; buffer_after_minutes: number }>();
   if (!course) {
     return Response.json({ error: '找不到課程' }, { status: 404 });
   }
   if (hoursUntilUtc8(date, time) < course.min_lead_hours) {
-    return Response.json({ error: `距離上課時間不足 ${course.min_lead_hours} 小時，已無法預約這個時段，請重新選擇` }, { status: 400 });
+    return apiError(400, 'bookingTooLate', `距離上課時間不足 ${course.min_lead_hours} 小時，已無法預約這個時段，請重新選擇`, { hours: course.min_lead_hours });
   }
   if (date > utc8DateISO(course.max_lead_days)) {
-    return Response.json({ error: `只能預約 ${course.max_lead_days} 天內的課程` }, { status: 400 });
+    return apiError(400, 'bookingTooFar', `只能預約 ${course.max_lead_days} 天內的課程`, { days: course.max_lead_days });
   }
 
-  // Atomic "book if still free" — the same slot can't be double-booked by a
-  // concurrent request, unlike the old client-side-only re-check.
-  const clash = await env.DB.prepare(
-    `SELECT id FROM bookings WHERE teacher_id = ? AND date = ? AND time = ? AND status != 'cancelled'`
-  ).bind(teacherId, date, time).first();
-  if (clash) {
-    return Response.json({ error: '此時段已被預約，請重新選擇' }, { status: 409 });
+  // 老師要是啟用中、而且有開這門課——預約精靈第 3 步只讓學生選這樣的老師。
+  const teacher = await env.DB.prepare(
+    `SELECT t.id FROM teachers t JOIN teacher_courses tc ON tc.teacher_id = t.id AND tc.course_id = ?
+     WHERE t.id = ? AND t.status = 'active'`
+  ).bind(courseId, teacherId).first();
+  if (!teacher) {
+    return apiError(400, 'teacherUnavailable', '這位老師目前無法預約這門課程');
   }
 
+  // 整堂課都要落在老師這一天（星期幾）開放的時段內，而且不是老師的休假日。老師的時段跟預約一樣以 UTC+8 儲存。
+  const startMinutes = Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  const endMinutes = startMinutes + course.duration_minutes;
+  const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+  const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay();
+  const withinHours = await env.DB.prepare(
+    `SELECT 1 FROM teacher_hours WHERE teacher_id = ? AND day_of_week = ? AND start_time <= ? AND end_time >= ?`
+  ).bind(teacherId, dayOfWeek, time, endTime).first();
+  const onLeave = await env.DB.prepare(`SELECT 1 FROM teacher_leave WHERE teacher_id = ? AND date = ?`).bind(teacherId, date).first();
+  if (!withinHours || onLeave) {
+    return apiError(400, 'slotUnavailable', '老師這個時段沒有開放預約，請重新選擇');
+  }
+
+  // 寫入預約時在同一句 SQL 裡確認這段時間（含課程前後的緩衝）沒有跟這位老師其他還有效的預約重疊，
+  // 同時送出的兩筆預約不會都成功。每筆既有預約用它自己那門課的時長／緩衝計算，跟預約精靈一樣。
   const bookingCode = await generateBookingCode(env, date, time);
   const row = await env.DB.prepare(
     `INSERT INTO bookings (booking_code, student_id, student_course_id, course_id, teacher_id, date, time)
-     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`
-  ).bind(bookingCode, session.userId, studentCourse.id, courseId, teacherId, date, time).first<{ id: number }>();
+     SELECT ?, ?, ?, ?, ?, ?, ?
+     WHERE NOT EXISTS (
+       SELECT 1 FROM bookings b JOIN courses c ON c.id = b.course_id
+       WHERE b.teacher_id = ? AND b.date = ? AND b.status != 'cancelled'
+         AND ${sqlTimeMinutes('b.time')} - c.buffer_before_minutes < ?
+         AND ${sqlTimeMinutes('b.time')} + c.duration_minutes + c.buffer_after_minutes > ?
+     )
+     RETURNING id`
+  ).bind(
+    bookingCode, session.userId, studentCourse.id, courseId, teacherId, date, time,
+    teacherId, date, endMinutes + course.buffer_after_minutes, startMinutes - course.buffer_before_minutes
+  ).first<{ id: number }>();
+  if (!row) {
+    return apiError(409, 'slotTaken', '此時段已被預約，請重新選擇');
+  }
 
-  await env.DB.prepare(`UPDATE student_courses SET booked_count = booked_count + 1 WHERE id = ?`).bind(studentCourse.id).run();
+  // 還有剩下的堂數才 +1：上面檢查過之後，同一位學生同時送出的另一筆預約可能已經用掉最後一堂，
+  // 這時把剛剛寫入的預約刪掉。
+  const counted = await env.DB.prepare(
+    `UPDATE student_courses SET booked_count = booked_count + 1 WHERE id = ? AND booked_count < total_sessions RETURNING id`
+  ).bind(studentCourse.id).first();
+  if (!counted) {
+    await env.DB.prepare(`DELETE FROM bookings WHERE id = ?`).bind(row.id).run();
+    return apiError(400, 'noSessionsLeft', '課程堂數已用完');
+  }
 
   const created = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(row!.id).first<BookingRow>();
   return Response.json(bookingRowToJson(created!, session.role), { status: 201 });
 }
+
+const FEEDBACK_MAX_LENGTH = 500;
 
 async function handleBookingUpdate(request: Request, env: Env, session: Session, id: number): Promise<Response> {
   const existing = await env.DB.prepare(`SELECT * FROM bookings WHERE id = ?`).bind(id).first<BookingRow>();
@@ -1386,6 +1444,10 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
   if (teacherNote !== undefined && teacherNote !== null && typeof teacherNote !== 'string') {
     return Response.json({ error: '課堂記錄格式錯誤' }, { status: 400 });
   }
+  // 跟畫面上輸入框的 maxlength 一致
+  if ((studentComment?.length ?? 0) > FEEDBACK_MAX_LENGTH || (teacherNote?.length ?? 0) > FEEDBACK_MAX_LENGTH) {
+    return apiError(400, 'textTooLong', `留言最多 ${FEEDBACK_MAX_LENGTH} 個字`, { max: FEEDBACK_MAX_LENGTH });
+  }
 
   if (session.role === 'student') {
     if (hasStatus && (existing.student_id !== session.userId || status !== 'cancelled')) {
@@ -1395,12 +1457,12 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
     // 而且要在該課程「不可預約／不可取消」的時數之前；時限內要取消請管理者處理（管理者不受限）。
     if (hasStatus) {
       if (existing.status !== 'upcoming') {
-        return Response.json({ error: '這堂課已經無法取消' }, { status: 400 });
+        return apiError(400, 'cannotCancel', '這堂課已經無法取消');
       }
       const course = await env.DB.prepare(`SELECT min_lead_hours FROM courses WHERE id = ?`).bind(existing.course_id).first<{ min_lead_hours: number }>();
       const minLeadHours = course?.min_lead_hours ?? 48;
       if (!(hoursUntilUtc8(existing.date, existing.time) >= minLeadHours)) {
-        return Response.json({ error: `距離上課時間不足 ${minLeadHours} 小時，已無法取消預約，如有需要請聯絡管理者協助處理。` }, { status: 400 });
+        return apiError(400, 'cancelTooLate', `距離上課時間不足 ${minLeadHours} 小時，已無法取消預約，如有需要請聯絡管理者協助處理。`, { hours: minLeadHours });
       }
     }
     // 學生只能對自己已經上過（attended）的課評分留言，避免直接打 API 對還沒上的課評分。
@@ -1413,6 +1475,18 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
   } else if (session.role === 'teacher') {
     if (hasStatus && (existing.teacher_id !== session.userId || status !== 'attended')) {
       return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    // 老師只能把還沒上的課標成完成（已取消的課被標成完成會把預約次數再扣一次），而且要等上課時間
+    // 結束——開始時間加上課程時長，例如 12:00 開始、1 小時 40 分的課要 13:40 之後。管理者不受限。
+    if (hasStatus) {
+      if (existing.status !== 'upcoming') {
+        return apiError(400, 'cannotComplete', '這堂課無法標記為完成');
+      }
+      const course = await env.DB.prepare(`SELECT duration_minutes FROM courses WHERE id = ?`).bind(existing.course_id).first<{ duration_minutes: number }>();
+      const durationHours = (course?.duration_minutes ?? 100) / 60;
+      if (!(hoursUntilUtc8(existing.date, existing.time) + durationHours <= 0)) {
+        return apiError(400, 'lessonNotEnded', '這堂課程還沒有結束，請等課程時間結束後再標記為完成');
+      }
     }
     if (hasTeacherFeedback && existing.teacher_id !== session.userId) {
       return Response.json({ error: '未授權' }, { status: 401 });

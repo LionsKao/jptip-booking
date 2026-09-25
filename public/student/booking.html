@@ -793,6 +793,19 @@
     document.getElementById('bookingAlertModal').classList.add('open');
   }
 
+  // 選的時段已經不能約了（被搶走、進入不可預約的時數、老師改了開放時段或請假）：重新抓這位老師的
+  // 時段／請假／預約，重畫日曆跟時段（原本的選取會清掉），帶回選時段那一步。
+  async function backToSlotStep(message) {
+    const teacherId = getSelectedTeacherId();
+    scheduleCache.teacherId = null;
+    await ensureScheduleCache(teacherId);
+    refreshDayDisabledStates();
+    renderTimeSlotsForSelectedDate();
+    refreshNextButtonState(4);
+    showStep(4, false);
+    showBookingAlert(message);
+  }
+
   document.getElementById('submit-booking').addEventListener('click', async () => {
     const session = await sessionPromise;
     if (!session) { showBookingAlert(t('booking.error.needLogin')); return; }
@@ -806,11 +819,7 @@
     // 送出前再檢查一次時限：學生可能在確認畫面停留太久，這個時段已經進入課程「不可預約」的時數內。
     // 帶回選時段那一步並重畫時段（進入時限的時段會變成反灰、原本的選取會清掉）。後端也會擋。
     if (hoursUntilUtc8(dateISO, timeStr) < course.minLeadHours) {
-      refreshDayDisabledStates();
-      renderTimeSlotsForSelectedDate();
-      refreshNextButtonState(4);
-      showStep(4, false);
-      showBookingAlert(t('booking.error.tooLate', { hours: course.minLeadHours }));
+      await backToSlotStep(t('booking.error.tooLate', { hours: course.minLeadHours }));
       return;
     }
 
@@ -819,8 +828,7 @@
     const freshBookings = await fetch(`/api/bookings?teacherId=${teacherId}&date=${dateISO}`).then((res) => (res.ok ? res.json() : []));
     const freshRanges = freshBookings.filter((b) => b.status !== 'cancelled').map(occupiedRangeForBooking);
     if (collidesWithRanges(timeToMinutes(timeStr), course, freshRanges)) {
-      showStep(4, false);
-      showBookingAlert(t('booking.error.slotTaken'));
+      await backToSlotStep(t('booking.error.slotTaken'));
       return;
     }
 
@@ -831,11 +839,10 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      if (res.status === 409) {
-        showStep(4, false);
-        showBookingAlert(data.error || t('booking.error.slotTaken'));
+      if (['slotTaken', 'slotUnavailable', 'bookingTooLate', 'bookingTooFar'].includes(data.code)) {
+        await backToSlotStep(apiErrorMessage(data, 'booking.error.slotTaken'));
       } else {
-        showBookingAlert(data.error || t('booking.error.submitFailed'));
+        showBookingAlert(apiErrorMessage(data, 'booking.error.submitFailed'));
       }
       return;
     }

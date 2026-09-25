@@ -49,6 +49,16 @@ export async function login(email: string, role: string): Promise<string> {
   return setCookie.split(';')[0];
 }
 
+// 讓老師可以被預約這門課：開這門課、每天 00:00–23:59 都開放（老師／時段本身的檢查另外有專門的測試）
+export async function makeTeacherBookable(courseId: number, teacherId = 1): Promise<void> {
+  await env.DB.prepare(`INSERT OR IGNORE INTO teacher_courses (teacher_id, course_id) VALUES (?, ?)`).bind(teacherId, courseId).run();
+  await env.DB.prepare(
+    `INSERT INTO teacher_hours (teacher_id, day_of_week, start_time, end_time)
+     SELECT ?, d.value, '00:00', '23:59' FROM json_each('[0,1,2,3,4,5,6]') d
+     WHERE NOT EXISTS (SELECT 1 FROM teacher_hours h WHERE h.teacher_id = ? AND h.day_of_week = d.value AND h.start_time = '00:00' AND h.end_time = '23:59')`
+  ).bind(teacherId, teacherId).run();
+}
+
 export function withCookie(cookie: string, init?: RequestInit): RequestInit {
   return { ...init, headers: { ...init?.headers, Cookie: cookie } };
 }

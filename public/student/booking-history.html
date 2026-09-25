@@ -544,7 +544,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHistoryAlert(data.error || t('history.cancel.error'));
+      showHistoryAlert(apiErrorMessage(data, 'history.cancel.error'));
       return;
     }
     record.status = 'cancelled';
@@ -596,7 +596,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showHistoryAlert(data.error || t('booking.rating.submitFailed'));
+      showHistoryAlert(apiErrorMessage(data, 'booking.rating.submitFailed'));
       return;
     }
     const updated = await res.json();

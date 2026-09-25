@@ -255,7 +255,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showAddAlert(data.error || t('hours.error.addFailed'));
+      showAddAlert(apiErrorMessage(data, 'hours.error.addFailed'));
       return;
     }
     document.getElementById('studentAddSuccessModal').classList.add('open');

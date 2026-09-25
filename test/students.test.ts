@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { fetchWorker, login, SEEDED, withCookie } from './helpers';
+import { fetchWorker, login, makeTeacherBookable, SEEDED, withCookie } from './helpers';
 
 async function createStudent(cookie: string, overrides: Record<string, unknown> = {}) {
   return fetchWorker('/api/students', withCookie(cookie, {
@@ -42,11 +42,26 @@ describe('POST /api/students', () => {
 
   it('rejects a duplicate email', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
-    expect((await createStudent(cookie, { email: SEEDED.student.email })).status).toBe(400);
+    const res = await createStudent(cookie, { email: SEEDED.student.email });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: 'emailTaken' });
   });
 });
 
 describe('PATCH /api/students', () => {
+  it("rejects changing the email to another student's, but keeping their own is fine", async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const created = (await (await createStudent(cookie)).json()) as { id: number; email: string };
+    const patch = (email: string) => fetchWorker(`/api/students?id=${created.id}`, withCookie(cookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+    }));
+
+    const taken = await patch(SEEDED.student.email);
+    expect(taken.status).toBe(400);
+    expect(await taken.json()).toMatchObject({ code: 'emailTaken' });
+    expect((await patch(created.email)).status).toBe(200);
+  });
+
   it('updates only the fields provided, including teamsLink', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const created = (await (await createStudent(cookie)).json()) as { id: number; name: string };
@@ -150,12 +165,14 @@ describe('/api/students/courses', () => {
     const enrollment2 = (await (await fetchWorker('/api/students/courses?studentId=1', withCookie(cookie, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseName: course.name }),
     }))).json()) as { id: number };
+    await makeTeacherBookable(course.id);
     const studentCookie = await login(SEEDED.student.email, 'student');
-    await fetchWorker('/api/bookings', withCookie(studentCookie, {
+    const booked = await fetchWorker('/api/bookings', withCookie(studentCookie, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       // 10 天後（UTC+8）：落在課程預設的可預約時限內（48 小時後～30 天內）
       body: JSON.stringify({ courseId: course.id, teacherId: 1, date: new Date(Date.now() + 8 * 3_600_000 + 10 * 86_400_000).toISOString().slice(0, 10), time: '10:00' }),
     }));
+    expect(booked.status).toBe(201);
 
     const blockedDelete = await fetchWorker(`/api/students/courses?studentId=1&id=${enrollment2.id}`, withCookie(cookie, { method: 'DELETE' }));
     expect(blockedDelete.status).toBe(400);

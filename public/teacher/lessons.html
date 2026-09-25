@@ -373,10 +373,14 @@
     return t('common.durationMinuteOnly', { m });
   }
 
+  function lessonDurationMinutes(l) {
+    const course = loadCourses().find((c) => (l.courseId != null && c.id === l.courseId) || c.name === l.course);
+    return (course && course.durationMinutes) || LESSON_DURATION_MINUTES;
+  }
+
   function computeDisplayParts(l) {
     const shifted = shiftToTeacherTz(l.date, l.time);
-    const course = loadCourses().find((c) => (l.courseId != null && c.id === l.courseId) || c.name === l.course);
-    const durationMinutes = (course && course.durationMinutes) || LESSON_DURATION_MINUTES;
+    const durationMinutes = lessonDurationMinutes(l);
     const timeLabel = `${shifted.time} - ${endTimeStr(shifted.time, durationMinutes)}`;
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     const dateLabel = isMobile ? formatDateShort(shifted.date) : formatDateLong(shifted.date);
@@ -384,9 +388,9 @@
     return { dateLabel, timeLabel, startTimeLabel: shifted.time, durationLabel };
   }
 
+  // 預約的日期時間是 UTC+8，不能用瀏覽器的時區解析（老師在日本的話會差一小時）
   function hoursUntilStart(lesson) {
-    const start = new Date(`${lesson.date.replace(/\//g, '-')}T${lesson.time}:00`);
-    return (start.getTime() - Date.now()) / 3600000;
+    return hoursUntilUtc8(lesson.date.replace(/\//g, '-'), lesson.time);
   }
 
   // 「今天」徽章／排序置頂的規則：還沒開始、但 24 小時內就會開始上課（取消的不算）。
@@ -514,9 +518,9 @@
     document.getElementById('back-btn-icon').className = viewingAsAdmin ? 'fa-solid fa-fw fa-arrow-left' : 'fa-solid fa-fw fa-house';
   }
 
-  function lessonEndTime(lesson) {
-    const start = new Date(`${lesson.date.replace(/\//g, '-')}T${lesson.time}:00`);
-    return new Date(start.getTime() + LESSON_DURATION_MINUTES * 60 * 1000);
+  // 上課時間結束（開始時間＋這門課的時長）才能標記完成，例如 12:00 開始、1 小時 40 分的課要 13:40 之後（後端也會擋）
+  function lessonHasEnded(lesson) {
+    return hoursUntilStart(lesson) + lessonDurationMinutes(lesson) / 60 <= 0;
   }
 
   // 開的是這堂課學生自己的會議室連結（學生基本資料裡設定的那個），老師要跟這個
@@ -545,7 +549,7 @@
   document.getElementById('complete-lesson-btn').addEventListener('click', () => {
     const lesson = lessons.find((l) => l.id === activeLessonId);
     if (!lesson) return;
-    if (new Date() < lessonEndTime(lesson)) {
+    if (!lessonHasEnded(lesson)) {
       document.getElementById('notEndedModal').classList.add('open');
       return;
     }
@@ -574,7 +578,11 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showLessonsAlert(data.error || t('lessons.error.updateFailed'));
+      if (data.code === 'lessonNotEnded') {
+        document.getElementById('notEndedModal').classList.add('open');
+      } else {
+        showLessonsAlert(apiErrorMessage(data, 'lessons.error.updateFailed'));
+      }
       return;
     }
     const updated = await res.json();

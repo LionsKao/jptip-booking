@@ -437,7 +437,7 @@
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      showBookingAlert(data.error || t('admin.bookings.updateFailed'));
+      showBookingAlert(apiErrorMessage(data, 'admin.bookings.updateFailed'));
       return;
     }
 

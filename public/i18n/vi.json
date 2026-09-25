@@ -345,5 +345,20 @@
   "admin.bookings.cancelledConfirm.desc": "Số buổi học của học viên sẽ được hoàn lại một buổi.",
   "admin.bookings.tzModal.title": "Múi giờ hiển thị thời gian buổi học",
   "admin.bookings.tzModal.desc": "Quản trị viên luôn xem theo giờ UTC+08:00 Đài Bắc, không bị ảnh hưởng bởi múi giờ cá nhân của giáo viên/học viên.",
-  "admin.bookings.updateFailed": "Cập nhật thất bại, vui lòng thử lại sau"
+  "admin.bookings.updateFailed": "Cập nhật thất bại, vui lòng thử lại sau",
+
+  "apiError.emailTaken": "Email này đã được sử dụng",
+  "apiError.leaveInPast": "Chỉ có thể xin nghỉ từ hôm nay trở đi",
+  "apiError.courseHasRecords": "Khóa học này đã có lịch đặt hoặc buổi học đã tham gia nên không thể xóa",
+  "apiError.notEnrolled": "Bạn không có khóa học này để đặt lịch",
+  "apiError.noSessionsLeft": "Tất cả các buổi của khóa học này đã được đặt hết",
+  "apiError.bookingTooLate": "Khung giờ này chỉ còn chưa đến {{hours}} giờ nữa là bắt đầu nên không thể đặt lịch. Vui lòng chọn khung giờ khác",
+  "apiError.bookingTooFar": "Chỉ có thể đặt lịch các buổi học trong vòng {{days}} ngày tới. Vui lòng chọn lại ngày",
+  "apiError.slotTaken": "Khung giờ này vừa được đặt, vui lòng chọn lại",
+  "apiError.cannotCancel": "Buổi học này không thể hủy nữa",
+  "apiError.cancelTooLate": "Còn chưa đến {{hours}} giờ nữa là đến giờ học nên không thể hủy lịch. Nếu cần hỗ trợ, vui lòng liên hệ quản trị viên.",
+  "apiError.cannotComplete": "Không thể đánh dấu hoàn thành buổi học này",
+  "apiError.teacherUnavailable": "Hiện không thể đặt lịch khóa học này với giáo viên này. Vui lòng chọn giáo viên khác",
+  "apiError.slotUnavailable": "Giáo viên không nhận đặt lịch vào khung giờ này. Vui lòng chọn lại",
+  "apiError.textTooLong": "Chỉ được nhập tối đa {{max}} ký tự"
 }

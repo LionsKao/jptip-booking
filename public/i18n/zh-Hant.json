@@ -345,5 +345,20 @@
   "admin.bookings.cancelledConfirm.desc": "學生的預約次數將會退還一次。",
   "admin.bookings.tzModal.title": "課程時間顯示時區",
   "admin.bookings.tzModal.desc": "管理者一律以 UTC+08:00 台北時間顯示，不受老師/學生個人時區設定影響。",
-  "admin.bookings.updateFailed": "更新失敗，請稍後再試"
+  "admin.bookings.updateFailed": "更新失敗，請稍後再試",
+
+  "apiError.emailTaken": "這個 Email 已經被使用",
+  "apiError.leaveInPast": "只能申請今天以後的休假",
+  "apiError.courseHasRecords": "這門課已有預約或上課紀錄，無法刪除",
+  "apiError.notEnrolled": "你沒有可預約的這門課程",
+  "apiError.noSessionsLeft": "這門課程的堂數已經全部預約完了",
+  "apiError.bookingTooLate": "這個時段已進入課程開始前 {{hours}} 小時內，無法預約，請重新選擇時段",
+  "apiError.bookingTooFar": "只能預約 {{days}} 天內的課程，請重新選擇日期",
+  "apiError.slotTaken": "這個時段剛被預約走了，請重新選擇",
+  "apiError.cannotCancel": "這堂課已經無法取消",
+  "apiError.cancelTooLate": "距離上課時間不足 {{hours}} 小時，已無法取消預約，如有需要請聯絡管理者協助處理。",
+  "apiError.cannotComplete": "這堂課無法標記為完成",
+  "apiError.teacherUnavailable": "這位老師目前無法預約這門課程，請重新選擇老師",
+  "apiError.slotUnavailable": "老師這個時段沒有開放預約，請重新選擇",
+  "apiError.textTooLong": "最多只能輸入 {{max}} 個字"
 }

@@ -345,5 +345,20 @@
   "admin.bookings.cancelledConfirm.desc": "The student's lesson count will be refunded by one.",
   "admin.bookings.tzModal.title": "Lesson Time Display Timezone",
   "admin.bookings.tzModal.desc": "Admins always see times in UTC+08:00 Taipei time, regardless of the teacher's or student's own timezone setting.",
-  "admin.bookings.updateFailed": "Update failed, please try again later"
+  "admin.bookings.updateFailed": "Update failed, please try again later",
+
+  "apiError.emailTaken": "This email is already in use",
+  "apiError.leaveInPast": "Leave can only be requested for today or later",
+  "apiError.courseHasRecords": "This course has bookings or attended lessons and cannot be deleted",
+  "apiError.notEnrolled": "You don't have this course available to book",
+  "apiError.noSessionsLeft": "All sessions of this course have already been booked",
+  "apiError.bookingTooLate": "This slot now starts in less than {{hours}} hours and can no longer be booked. Please choose another time.",
+  "apiError.bookingTooFar": "Lessons can only be booked up to {{days}} days ahead. Please choose another date.",
+  "apiError.slotTaken": "This time slot was just booked — please choose another",
+  "apiError.cannotCancel": "This lesson can no longer be cancelled",
+  "apiError.cancelTooLate": "Less than {{hours}} hours remain before class starts, so this booking can no longer be cancelled. Please contact an admin if you need help.",
+  "apiError.cannotComplete": "This lesson cannot be marked as complete",
+  "apiError.teacherUnavailable": "This teacher can't be booked for this course right now. Please choose another teacher.",
+  "apiError.slotUnavailable": "The teacher isn't available at this time. Please choose another slot.",
+  "apiError.textTooLong": "Please enter no more than {{max}} characters"
 }

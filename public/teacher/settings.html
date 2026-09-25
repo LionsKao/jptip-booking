@@ -339,7 +339,7 @@
 
   async function errorMessage(res) {
     const data = await res.json().catch(() => ({}));
-    return data.error || t('admin.common.saveFailed');
+    return apiErrorMessage(data, 'admin.common.saveFailed');
   }
 
   submitBtn.addEventListener('click', async () => {

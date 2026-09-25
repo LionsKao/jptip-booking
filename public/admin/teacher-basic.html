@@ -374,7 +374,7 @@
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        return { ok: false, error: data.error || t('admin.common.saveFailed') };
+        return { ok: false, error: apiErrorMessage(data, 'admin.common.saveFailed') };
       }
       Object.assign(teacher, fields);
       return { ok: true };

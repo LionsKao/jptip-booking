@@ -87,6 +87,7 @@ describe('POST /api/teachers', () => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const res = await createTeacher(cookie, { email: SEEDED.teacher.email });
     expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: 'emailTaken' });
   });
 
   it('creates a teacher with sensible defaults', async ({ expect }) => {
@@ -102,6 +103,19 @@ describe('POST /api/teachers', () => {
 });
 
 describe('PATCH /api/teachers', () => {
+  it("rejects changing the email to another teacher's, but keeping their own is fine", async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const created = (await (await createTeacher(cookie)).json()) as { id: number; email: string };
+    const patch = (email: string) => fetchWorker(`/api/teachers?id=${created.id}`, withCookie(cookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+    }));
+
+    const taken = await patch(SEEDED.teacher.email);
+    expect(taken.status).toBe(400);
+    expect(await taken.json()).toMatchObject({ code: 'emailTaken' });
+    expect((await patch(created.email)).status).toBe(200);
+  });
+
   it('is 401 for a non-admin session', async ({ expect }) => {
     const adminCookie = await login(SEEDED.admin.email, 'admin');
     const created = (await (await createTeacher(adminCookie)).json()) as { id: number };
