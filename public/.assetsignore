@@ -1,0 +1,3 @@
+# 部署時不要上傳成公開檔案的東西（語法同 .gitignore）
+# macOS Finder 的資料夾中繼資料，會透露資料夾裡的檔案名稱
+.DS_Store
