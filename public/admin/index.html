@@ -131,6 +131,13 @@
         <p data-i18n="admin.dash.courses.desc">設定課程項目與預約規則</p>
       </span>
     </button>
+    <button type="button" class="dash-card" data-action="emails">
+      <span class="dash-card-icon"><img src="../assets/icons/mail.png" alt=""></span>
+      <span>
+        <h3 data-i18n="admin.dash.emails.title">系統信件</h3>
+        <p data-i18n="admin.dash.emails.desc">管理系統自動寄出的信件內容</p>
+      </span>
+    </button>
   </div>
 
 </div>
@@ -164,6 +171,9 @@
   });
   document.querySelector('[data-action="courses"]').addEventListener('click', () => {
     window.location.href = 'courses.html';
+  });
+  document.querySelector('[data-action="emails"]').addEventListener('click', () => {
+    window.location.href = 'email-templates.html';
   });
 
   document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));

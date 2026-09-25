@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 編輯系統信件</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1240px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  .email-desc { margin: calc(-1 * var(--space-2)) 0 var(--space-4); color: var(--text-muted); }
+
+  /* 語言分頁：選中的用藍色，有還沒儲存的修改就在右上角加一個橘點 */
+  .email-lang-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+  .email-lang-tab { position: relative; }
+  .email-lang-tab.is-dirty::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-orange);
+    border: 2px solid var(--bg-card);
+  }
+  .email-lang-status { margin: 0 0 var(--space-4); font-size: var(--fs-small); color: var(--text-muted); }
+  .email-lang-status.is-unsaved { color: var(--color-orange); font-weight: 700; }
+
+  .email-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+  .email-html-input {
+    display: block;
+    min-height: 560px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 2;
+  }
+
+  .email-vars { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .email-var-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 12px;
+    border-radius: var(--radius-md, 12px);
+    border: 2px solid var(--line);
+    background: var(--bg-card);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: border-color .2s ease;
+  }
+  .email-var-chip:hover { border-color: var(--color-blue); }
+  .email-var-chip code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; font-weight: 700; color: var(--color-blue); }
+  .email-var-chip span { font-size: var(--fs-caption); color: var(--text-muted); }
+
+  .email-preview-note { font-weight: 400; margin-left: var(--space-2); }
+  .email-preview-subject {
+    padding: 10px 14px;
+    margin-bottom: var(--space-2);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card-alt, #FFF8EC);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .email-preview-frame {
+    display: block;
+    width: 100%;
+    height: 720px;
+    border: 3px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: #fff;
+  }
+
+  .email-actions { display: flex; justify-content: center; gap: var(--space-4); margin-top: var(--space-5); }
+
+  @media (max-width: 1288px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 900px) {
+    .email-editor-grid { grid-template-columns: 1fr; }
+    .email-html-input { min-height: 360px; }
+    .email-preview-frame { height: 560px; }
+  }
+  @media (max-width: 640px) {
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .email-actions { flex-direction: column-reverse; align-items: stretch; }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section" id="card-email" hidden>
+    <div class="section-title"><img class="title-icon" id="email-title-icon" alt=""><h2 id="email-title"></h2></div>
+    <p class="email-desc text-small" id="email-desc"></p>
+
+    <div class="email-lang-tabs" id="email-lang-tabs"></div>
+    <p class="email-lang-status" id="email-lang-status"></p>
+
+    <div class="email-editor-grid">
+      <div>
+        <div class="form-field">
+          <label for="email-subject"><i class="fa-solid fa-fw fa-heading"></i> <span data-i18n="admin.emails.subject">信件主旨</span></label>
+          <input type="text" id="email-subject" class="text-input" maxlength="200">
+        </div>
+        <div class="form-field">
+          <label for="email-html"><i class="fa-solid fa-fw fa-code"></i> <span data-i18n="admin.emails.html">信件內容（HTML）</span></label>
+          <textarea id="email-html" class="text-input email-html-input" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        </div>
+        <div class="form-field">
+          <label><i class="fa-solid fa-fw fa-puzzle-piece"></i> <span data-i18n="admin.emails.variables">可用的變數</span></label>
+          <div class="email-vars" id="email-vars"></div>
+          <p class="field-hint" data-i18n="admin.emails.variablesHint">點一下就會插入到游標的位置，寄出時會換成實際的資料</p>
+        </div>
+      </div>
+      <div>
+        <div class="form-field">
+          <label><i class="fa-solid fa-fw fa-eye"></i> <span data-i18n="admin.emails.preview">預覽</span><span class="email-preview-note" data-i18n="admin.emails.previewNote">變數用範例資料代入</span></label>
+          <div class="email-preview-subject" id="email-preview-subject"></div>
+          <!-- sandbox 只給 allow-same-origin（不然信件裡的圖片載不出來），沒有 allow-scripts：
+               預覽的 HTML 不能執行程式、不能送出表單、不能開視窗或換掉這一頁，只能顯示 -->
+          <iframe id="email-preview" class="email-preview-frame" sandbox="allow-same-origin" title="preview"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="email-actions">
+      <button type="button" class="btn outline" id="restore-default-btn"><i class="fa-solid fa-fw fa-rotate-left"></i> <span data-i18n="admin.emails.restoreDefault">恢復預設</span></button>
+      <button type="button" class="btn blue" id="save-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
+    </div>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editSuccessModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon success"><i class="fa-solid fa-check"></i></div>
+    <h3 data-i18n="admin.emails.saveSuccess">已儲存系統信</h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="restoreConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-rotate-left"></i></div>
+    <h3 data-i18n="admin.emails.restoreConfirm.title">要恢復成預設內容嗎？</h3>
+    <p class="text-small" id="restoreConfirmDesc"></p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn blue" id="restore-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-rotate-left"></i> <span data-i18n="admin.emails.restoreDefault">恢復預設</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+    <h3 data-i18n="booking.leaveConfirm.title">確定要離開嗎？</h3>
+    <p class="text-small" data-i18n="admin.common.unsavedEditDesc">目前修改的資料將不會保留。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn red" id="confirm-leave-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="booking.leaveConfirm.confirm">確定離開</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+function emailTemplateIcon(key) {
+  if (key.startsWith('login_')) return 'key.png';
+  return key.startsWith('booking_created_') ? 'icon-check.png' : 'close.png';
+}
+
+// 預覽用的範例資料（真正寄信時換成收件人、課程的實際資料，見 src/index.ts）
+const SAMPLE_VALUES = {
+  name: '王小明',
+  code: '123456',
+  studentName: '王小明',
+  teacherName: '田中花子',
+  courseName: '日語會話',
+  date: '2026/10/05',
+  time: '19:00',
+  timezone: 'UTC+08:00',
+  bookingCode: '20261005-1900-01',
+  siteUrl: window.location.origin,
+};
+
+// 跟後端 src/email-templates.ts 的 fillEmailTemplate 同一套規則：HTML 裡代入的值會跳脫，
+// 不存在的變數原樣留著
+function fillSample(template, mode) {
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, name) => {
+    if (!Object.prototype.hasOwnProperty.call(SAMPLE_VALUES, name)) return match;
+    return mode === 'html' ? escapeHtml(SAMPLE_VALUES[name]) : SAMPLE_VALUES[name];
+  });
+}
+
+(async () => {
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  const key = new URLSearchParams(window.location.search).get('key') || '';
+  const res = await fetch(`/api/email-templates?key=${encodeURIComponent(key)}`).catch(() => null);
+  if (!res || res.status === 404) {
+    window.location.href = 'email-templates.html';
+    return;
+  }
+
+  function showAlert(message) {
+    document.getElementById('basicInfoAlertText').textContent = message;
+    document.getElementById('basicInfoAlertModal').classList.add('open');
+  }
+  if (!res.ok) {
+    showAlert(t('admin.emails.loadFailed'));
+    return;
+  }
+  const detail = await res.json();
+
+  document.getElementById('card-email').hidden = false;
+  document.getElementById('email-title').textContent = t(`emailTemplate.${key}.name`);
+  document.getElementById('email-desc').textContent = t(`emailTemplate.${key}.desc`);
+  document.getElementById('email-title-icon').src = `../assets/icons/${emailTemplateIcon(key)}`;
+
+  // 每個語言：目前編輯中的內容（subject/html）、上次儲存的內容（saved*）、預設內容（default*）
+  const LANGS = Object.keys(detail.languages);
+  const state = {};
+  function loadSaved(languages, langs) {
+    langs.forEach((lang) => {
+      const l = languages[lang];
+      state[lang] = {
+        subject: l.subject, html: l.html,
+        savedSubject: l.subject, savedHtml: l.html,
+        defaultSubject: l.defaultSubject, defaultHtml: l.defaultHtml,
+        customized: l.customized, updatedAt: l.updatedAt,
+      };
+    });
+  }
+  loadSaved(detail.languages, LANGS);
+  const isDirty = (lang) => state[lang].subject !== state[lang].savedSubject || state[lang].html !== state[lang].savedHtml;
+  const anyDirty = () => LANGS.some(isDirty);
+
+  // 一開始打開管理者自己的語言
+  let currentLang = LANGS.includes(getCurrentLang()) ? getCurrentLang() : LANGS[0];
+
+  const subjectInput = document.getElementById('email-subject');
+  const htmlInput = document.getElementById('email-html');
+  const previewSubject = document.getElementById('email-preview-subject');
+  const previewFrame = document.getElementById('email-preview');
+  const saveBtn = document.getElementById('save-btn');
+  const tabsEl = document.getElementById('email-lang-tabs');
+
+  tabsEl.innerHTML = LANGS.map((lang) => `<button type="button" class="btn sm email-lang-tab" data-lang="${lang}">${escapeHtml(LANG_LABELS[lang] || lang)}</button>`).join('');
+  tabsEl.querySelectorAll('.email-lang-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      currentLang = tab.dataset.lang;
+      showCurrentLang();
+    });
+  });
+
+  function refreshStatus() {
+    tabsEl.querySelectorAll('.email-lang-tab').forEach((tab) => {
+      const lang = tab.dataset.lang;
+      tab.classList.toggle('blue', lang === currentLang);
+      tab.classList.toggle('outline', lang !== currentLang);
+      tab.classList.toggle('is-dirty', isDirty(lang));
+    });
+    const statusEl = document.getElementById('email-lang-status');
+    const s = state[currentLang];
+    statusEl.classList.toggle('is-unsaved', isDirty(currentLang));
+    statusEl.textContent = isDirty(currentLang)
+      ? t('admin.emails.status.unsaved')
+      : (s.customized ? t('admin.emails.status.customized', { time: s.updatedAt || '' }) : t('admin.emails.status.default'));
+    setButtonEnabled(saveBtn, anyDirty());
+  }
+
+  let previewTimer = null;
+  function refreshPreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      previewSubject.textContent = fillSample(state[currentLang].subject, 'text');
+      previewFrame.srcdoc = fillSample(state[currentLang].html, 'html');
+    }, 200);
+  }
+
+  function showCurrentLang() {
+    subjectInput.value = state[currentLang].subject;
+    htmlInput.value = state[currentLang].html;
+    htmlInput.scrollTop = 0;
+    refreshStatus();
+    refreshPreview();
+  }
+
+  subjectInput.addEventListener('input', () => {
+    state[currentLang].subject = subjectInput.value;
+    refreshStatus();
+    refreshPreview();
+  });
+  htmlInput.addEventListener('input', () => {
+    state[currentLang].html = htmlInput.value;
+    refreshStatus();
+    refreshPreview();
+  });
+
+  // 變數按鈕：插入到最後一次編輯的欄位（主旨或內容）的游標位置
+  let lastFocusedField = htmlInput;
+  subjectInput.addEventListener('focus', () => { lastFocusedField = subjectInput; });
+  htmlInput.addEventListener('focus', () => { lastFocusedField = htmlInput; });
+  const varsEl = document.getElementById('email-vars');
+  varsEl.innerHTML = detail.variables.map((name) => `<button type="button" class="email-var-chip" data-var="${escapeHtml(name)}"><code>{{${escapeHtml(name)}}}</code><span>${escapeHtml(t(`emailVar.${name}`))}</span></button>`).join('');
+  varsEl.querySelectorAll('.email-var-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const field = lastFocusedField;
+      field.focus();
+      field.setRangeText(`{{${chip.dataset.var}}}`, field.selectionStart, field.selectionEnd, 'end');
+      field.dispatchEvent(new Event('input'));
+    });
+  });
+
+  // 恢復預設：只換掉目前這個語言的編輯內容，按「確認編輯」才會真的存
+  document.getElementById('restore-default-btn').addEventListener('click', () => {
+    document.getElementById('restoreConfirmDesc').textContent = t('admin.emails.restoreConfirm.desc', { lang: LANG_LABELS[currentLang] || currentLang });
+    document.getElementById('restoreConfirmModal').classList.add('open');
+  });
+  document.getElementById('restore-confirm-btn').addEventListener('click', () => {
+    state[currentLang].subject = state[currentLang].defaultSubject;
+    state[currentLang].html = state[currentLang].defaultHtml;
+    document.getElementById('restoreConfirmModal').classList.remove('open');
+    showCurrentLang();
+  });
+
+  // 確認編輯：一次存所有改過的語言
+  saveBtn.addEventListener('click', async () => {
+    const dirtyLangs = LANGS.filter(isDirty);
+    if (!dirtyLangs.length) return;
+    const blank = dirtyLangs.find((lang) => !state[lang].subject.trim() || !state[lang].html.trim());
+    if (blank) {
+      currentLang = blank;
+      showCurrentLang();
+      showAlert(t('admin.emails.blank', { lang: LANG_LABELS[blank] || blank }));
+      return;
+    }
+    setButtonEnabled(saveBtn, false);
+    const saveRes = await fetch(`/api/email-templates?key=${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ languages: Object.fromEntries(dirtyLangs.map((lang) => [lang, { subject: state[lang].subject, html: state[lang].html }])) }),
+    }).catch(() => null);
+    if (!saveRes || !saveRes.ok) {
+      const data = saveRes ? await saveRes.json().catch(() => ({})) : {};
+      refreshStatus();
+      showAlert(apiErrorMessage(data, 'admin.common.saveFailed'));
+      return;
+    }
+    const saved = await saveRes.json();
+    loadSaved(saved.languages, dirtyLangs);
+    showCurrentLang();
+    document.getElementById('editSuccessModal').classList.add('open');
+  });
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    if (anyDirty()) {
+      document.getElementById('leaveConfirmModal').classList.add('open');
+      return;
+    }
+    window.location.href = 'email-templates.html';
+  });
+  document.getElementById('confirm-leave-btn').addEventListener('click', () => {
+    window.location.href = 'email-templates.html';
+  });
+
+  showCurrentLang();
+})();
+</script>
+
+</body>
+</html>

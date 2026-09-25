@@ -1,3 +1,5 @@
+import { defaultEmailTemplate, EMAIL_TEMPLATES, fillEmailTemplate, isEmailTemplateKey, type EmailTemplateKey } from './email-templates';
+
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
@@ -236,8 +238,9 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
 }
 
 // ==========================================================================
-// 驗證碼 Email——透過 Microsoft Graph 用 one-on-one@jptip.co.jp 寄出（需要 Azure 應用程式
-// 註冊有 Mail.Send 應用程式權限）。信件內容依帳號設定的語言，版面沿用 public/email.html 的範本。
+// 系統信件（登入驗證碼、預約成功／取消通知）——透過 Microsoft Graph 用 one-on-one@jptip.co.jp
+// 寄出（需要 Azure 應用程式註冊有 Mail.Send 應用程式權限）。信件依收件人設定的語言寄出，
+// 內容是管理端「系統信件」可修改的範本（見 src/email-templates.ts）。
 // ==========================================================================
 let cachedGraphToken: { token: string; expiresAt: number } | null = null;
 let warnedMissingMailSecret = false;
@@ -260,85 +263,32 @@ async function getGraphToken(env: Env): Promise<string> {
   return data.access_token;
 }
 
-const OTP_EMAIL_TEXT: Record<SupportedLanguage, { subject: string; brand: string; greeting: string; intro: string; expiry: string; ignore: string; auto: string }> = {
-  'zh-Hant': {
-    subject: '【JPTIP】您的登入驗證碼',
-    brand: 'JPTIP 線上一對一',
-    greeting: '您好，',
-    intro: '您正在登入 JPTIP 預約系統，請於 <strong>5 分鐘內</strong>輸入以下驗證碼完成登入：',
-    expiry: '驗證碼將於 5 分鐘後失效，請勿將驗證碼提供給任何人。',
-    ignore: '如果這不是您本人的操作，請忽略這封信件即可，不會影響您的帳號安全。',
-    auto: '此為系統自動寄送信件，請勿直接回覆。',
-  },
-  ja: {
-    subject: '【JPTIP】ログイン認証コード',
-    brand: 'JPTIP オンライン1対1',
-    greeting: 'こんにちは。',
-    intro: 'JPTIP 予約システムへのログインが行われています。<strong>5分以内</strong>に以下の認証コードを入力して、ログインを完了してください：',
-    expiry: '認証コードの有効期限は5分です。認証コードは誰にも教えないでください。',
-    ignore: 'お心当たりがない場合は、このメールを破棄してください。アカウントの安全には影響ありません。',
-    auto: 'このメールはシステムから自動送信されています。ご返信いただいてもお答えできません。',
-  },
-  en: {
-    subject: '[JPTIP] Your login verification code',
-    brand: 'JPTIP Online 1-on-1',
-    greeting: 'Hello,',
-    intro: 'You are signing in to the JPTIP booking system. Enter the code below within <strong>5 minutes</strong> to finish logging in:',
-    expiry: 'This code expires in 5 minutes. Never share it with anyone.',
-    ignore: "If you didn't try to sign in, you can safely ignore this email — your account is not affected.",
-    auto: 'This is an automated message. Please do not reply.',
-  },
-  vi: {
-    subject: '[JPTIP] Mã xác thực đăng nhập của bạn',
-    brand: 'JPTIP Học trực tuyến 1 kèm 1',
-    greeting: 'Xin chào,',
-    intro: 'Bạn đang đăng nhập vào hệ thống đặt lịch JPTIP. Vui lòng nhập mã xác thực dưới đây trong vòng <strong>5 phút</strong> để hoàn tất đăng nhập:',
-    expiry: 'Mã xác thực sẽ hết hạn sau 5 phút. Vui lòng không cung cấp mã cho bất kỳ ai.',
-    ignore: 'Nếu đây không phải là thao tác của bạn, vui lòng bỏ qua email này, tài khoản của bạn vẫn an toàn.',
-    auto: 'Đây là email tự động từ hệ thống, vui lòng không trả lời.',
-  },
-  my: {
-    subject: '[JPTIP] သင်၏ အကောင့်ဝင်ရန် အတည်ပြုကုဒ်',
-    brand: 'JPTIP အွန်လိုင်း တစ်ဦးချင်း',
-    greeting: 'မင်္ဂလာပါ၊',
-    intro: 'သင်သည် JPTIP ဘွတ်ကင်စနစ်သို့ အကောင့်ဝင်နေပါသည်။ အကောင့်ဝင်ခြင်း ပြီးမြောက်ရန် အောက်ပါ အတည်ပြုကုဒ်ကို <strong>၅ မိနစ်အတွင်း</strong> ထည့်သွင်းပါ-',
-    expiry: 'အတည်ပြုကုဒ်သည် ၅ မိနစ်အကြာတွင် သက်တမ်းကုန်ပါမည်။ မည်သူ့ကိုမျှ မပေးပါနှင့်။',
-    ignore: 'ဤလုပ်ဆောင်ချက်ကို သင်ကိုယ်တိုင် မလုပ်ခဲ့ပါက ဤအီးမေးလ်ကို လျစ်လျူရှုနိုင်ပါသည်၊ သင့်အကောင့် လုံခြုံမှုကို မထိခိုက်ပါ။',
-    auto: 'ဤအီးမေးလ်ကို စနစ်မှ အလိုအလျောက် ပို့ခြင်းဖြစ်ပါသည်၊ ပြန်စာ မပို့ပါနှင့်။',
-  },
-};
+// 系統信件範本：管理者改過的存在 D1 的 email_templates，沒改過的用 src/email-templates.ts 的預設範本
+// 讀不到（例如部署時還沒套用 migrations/0023）就用預設範本，登入驗證碼信不會因此寄不出去
+async function loadEmailTemplate(env: Env, key: EmailTemplateKey, lang: SupportedLanguage): Promise<{ subject: string; html: string }> {
+  try {
+    const row = await env.DB.prepare(`SELECT subject, html FROM email_templates WHERE template_key = ? AND language = ?`)
+      .bind(key, lang).first<{ subject: string; html: string }>();
+    if (row) return row;
+  } catch (err) {
+    console.error('[mail] failed to load email template, using the default', err);
+  }
+  return defaultEmailTemplate(key, lang);
+}
 
-function otpEmailHtml(origin: string, code: string, lang: SupportedLanguage): string {
-  const text = OTP_EMAIL_TEXT[lang];
-  return `<!doctype html>
-<html><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#FFF8EC;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF8EC;">
-    <tr><td align="center" style="padding:32px 16px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:24px;border:3px solid #F0E6D8;overflow:hidden;font-family:'Manrope','Noto Sans TC',sans-serif;">
-        <tr><td style="background:#3AA0C9;padding:28px 32px;text-align:center;">
-          <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 10px;">
-            <tr><td width="56" height="56" style="background:#ffffff;border-radius:50%;text-align:center;vertical-align:middle;">
-              <img src="${origin}/assets/icons/key.png" width="32" height="32" alt="" style="display:inline-block;vertical-align:middle;">
-            </td></tr>
-          </table>
-          <div style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:.02em;">${text.brand}</div>
-        </td></tr>
-        <tr><td style="padding:32px;">
-          <div style="font-size:15px;color:#454545;margin-bottom:20px;">${text.greeting}</div>
-          <div style="font-size:15px;color:#454545;line-height:1.8;margin-bottom:24px;">${text.intro}</div>
-          <div style="text-align:center;margin-bottom:28px;">
-            <span style="display:inline-block;font-size:32px;font-weight:800;letter-spacing:.3em;color:#1F6E8C;background:#E3F4FA;border-radius:16px;padding:16px 28px;">${code}</span>
-          </div>
-          <div style="font-size:13px;color:#8f8a87;line-height:1.7;border-top:3px solid #F0E6D8;padding-top:16px;">${text.expiry}<br>${text.ignore}</div>
-        </td></tr>
-        <tr><td style="padding:20px 32px;background:#FFF8EC;text-align:center;border-top:3px solid #F0E6D8;">
-          <div style="font-size:12px;color:#8f8a87;line-height:1.6;">${text.auto}<br>© JPTIP</div>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
+interface OutgoingEmail {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+async function renderEmail(env: Env, key: EmailTemplateKey, lang: SupportedLanguage, to: string, vars: Record<string, string>): Promise<OutgoingEmail> {
+  const template = await loadEmailTemplate(env, key, lang);
+  return {
+    to,
+    subject: fillEmailTemplate(template.subject, vars, 'text'),
+    html: fillEmailTemplate(template.html, vars, 'html'),
+  };
 }
 
 // 本機（localhost）寄出的信標題前面加上「[測試]」，在共用信箱的寄件備份裡跟正式寄出的信分得出來
@@ -347,19 +297,19 @@ function mailSubjectPrefix(origin: string): string {
   return ['localhost', '127.0.0.1', '[::1]'].includes(host) ? '[測試] ' : '';
 }
 
-// 寄出驗證碼信件；寄不出去就丟出錯誤（錯誤訊息不含驗證碼本身）。
-// 寄出的信會留在寄件信箱（共用信箱）的寄件備份，當作寄信紀錄：要查某個人有沒有收到驗證碼信，
+// 寄出一封信；寄不出去就丟出錯誤（錯誤訊息不含信件內容，驗證碼不會進 log）。
+// 寄出的信會留在寄件信箱（共用信箱）的寄件備份，當作寄信紀錄：要查某個人有沒有收到信，
 // 直接去共用信箱找。備份裡看得到驗證碼（5 分鐘內有效），共用信箱的存取權限只開給信任的人。
-async function sendOtpEmail(env: Env, origin: string, to: string, code: string, lang: SupportedLanguage): Promise<void> {
+async function sendEmail(env: Env, origin: string, mail: OutgoingEmail): Promise<void> {
   const token = await getGraphToken(env);
   const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(env.MS_SENDER_EMAIL ?? '')}/sendMail`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message: {
-        subject: `${mailSubjectPrefix(origin)}${OTP_EMAIL_TEXT[lang].subject}`,
-        body: { contentType: 'HTML', content: otpEmailHtml(origin, code, lang) },
-        toRecipients: [{ emailAddress: { address: to } }],
+        subject: `${mailSubjectPrefix(origin)}${mail.subject}`,
+        body: { contentType: 'HTML', content: mail.html },
+        toRecipients: [{ emailAddress: { address: mail.to } }],
       },
       saveToSentItems: true,
     }),
@@ -367,11 +317,11 @@ async function sendOtpEmail(env: Env, origin: string, to: string, code: string, 
   if (!res.ok) throw new Error(`sendMail failed: ${res.status} ${await res.text()}`);
 }
 
-// 帳號存在而且沒有被停用才回傳（管理者沒有停用這回事）；language 用來決定驗證碼信件的語言
-async function findActiveAccount(env: Env, role: string, email: string): Promise<{ id: number; language: string } | null> {
+// 帳號存在而且沒有被停用才回傳（管理者沒有停用這回事）；name、language 用在驗證碼信件
+async function findActiveAccount(env: Env, role: string, email: string): Promise<{ id: number; name: string; language: string } | null> {
   const row = role === 'admin'
-    ? await env.DB.prepare(`SELECT id, language FROM admins WHERE email = ?`).bind(email).first<{ id: number; language: string }>()
-    : await env.DB.prepare(`SELECT id, language FROM ${ROLE_TABLES[role]} WHERE email = ? AND status != 'inactive'`).bind(email).first<{ id: number; language: string }>();
+    ? await env.DB.prepare(`SELECT id, name, language FROM admins WHERE email = ?`).bind(email).first<{ id: number; name: string; language: string }>()
+    : await env.DB.prepare(`SELECT id, name, language FROM ${ROLE_TABLES[role]} WHERE email = ? AND status != 'inactive'`).bind(email).first<{ id: number; name: string; language: string }>();
   return row ?? null;
 }
 
@@ -480,7 +430,9 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
   }
   try {
     const lang = isSupportedLanguage(account.language) ? account.language : 'zh-Hant';
-    await sendOtpEmail(env, new URL(request.url).origin, email, code, lang);
+    const origin = new URL(request.url).origin;
+    const mail = await renderEmail(env, `login_${role}` as EmailTemplateKey, lang, email, { name: account.name, code, siteUrl: origin });
+    await sendEmail(env, origin, mail);
   } catch (err) {
     // 寄不出去的碼直接作廢；log 只記錯誤原因，不記驗證碼
     console.error('[otp] failed to send verification email', err);
@@ -1335,6 +1287,72 @@ async function handleBookingsList(request: Request, env: Env, session: Session):
   return Response.json(json);
 }
 
+function formatUtcOffset(offsetMinutes: number): string {
+  const abs = Math.abs(offsetMinutes);
+  return `UTC${offsetMinutes < 0 ? '-' : '+'}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`;
+}
+
+// 資料庫的上課時間（UTC+8）換算成收件人時區的 'YYYY/MM/DD'、'HH:MM'
+function shiftUtc8DateTime(date: string, time: string, offsetMinutes: number): { date: string; time: string } {
+  const shifted = new Date(Date.parse(`${date}T${time}:00+08:00`) + offsetMinutes * 60_000).toISOString();
+  return { date: shifted.slice(0, 10).replace(/-/g, '/'), time: shifted.slice(11, 16) };
+}
+
+// 預約成功／取消時寄給學生和老師的通知信。上課時間換算成收件人自己設定的時區（學生是
+// students.timezone，老師是領收書資料裡的時區），信件語言也依收件人的設定。
+async function bookingNotificationEmails(env: Env, origin: string, bookingId: number, event: 'created' | 'cancelled'): Promise<OutgoingEmail[]> {
+  const row = await env.DB.prepare(
+    `SELECT b.booking_code, b.date, b.time, c.name AS course_name,
+            s.name AS student_name, s.email AS student_email, s.language AS student_language, s.timezone AS student_timezone,
+            t.name AS teacher_name, t.email AS teacher_email, t.language AS teacher_language,
+            CASE WHEN json_valid(t.receipt_json) THEN json_extract(t.receipt_json, '$.timezone') END AS teacher_timezone
+     FROM bookings b
+     JOIN students s ON s.id = b.student_id
+     JOIN teachers t ON t.id = b.teacher_id
+     JOIN courses c ON c.id = b.course_id
+     WHERE b.id = ?`
+  ).bind(bookingId).first<{
+    booking_code: string; date: string; time: string; course_name: string;
+    student_name: string; student_email: string; student_language: string; student_timezone: string | null;
+    teacher_name: string; teacher_email: string; teacher_language: string; teacher_timezone: string | null;
+  }>();
+  if (!row) return [];
+  const recipients = [
+    { role: 'student', email: row.student_email, language: row.student_language, timezone: row.student_timezone },
+    { role: 'teacher', email: row.teacher_email, language: row.teacher_language, timezone: row.teacher_timezone },
+  ] as const;
+  return Promise.all(recipients.map((recipient) => {
+    const offset = parseUtcOffsetMinutes(recipient.timezone);
+    const local = shiftUtc8DateTime(row.date, row.time, offset);
+    const lang = isSupportedLanguage(recipient.language) ? recipient.language : 'zh-Hant';
+    return renderEmail(env, `booking_${event}_${recipient.role}`, lang, recipient.email, {
+      studentName: row.student_name,
+      teacherName: row.teacher_name,
+      courseName: row.course_name,
+      date: local.date,
+      time: local.time,
+      timezone: formatUtcOffset(offset),
+      bookingCode: row.booking_code,
+      siteUrl: origin,
+    });
+  }));
+}
+
+// 信件內容在回應之前就從資料庫組好，真正寄出交給 waitUntil 在背景做，預約／取消不用等寄信。
+// 寄信失敗只記 log，不影響預約本身。沒設定寄信用的 secret（本機、測試）就不寄。
+async function notifyBooking(env: Env, ctx: ExecutionContext, request: Request, bookingId: number, event: 'created' | 'cancelled'): Promise<void> {
+  if (!env.MS_CLIENT_SECRET) return;
+  const origin = new URL(request.url).origin;
+  try {
+    const emails = await bookingNotificationEmails(env, origin, bookingId, event);
+    ctx.waitUntil(Promise.all(emails.map((mail) => sendEmail(env, origin, mail).catch((err) => {
+      console.error(`[mail] failed to send booking ${event} notification`, err);
+    }))));
+  } catch (err) {
+    console.error(`[mail] failed to prepare booking ${event} notification`, err);
+  }
+}
+
 async function generateBookingCode(env: Env, date: string, time: string): Promise<string> {
   const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM bookings WHERE date = ? AND time = ?`).bind(date, time).first<{ n: number }>();
   const seq = String((row?.n ?? 0) + 1).padStart(2, '0');
@@ -1354,7 +1372,7 @@ function utc8DateISO(offsetDays = 0): string {
   return new Date(Date.now() + 8 * 3_600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10);
 }
 
-async function handleBookingCreate(request: Request, env: Env, session: Session): Promise<Response> {
+async function handleBookingCreate(request: Request, env: Env, session: Session, ctx: ExecutionContext): Promise<Response> {
   if (session.role !== 'student') {
     return Response.json({ error: '未授權' }, { status: 401 });
   }
@@ -1444,13 +1462,15 @@ async function handleBookingCreate(request: Request, env: Env, session: Session)
     return apiError(400, 'noSessionsLeft', '課程堂數已用完');
   }
 
+  await notifyBooking(env, ctx, request, row.id, 'created');
+
   const created = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(row!.id).first<BookingRow>();
   return Response.json(bookingRowToJson(created!, session.role), { status: 201 });
 }
 
 const FEEDBACK_MAX_LENGTH = 500;
 
-async function handleBookingUpdate(request: Request, env: Env, session: Session, id: number): Promise<Response> {
+async function handleBookingUpdate(request: Request, env: Env, session: Session, id: number, ctx: ExecutionContext): Promise<Response> {
   const existing = await env.DB.prepare(`SELECT * FROM bookings WHERE id = ?`).bind(id).first<BookingRow>();
   if (!existing) {
     return Response.json({ error: '找不到預約' }, { status: 404 });
@@ -1577,6 +1597,11 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
     ).bind(bookedDelta, attendedDelta, attendedDelta, existing.student_course_id).run();
   }
 
+  // 學生自己取消或管理者代為取消，都通知學生和老師
+  if (oldStatus !== 'cancelled' && newStatus === 'cancelled') {
+    await notifyBooking(env, ctx, request, id, 'cancelled');
+  }
+
   const updated = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<BookingRow>();
   return Response.json(bookingRowToJson(updated!, session.role));
 }
@@ -1621,9 +1646,82 @@ async function handleRecentlyViewedList(request: Request, env: Env): Promise<Res
   return Response.json(map);
 }
 
+// ==========================================================================
+// 管理端「系統信件」：列出所有系統信、讀取／修改某一封信五種語言的主旨與 HTML。只存改過的版本，
+// 存的內容跟預設範本一模一樣時就刪掉那一筆（回到「沿用預設」，之後預設範本更新也會跟著套用）。
+// ==========================================================================
+const EMAIL_SUBJECT_MAX_LENGTH = 200;
+const EMAIL_HTML_MAX_LENGTH = 100_000;
+
+async function handleEmailTemplatesList(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(`SELECT template_key, language, updated_at FROM email_templates`)
+    .all<{ template_key: string; language: string; updated_at: string }>();
+  return Response.json(EMAIL_TEMPLATES.map((tpl) => {
+    const rows = results.filter((r) => r.template_key === tpl.key);
+    return {
+      key: tpl.key,
+      variables: tpl.variables,
+      customizedLanguages: rows.map((r) => r.language),
+      updatedAt: rows.reduce<string | null>((latest, r) => (!latest || r.updated_at > latest ? r.updated_at : latest), null),
+    };
+  }));
+}
+
+async function handleEmailTemplateGet(env: Env, key: EmailTemplateKey): Promise<Response> {
+  const { results } = await env.DB.prepare(`SELECT language, subject, html, updated_at FROM email_templates WHERE template_key = ?`)
+    .bind(key).all<{ language: string; subject: string; html: string; updated_at: string }>();
+  const languages = Object.fromEntries(SUPPORTED_LANGUAGES.map((lang) => {
+    const def = defaultEmailTemplate(key, lang);
+    const row = results.find((r) => r.language === lang);
+    return [lang, {
+      subject: row?.subject ?? def.subject,
+      html: row?.html ?? def.html,
+      defaultSubject: def.subject,
+      defaultHtml: def.html,
+      customized: !!row,
+      updatedAt: row?.updated_at ?? null,
+    }];
+  }));
+  const tpl = EMAIL_TEMPLATES.find((t) => t.key === key)!;
+  return Response.json({ key, variables: tpl.variables, languages });
+}
+
+// body: { languages: { 'zh-Hant': { subject, html }, ... } }，只需要帶有改的語言
+async function handleEmailTemplateUpdate(request: Request, env: Env, key: EmailTemplateKey): Promise<Response> {
+  const body = await request.json<{ languages?: unknown }>().catch(() => null);
+  const languages = body?.languages;
+  if (!languages || typeof languages !== 'object' || Array.isArray(languages) || !Object.keys(languages).length) {
+    return Response.json({ error: '缺少要儲存的內容' }, { status: 400 });
+  }
+  const statements: D1PreparedStatement[] = [];
+  for (const [lang, value] of Object.entries(languages as Record<string, unknown>)) {
+    if (!isSupportedLanguage(lang)) return Response.json({ error: '不支援的語言' }, { status: 400 });
+    const { subject, html } = (value ?? {}) as { subject?: unknown; html?: unknown };
+    if (typeof subject !== 'string' || typeof html !== 'string' || !subject.trim() || !html.trim()) {
+      return Response.json({ error: '主旨和內容都不能空白' }, { status: 400 });
+    }
+    if (subject.length > EMAIL_SUBJECT_MAX_LENGTH) {
+      return apiError(400, 'textTooLong', `主旨最多 ${EMAIL_SUBJECT_MAX_LENGTH} 個字`, { max: EMAIL_SUBJECT_MAX_LENGTH });
+    }
+    if (html.length > EMAIL_HTML_MAX_LENGTH) {
+      return apiError(400, 'textTooLong', `內容最多 ${EMAIL_HTML_MAX_LENGTH} 個字`, { max: EMAIL_HTML_MAX_LENGTH });
+    }
+    const def = defaultEmailTemplate(key, lang);
+    statements.push(subject === def.subject && html === def.html
+      ? env.DB.prepare(`DELETE FROM email_templates WHERE template_key = ? AND language = ?`).bind(key, lang)
+      : env.DB.prepare(
+          `INSERT INTO email_templates (template_key, language, subject, html, updated_at)
+           VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
+           ON CONFLICT (template_key, language) DO UPDATE SET subject = excluded.subject, html = excluded.html, updated_at = excluded.updated_at`
+        ).bind(key, lang, subject, html));
+  }
+  await env.DB.batch(statements);
+  return handleEmailTemplateGet(env, key);
+}
+
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    return withSecurityHeaders(await route(request, env));
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return withSecurityHeaders(await route(request, env, ctx));
   },
 };
 
@@ -1646,7 +1744,7 @@ function withSecurityHeaders(response: Response): Response {
   return secured;
 }
 
-async function route(request: Request, env: Env): Promise<Response> {
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
 
   if (url.pathname === '/api/config' && request.method === 'GET') {
@@ -1698,6 +1796,16 @@ async function route(request: Request, env: Env): Promise<Response> {
     }
     return request.method === 'PUT' ? handleRecentlyViewedMark(request, env) : handleRecentlyViewedList(request, env);
   }
+  if (url.pathname === '/api/email-templates') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    const key = url.searchParams.get('key');
+    if (request.method === 'GET' && key === null) return handleEmailTemplatesList(env);
+    if (!isEmailTemplateKey(key)) return Response.json({ error: '找不到這封系統信' }, { status: 404 });
+    if (request.method === 'GET') return handleEmailTemplateGet(env, key);
+    if (request.method === 'PUT') return handleEmailTemplateUpdate(request, env, key);
+  }
+
   if (url.pathname === '/api/courses' && request.method === 'GET') {
     // All three roles browse the catalog (admin manages it, students pick
     // from it when booking, teachers look up a course's duration) — any
@@ -1852,14 +1960,14 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (url.pathname === '/api/bookings' && request.method === 'POST') {
     const session = await getSession(request, env);
     if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-    return handleBookingCreate(request, env, session);
+    return handleBookingCreate(request, env, session, ctx);
   }
   if (url.pathname === '/api/bookings' && request.method === 'PATCH') {
     const session = await getSession(request, env);
     if (!session) return Response.json({ error: '未授權' }, { status: 401 });
     const id = Number(url.searchParams.get('id'));
     if (!Number.isInteger(id) || id <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
-    return handleBookingUpdate(request, env, session, id);
+    return handleBookingUpdate(request, env, session, id, ctx);
   }
 
   // Each role's pages are gated to that role only. Admins manage a teacher's

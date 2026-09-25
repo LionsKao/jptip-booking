@@ -1,4 +1,5 @@
 import { env, exports } from 'cloudflare:workers';
+import { vi } from 'vitest';
 
 export const SEEDED = {
   student: { email: 'student1@jptip.co.jp', role: 'student' as const },
@@ -61,4 +62,35 @@ export async function makeTeacherBookable(courseId: number, teacherId = 1): Prom
 
 export function withCookie(cookie: string, init?: RequestInit): RequestInit {
   return { ...init, headers: { ...init?.headers, Cookie: cookie } };
+}
+
+// 攔截寄信用的 Microsoft Graph 呼叫（不會真的寄出），記錄送出的內容。token 的 expires_in 給 0，
+// 讓每個測試都重新取 token，不受前一個測試快取的影響。測試結束要 vi.restoreAllMocks()。
+export function mockGraph(sendMailStatus = 202) {
+  const calls: { url: string; body: string; auth: string | null }[] = [];
+  const realFetch = globalThis.fetch;
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.startsWith('https://login.microsoftonline.com/') || url.startsWith('https://graph.microsoft.com/')) {
+      calls.push({ url, body: String(init?.body ?? ''), auth: new Headers(init?.headers).get('Authorization') });
+      if (url.startsWith('https://login.microsoftonline.com/')) return Response.json({ access_token: 'test-token', expires_in: 0 });
+      return new Response(null, { status: sendMailStatus });
+    }
+    return realFetch(input, init);
+  });
+  return calls;
+}
+
+export interface SentMail {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+// mockGraph 記錄到的 sendMail 呼叫，整理成收件人／主旨／內容
+export function sentMails(calls: ReturnType<typeof mockGraph>): SentMail[] {
+  return calls.filter((c) => c.url.startsWith('https://graph.microsoft.com/')).map((c) => {
+    const { message } = JSON.parse(c.body) as { message: { subject: string; body: { content: string }; toRecipients: { emailAddress: { address: string } }[] } };
+    return { to: message.toRecipients[0].emailAddress.address, subject: message.subject, html: message.body.content };
+  });
 }

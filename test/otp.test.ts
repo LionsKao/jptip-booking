@@ -1,6 +1,6 @@
 import { env, exports } from 'cloudflare:workers';
 import { afterEach, describe, it, vi } from 'vitest';
-import { fetchWorker, latestOtpCode, login, requestOtp, SEEDED, verifyOtp, withCookie } from './helpers';
+import { fetchWorker, latestOtpCode, login, mockGraph, requestOtp, SEEDED, verifyOtp, withCookie } from './helpers';
 
 // 把這個帳號既有的驗證碼申請時間往前推，模擬「已經過了一段時間」（申請頻率限制是看建立時間）
 async function backdateOtpRequests(email: string, role: string, seconds: number): Promise<void> {
@@ -28,23 +28,6 @@ afterEach(() => {
   env.MS_CLIENT_SECRET = '';
   vi.restoreAllMocks();
 });
-
-// 攔截寄信用的 Microsoft Graph 呼叫（不會真的寄出），記錄送出的內容。token 的 expires_in 給 0，
-// 讓每個測試都重新取 token，不受前一個測試快取的影響。
-function mockGraph(sendMailStatus = 202) {
-  const calls: { url: string; body: string; auth: string | null }[] = [];
-  const realFetch = globalThis.fetch;
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = input instanceof Request ? input.url : String(input);
-    if (url.startsWith('https://login.microsoftonline.com/') || url.startsWith('https://graph.microsoft.com/')) {
-      calls.push({ url, body: String(init?.body ?? ''), auth: new Headers(init?.headers).get('Authorization') });
-      if (url.startsWith('https://login.microsoftonline.com/')) return Response.json({ access_token: 'test-token', expires_in: 0 });
-      return new Response(null, { status: sendMailStatus });
-    }
-    return realFetch(input, init);
-  });
-  return calls;
-}
 
 describe('POST /api/otp/request', () => {
   it('rejects an invalid email format', async ({ expect }) => {

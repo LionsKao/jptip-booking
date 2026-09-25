@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 系統信件</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  #email-list-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+  @keyframes emailCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #email-list-cards .email-list-card,
+  #email-list-cards .email-list-card-empty {
+    animation: emailCardIn .3s ease backwards;
+  }
+  #email-list-cards .email-list-card:nth-child(2n) {
+    animation-delay: .04s;
+  }
+
+  .email-list-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .email-list-card:hover { border-color: var(--color-blue); }
+  .email-list-card-empty { grid-column: 1 / -1; min-height: 88px; }
+  .email-list-card-icon { flex: none; width: 48px; height: 48px; object-fit: contain; }
+  .email-list-card-body { flex: 1; min-width: 0; padding-right: 48px; }
+  .email-list-card h4 { margin: 0 0 4px; font-size: 1.0625rem; line-height: 1.4; }
+  .email-list-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); line-height: 1.5; }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #email-list-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/mail.png" alt=""><h2 data-i18n="admin.dash.emails.title">系統信件</h2></div>
+    <div class="search-box">
+      <i class="fa-solid fa-fw fa-magnifying-glass"></i>
+      <input type="text" id="email-search" data-i18n-placeholder="admin.emails.searchPlaceholder" placeholder="搜尋信件名稱">
+      <button type="button" class="search-clear-btn" id="email-search-clear" hidden data-i18n-aria-label="admin.common.clearSearch" aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    </div>
+    <div id="email-list-cards"></div>
+  </section>
+
+</div>
+
+<script src="../script.js"></script>
+<script>
+// 每一種系統信卡片上的圖示（跟信件標題列的圖示一致）
+function emailTemplateIcon(key) {
+  if (key.startsWith('login_')) return 'key.png';
+  return key.startsWith('booking_created_') ? 'icon-check.png' : 'close.png';
+}
+
+(async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  const SEARCH_KEY = 'admin-email-search';
+
+  // 系統信的清單（順序、有沒有改過）來自 /api/email-templates；名稱和說明是介面文字，照管理者的語言翻譯
+  const templates = await fetch('/api/email-templates').then((res) => (res.ok ? res.json() : []));
+
+  function renderEmailCard(tpl) {
+    const ribbon = tpl.customizedLanguages.length
+      ? `<span class="ribbon-clip"><span class="course-ribbon tone-blue">${t('admin.emails.customized')}</span></span>`
+      : '';
+    return `<div class="email-list-card" data-key="${escapeHtml(tpl.key)}">
+      ${ribbon}
+      <img class="email-list-card-icon" src="../assets/icons/${emailTemplateIcon(tpl.key)}" alt="">
+      <div class="email-list-card-body">
+        <h4>${escapeHtml(t(`emailTemplate.${tpl.key}.name`))}</h4>
+        <p>${escapeHtml(t(`emailTemplate.${tpl.key}.desc`))}</p>
+      </div>
+    </div>`;
+  }
+
+  const listEl = document.getElementById('email-list-cards');
+  function renderEmails() {
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = query
+      ? templates.filter((tpl) => [t(`emailTemplate.${tpl.key}.name`), t(`emailTemplate.${tpl.key}.desc`)].some((text) => text.toLowerCase().includes(query)))
+      : templates;
+    listEl.innerHTML = filtered.length
+      ? filtered.map(renderEmailCard).join('')
+      : `<div class="email-list-card-empty">${t('admin.emails.noMatch')}</div>`;
+    listEl.querySelectorAll('.email-list-card').forEach((card) => {
+      applyTiltEffect(card);
+      card.addEventListener('click', () => {
+        window.location.href = `email-template-detail.html?key=${encodeURIComponent(card.dataset.key)}`;
+      });
+    });
+    listEl.querySelectorAll('.email-list-card-empty').forEach((card) => applyTiltEffect(card));
+  }
+
+  const searchInput = document.getElementById('email-search');
+  const searchClearBtn = document.getElementById('email-search-clear');
+  try { searchInput.value = localStorage.getItem(SEARCH_KEY) || ''; } catch { /* 無痕模式等讀不到就當沒有 */ }
+  searchClearBtn.hidden = searchInput.value === '';
+  let searchDebounce = null;
+  searchInput.addEventListener('input', () => {
+    searchClearBtn.hidden = searchInput.value === '';
+    try { localStorage.setItem(SEARCH_KEY, searchInput.value); } catch { /* 存不了就算了 */ }
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(renderEmails, 300);
+  });
+  searchClearBtn.addEventListener('click', () => {
+    clearTimeout(searchDebounce);
+    searchInput.value = '';
+    searchClearBtn.hidden = true;
+    try { localStorage.setItem(SEARCH_KEY, ''); } catch { /* 存不了就算了 */ }
+    searchInput.focus();
+    renderEmails();
+  });
+
+  renderEmails();
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+})();
+</script>
+
+</body>
+</html>
