@@ -21,6 +21,7 @@
   "login.warning.incompleteOtp": "6桁の認証コードをすべて入力してください",
   "login.error.invalidOtp": "認証コードが正しくないか、期限切れです",
   "login.error.tooManyAttempts": "認証コードの誤入力が多すぎます。しばらくしてから再度お試しください",
+  "login.error.tooManyRequests": "認証コードのリクエストが多すぎます。しばらくしてから再度お試しください",
   "common.ok": "OK",
   "common.cancel": "キャンセル",
   "common.gotIt": "わかりました",

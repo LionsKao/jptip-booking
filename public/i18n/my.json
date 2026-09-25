@@ -21,6 +21,7 @@
   "login.warning.incompleteOtp": "ဂဏန်း ၆ လုံးစလုံးကို ထည့်သွင်းပါ",
   "login.error.invalidOtp": "အတည်ပြုကုဒ် မှားနေသည် သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ",
   "login.error.tooManyAttempts": "အတည်ပြုကုဒ် မှားယွင်းမှု များလွန်းပါသည်၊ ခဏကြာမှ ထပ်ကြိုးစားပါ",
+  "login.error.tooManyRequests": "အတည်ပြုကုဒ် တောင်းဆိုမှု များလွန်းပါသည်၊ ခဏကြာမှ ထပ်ကြိုးစားပါ",
   "common.ok": "OK",
   "common.cancel": "ပယ်ဖျက်ရန်",
   "common.gotIt": "နားလည်ပါပြီ",

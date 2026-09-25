@@ -21,6 +21,7 @@
   "login.warning.incompleteOtp": "Please enter the full 6-digit code",
   "login.error.invalidOtp": "Incorrect or expired verification code",
   "login.error.tooManyAttempts": "Too many incorrect codes — please try again later",
+  "login.error.tooManyRequests": "Too many code requests — please try again later",
   "common.ok": "OK",
   "common.cancel": "Cancel",
   "common.gotIt": "Got it",

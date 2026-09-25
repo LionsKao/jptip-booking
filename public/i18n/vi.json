@@ -21,6 +21,7 @@
   "login.warning.incompleteOtp": "Vui lòng nhập đầy đủ 6 chữ số mã xác thực",
   "login.error.invalidOtp": "Mã xác thực không đúng hoặc đã hết hạn",
   "login.error.tooManyAttempts": "Nhập sai mã quá nhiều lần, vui lòng thử lại sau",
+  "login.error.tooManyRequests": "Yêu cầu mã quá nhiều lần, vui lòng thử lại sau",
   "common.ok": "OK",
   "common.cancel": "Hủy",
   "common.gotIt": "Đã hiểu",

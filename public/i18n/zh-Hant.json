@@ -21,6 +21,7 @@
   "login.warning.incompleteOtp": "請輸入完整 6 碼驗證碼",
   "login.error.invalidOtp": "驗證碼錯誤或已過期",
   "login.error.tooManyAttempts": "驗證碼錯誤次數過多，請稍後再試",
+  "login.error.tooManyRequests": "驗證碼申請次數過多，請稍後再試",
   "common.ok": "好",
   "common.cancel": "取消",
   "common.gotIt": "知道了",

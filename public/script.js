@@ -870,6 +870,14 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role: card.dataset.role }),
       });
+      if (res.status === 429) {
+        // 申請太頻繁：冷卻中顯示還要等幾秒，1 小時內申請太多次則請使用者稍後再試
+        const data = await res.json().catch(() => ({}));
+        showLoginAlert(data.retryAfter
+          ? t('login.warning.cooldown', { seconds: data.retryAfter })
+          : t('login.error.tooManyRequests'), 'warning');
+        return;
+      }
       if (!res.ok) {
         // 用翻譯好的訊息（後端的錯誤訊息是中文），例如信件寄送失敗
         showLoginAlert(t('login.error.sendFailed'), 'error');

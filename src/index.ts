@@ -390,9 +390,34 @@ async function checkOtpCode(env: Env, email: string, role: string, code: string)
 
   // 猜對：標成已使用（used = 0 的條件確保同一組碼只能成功一次），這次也不算錯誤次數。
   const used = await env.DB.prepare(
-    `UPDATE otp_codes SET used = 1, attempts = attempts - 1 WHERE id = ? AND used = 0`
+    `UPDATE otp_codes SET used = 1, attempts = attempts - 1, verified_at = datetime('now', '+8 hours') WHERE id = ? AND used = 0`
   ).bind(claimed.id).run();
   return used.meta.changes === 1 ? 'ok' : 'wrong';
+}
+
+// 同一個 Email（同一個身分）申請驗證碼：OTP_REQUEST_COOLDOWN_SECONDS 秒內不能重複申請（跟登入頁
+// 「重新取得驗證碼」的倒數一致），1 小時內沒有登入成功的申請最多 OTP_MAX_REQUESTS_PER_HOUR 組。
+// 登入成功的那組不算，所以正常使用不會被擋。
+const OTP_REQUEST_COOLDOWN_SECONDS = 30;
+const OTP_MAX_REQUESTS_PER_HOUR = 5;
+
+async function checkOtpRequestRate(env: Env, email: string, role: string): Promise<Response | null> {
+  const row = await env.DB.prepare(
+    `SELECT
+       COUNT(*) AS unverified,
+       CAST((julianday(datetime('now', '+8 hours')) - julianday(MAX(created_at))) * 86400 AS INTEGER) AS since_last
+     FROM otp_codes
+     WHERE email = ? AND role = ? AND verified_at IS NULL AND created_at > datetime('now', '+8 hours', '-1 hour')`
+  ).bind(email, role).first<{ unverified: number; since_last: number | null }>();
+  if (!row || row.unverified === 0) return null;
+  if (row.since_last !== null && row.since_last < OTP_REQUEST_COOLDOWN_SECONDS) {
+    const retryAfter = OTP_REQUEST_COOLDOWN_SECONDS - row.since_last;
+    return Response.json({ error: `請於 ${retryAfter} 秒後再重新取得驗證碼`, retryAfter }, { status: 429, headers: { 'Retry-After': String(retryAfter) } });
+  }
+  if (row.unverified >= OTP_MAX_REQUESTS_PER_HOUR) {
+    return Response.json({ error: '驗證碼申請次數過多，請稍後再試' }, { status: 429, headers: { 'Retry-After': '3600' } });
+  }
+  return null;
 }
 
 async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
@@ -405,12 +430,10 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
     return Response.json({ error: '無效的角色' }, { status: 400 });
   }
 
-  // 查無帳號或帳號已停用時，回應跟成功完全一樣（只是不發驗證碼），不讓人藉此試出
-  // 哪些 Email 有註冊。
-  const account = await findActiveAccount(env, role, email);
-  if (!account) {
-    return Response.json({ ok: true });
-  }
+  // 申請頻率限制（防止有人一直按「取得驗證碼」塞爆別人的信箱）。沒註冊的 Email 也照樣記錄、
+  // 照樣限制，不然從「會不會被限制」就能試出哪些 Email 有註冊。
+  const limited = await checkOtpRequestRate(env, email, role);
+  if (limited) return limited;
 
   const code = generateCode();
 
@@ -420,6 +443,15 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
     `INSERT INTO otp_codes (email, role, code, expires_at)
      VALUES (?, ?, ?, datetime('now', '+8 hours', '+5 minutes'))`
   ).bind(email, role, code).run();
+  // 順便清掉一天以前的紀錄（頻率限制跟錯誤次數最多只看 1 小時內）
+  await env.DB.prepare(`DELETE FROM otp_codes WHERE created_at < datetime('now', '+8 hours', '-1 day')`).run();
+
+  // 查無帳號或帳號已停用時，回應跟成功完全一樣，只是不寄信（上面記下的那組碼永遠無法用來登入，
+  // 見 handleOtpVerify 的 findActiveAccount），不讓人藉此試出哪些 Email 有註冊。
+  const account = await findActiveAccount(env, role, email);
+  if (!account) {
+    return Response.json({ ok: true });
+  }
 
   if (!env.MS_CLIENT_SECRET) {
     // 本機開發／測試環境沒有設定寄信用的 secret：不寄信（本機用 ALLOW_ANY_OTP 任意驗證碼登入）。

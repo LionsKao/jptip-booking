@@ -2,9 +2,15 @@ import { env, exports } from 'cloudflare:workers';
 import { afterEach, describe, it, vi } from 'vitest';
 import { fetchWorker, latestOtpCode, login, requestOtp, SEEDED, verifyOtp, withCookie } from './helpers';
 
-async function otpRowCount(email: string, role: string): Promise<number> {
-  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM otp_codes WHERE email = ? AND role = ?`).bind(email, role).first<{ n: number }>();
-  return row?.n ?? 0;
+// 把這個帳號既有的驗證碼申請時間往前推，模擬「已經過了一段時間」（申請頻率限制是看建立時間）
+async function backdateOtpRequests(email: string, role: string, seconds: number): Promise<void> {
+  await env.DB.prepare(`UPDATE otp_codes SET created_at = datetime(created_at, ?) WHERE email = ? AND role = ?`).bind(`-${seconds} seconds`, email, role).run();
+}
+
+// 沒註冊／身分不對／停用的帳號也會留下一筆（讓頻率限制對每個 Email 都一樣），但那組碼永遠無法用來登入
+async function expectCodeCannotLogIn(expect: (v: unknown) => { toBe: (x: unknown) => void }, email: string, role: string): Promise<void> {
+  const code = await latestOtpCode(email, role);
+  expect((await verifyOtp(email, role, code)).status).toBe(400);
 }
 
 // 暴力猜碼的測試會把帳號鎖住，所以每個測試用自己新建的學生帳號，不影響其他測試用的種子帳號
@@ -53,34 +59,68 @@ describe('POST /api/otp/request', () => {
   });
 
   // 回應要跟真的有帳號時一模一樣，不然可以拿來試出哪些 Email 有註冊
-  it('answers an unknown email exactly like a known one, but issues no code', async ({ expect }) => {
+  it('answers an unknown email exactly like a known one, and nothing it records can ever log in', async ({ expect }) => {
     const res = await requestOtp('nobody@jptip.co.jp', 'student');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
-    expect(await otpRowCount('nobody@jptip.co.jp', 'student')).toBe(0);
+    await expectCodeCannotLogIn(expect, 'nobody@jptip.co.jp', 'student');
   });
 
-  it('answers a real student email requested under the teacher role the same way, issuing no code', async ({ expect }) => {
+  it('answers a real student email requested under the teacher role the same way', async ({ expect }) => {
     const res = await requestOtp(SEEDED.student.email, 'teacher');
     expect(res.status).toBe(200);
-    expect(await otpRowCount(SEEDED.student.email, 'teacher')).toBe(0);
+    await expectCodeCannotLogIn(expect, SEEDED.student.email, 'teacher');
   });
 
-  it('issues no code for a deactivated account', async ({ expect }) => {
+  it('answers a deactivated account the same way, and it still cannot log in', async ({ expect }) => {
     const student = await createStudentAccount({ status: 'inactive' });
     const res = await requestOtp(student.email, 'student');
     expect(res.status).toBe(200);
-    expect(await otpRowCount(student.email, 'student')).toBe(0);
+    await expectCodeCannotLogIn(expect, student.email, 'student');
   });
 
   it('a new code invalidates the previous one', async ({ expect }) => {
     const student = await createStudentAccount();
     await requestOtp(student.email, 'student');
     const first = await latestOtpCode(student.email, 'student');
+    await backdateOtpRequests(student.email, 'student', 31);
     await requestOtp(student.email, 'student');
     const second = await latestOtpCode(student.email, 'student');
     if (first !== second) expect((await verifyOtp(student.email, 'student', first)).status).toBe(400);
     expect((await verifyOtp(student.email, 'student', second)).status).toBe(200);
+  });
+
+  it('refuses a repeat request within 30 seconds, telling the client how long to wait', async ({ expect }) => {
+    const student = await createStudentAccount();
+    expect((await requestOtp(student.email, 'student')).status).toBe(200);
+    const again = await requestOtp(student.email, 'student');
+    expect(again.status).toBe(429);
+    const { retryAfter } = (await again.json()) as { retryAfter: number };
+    expect(retryAfter).toBeGreaterThan(0);
+    expect(retryAfter).toBeLessThanOrEqual(30);
+    await backdateOtpRequests(student.email, 'student', 31);
+    expect((await requestOtp(student.email, 'student')).status).toBe(200);
+  });
+
+  it('caps unverified requests at 5 per hour, and limits an unknown email exactly the same way', async ({ expect }) => {
+    const student = await createStudentAccount();
+    for (const email of [student.email, `nobody-${Date.now()}@example.com`]) {
+      for (let i = 0; i < 5; i++) {
+        expect((await requestOtp(email, 'student')).status).toBe(200);
+        await backdateOtpRequests(email, 'student', 31);
+      }
+      const capped = await requestOtp(email, 'student');
+      expect(capped.status).toBe(429);
+      expect(((await capped.json()) as { retryAfter?: number }).retryAfter).toBeUndefined();
+    }
+  });
+
+  it('a request that led to a successful login does not count toward the limits', async ({ expect }) => {
+    const student = await createStudentAccount();
+    for (let i = 0; i < 8; i++) {
+      expect((await requestOtp(student.email, 'student')).status).toBe(200);
+      expect((await verifyOtp(student.email, 'student', await latestOtpCode(student.email, 'student'))).status).toBe(200);
+    }
   });
 
   it('accepts a known account and persists a 6-digit code', async ({ expect }) => {
@@ -94,13 +134,14 @@ describe('POST /api/otp/request', () => {
 
 describe('verification email via Microsoft Graph', () => {
   it("sends the code from the sender mailbox to the account's address, in the account's language", async ({ expect }) => {
+    const student = await createStudentAccount();
+    await env.DB.prepare(`UPDATE students SET language = 'ja' WHERE id = ?`).bind(student.id).run();
     env.MS_CLIENT_SECRET = 'test-secret';
-    await env.DB.prepare(`UPDATE teachers SET language = 'ja' WHERE email = ?`).bind(SEEDED.teacher.email).run();
     const calls = mockGraph();
 
-    const res = await requestOtp(SEEDED.teacher.email, 'teacher');
+    const res = await requestOtp(student.email, 'student');
     expect(res.status).toBe(200);
-    const code = await latestOtpCode(SEEDED.teacher.email, 'teacher');
+    const code = await latestOtpCode(student.email, 'student');
 
     const token = calls.find((c) => c.url.startsWith('https://login.microsoftonline.com/'))!;
     expect(new URLSearchParams(token.body).get('grant_type')).toBe('client_credentials');
@@ -110,26 +151,25 @@ describe('verification email via Microsoft Graph', () => {
     expect(send.url).toBe('https://graph.microsoft.com/v1.0/users/one-on-one%40jptip.co.jp/sendMail');
     expect(send.auth).toBe('Bearer test-token');
     const mail = JSON.parse(send.body) as { message: { subject: string; body: { content: string }; toRecipients: { emailAddress: { address: string } }[] } };
-    expect(mail.message.toRecipients).toEqual([{ emailAddress: { address: SEEDED.teacher.email } }]);
+    expect(mail.message.toRecipients).toEqual([{ emailAddress: { address: student.email } }]);
     expect(mail.message.subject).toBe('【JPTIP】ログイン認証コード');
     expect(mail.message.body.content).toContain(code);
-
-    await env.DB.prepare(`UPDATE teachers SET language = 'zh-Hant' WHERE email = ?`).bind(SEEDED.teacher.email).run();
   });
 
   it('reports a send failure and voids the code that never reached the user', async ({ expect }) => {
+    const student = await createStudentAccount();
     env.MS_CLIENT_SECRET = 'test-secret';
     mockGraph(500);
-    const res = await requestOtp(SEEDED.admin.email, 'admin');
+    const res = await requestOtp(student.email, 'student');
     expect(res.status).toBe(502);
-    const row = await env.DB.prepare(`SELECT used FROM otp_codes WHERE email = ? ORDER BY id DESC LIMIT 1`).bind(SEEDED.admin.email).first<{ used: number }>();
+    const row = await env.DB.prepare(`SELECT used FROM otp_codes WHERE email = ? ORDER BY id DESC LIMIT 1`).bind(student.email).first<{ used: number }>();
     expect(row?.used).toBe(1);
   });
 
   it('sends nothing for an unknown email', async ({ expect }) => {
     env.MS_CLIENT_SECRET = 'test-secret';
     const calls = mockGraph();
-    expect((await requestOtp('nobody@jptip.co.jp', 'student')).status).toBe(200);
+    expect((await requestOtp(`nobody-mail-${Date.now()}@example.com`, 'student')).status).toBe(200);
     expect(calls).toHaveLength(0);
   });
 });
@@ -221,6 +261,7 @@ describe('POST /api/otp/verify', () => {
       const code = await latestOtpCode(student.email, 'student');
       const wrong = code === '100000' ? '100001' : '100000';
       for (let i = 0; i < 5; i++) await verifyOtp(student.email, 'student', wrong);
+      await backdateOtpRequests(student.email, 'student', 31);
     }
     await requestOtp(student.email, 'student');
     const fresh = await latestOtpCode(student.email, 'student');
