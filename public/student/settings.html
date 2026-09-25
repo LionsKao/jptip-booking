@@ -25,7 +25,7 @@
   .wizard-nav .btn { min-width: 160px; }
 
   /* 已購買課程：只能看的卡片（新增／刪除在管理端），外觀比照管理端的已購買課程，多放課程圖片 */
-  #course-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  #course-list { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
   .course-row {
     position: relative;
     overflow: hidden;
@@ -61,9 +61,6 @@
     body.settings-page .page {
       padding-top: calc(var(--space-3) + 40px + var(--space-3));
     }
-  }
-  @media (max-width: 640px) {
-    #course-list { grid-template-columns: 1fr; }
   }
   @media (max-width: 480px) {
     .field-row { grid-template-columns: 1fr; }
