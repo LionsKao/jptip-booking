@@ -59,6 +59,10 @@
     align-items: center;
     gap: var(--space-3);
   }
+  /* 堂數：選了課程後帶入該課程的預設堂數，可以針對這位學生調整 */
+  .course-sessions-input { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+  .course-sessions-input .text-input { width: 80px; text-align: center; font-variant-numeric: tabular-nums; }
+  .course-sessions-input span { color: var(--text-muted); font-size: var(--fs-small); }
   @media (min-width: 641px) {
     #add-course-dropdown .dropdown-menu {
       right: auto;
@@ -121,6 +125,10 @@
       <div class="dropdown" id="add-course-dropdown" data-placeholder="選擇課程">
         <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.teachers.courses.selectPlaceholder">選擇課程</span><span class="arrow"></span></button>
         <ul class="dropdown-menu" id="add-course-menu"></ul>
+      </div>
+      <div class="course-sessions-input">
+        <input type="text" id="add-course-sessions" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="3" data-i18n-aria-label="admin.students.courses.sessions" aria-label="堂數">
+        <span data-i18n="admin.common.sessionUnit">堂</span>
       </div>
       <button type="button" class="btn butter" id="add-course-btn" disabled><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.courses.addNew">新增課程</span></button>
     </div>
@@ -197,26 +205,40 @@
   // 這裡手動插入 <li> 並自行綁定點擊事件，因為 script.js 裡的下拉選單綁定邏輯
   // 是在頁面一載入就跑過一次了，那時候這個清單都還是空的。
   const addCourseMenu = document.getElementById('add-course-menu');
-  addCourseMenu.innerHTML = courses.map((c) => `<li data-value="${c.name}">${c.name}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('');
+  addCourseMenu.innerHTML = courses.map((c) => `<li data-value="${escapeHtml(c.name)}">${escapeHtml(c.name)}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('');
   addCourseMenu.querySelectorAll('li').forEach((item) => {
     item.addEventListener('click', () => {
       addCourseMenu.querySelectorAll('li').forEach((li) => li.classList.remove('selected'));
       item.classList.add('selected');
       document.querySelector('#add-course-dropdown .dropdown-trigger .label').textContent = item.dataset.value;
       document.getElementById('add-course-dropdown').classList.remove('open');
+      // 堂數帶入這門課的預設堂數（課程詳細資料裡設定），管理者可以再針對這位學生調整
+      const course = courses.find((c) => c.name === item.dataset.value);
+      sessionsInput.value = (course && course.defaultSessions) || 16;
       refreshAddCourseBtn();
     });
   });
 
-  // 選了課程「新增課程」才能按（從停用變成可按時跳一下）
+  const sessionsInput = document.getElementById('add-course-sessions');
+  function getSessionsValue() {
+    const n = Number(sessionsInput.value);
+    return Number.isInteger(n) && n >= 1 && n <= 999 ? n : null;
+  }
+  sessionsInput.addEventListener('input', () => {
+    sessionsInput.value = sessionsInput.value.replace(/[^0-9]/g, '');
+    refreshAddCourseBtn();
+  });
+
+  // 選了課程、堂數也有效，「新增課程」才能按（從停用變成可按時跳一下）
   function refreshAddCourseBtn() {
-    setButtonEnabled(document.getElementById('add-course-btn'), !!getDropdownValue('add-course-dropdown'));
+    setButtonEnabled(document.getElementById('add-course-btn'), !!getDropdownValue('add-course-dropdown') && getSessionsValue() !== null);
   }
 
   function resetCourseDropdown() {
     const dropdown = document.getElementById('add-course-dropdown');
     dropdown.querySelectorAll('.dropdown-menu li.selected').forEach((li) => li.classList.remove('selected'));
     dropdown.querySelector('.dropdown-trigger .label').textContent = t('admin.teachers.courses.selectPlaceholder');
+    sessionsInput.value = '';
     refreshAddCourseBtn();
   }
 
@@ -252,7 +274,7 @@
           return `<div class="course-row">
             ${ribbon}
             ${deleteBtn}
-            <h4>${c.name}</h4>
+            <h4>${escapeHtml(c.name)}</h4>
             ${counts}
           </div>`;
         }).join('')
@@ -286,6 +308,7 @@
   });
 
   let pendingCourseName = null;
+  let pendingSessions = null;
 
   document.getElementById('add-course-btn').addEventListener('click', () => {
     const value = getDropdownValue('add-course-dropdown');
@@ -293,8 +316,14 @@
       showAlert(t('admin.teachers.courses.selectFirst'));
       return;
     }
+    const sessions = getSessionsValue();
+    if (sessions === null) {
+      showAlert(t('admin.common.invalidSessions'));
+      return;
+    }
     pendingCourseName = value;
-    document.getElementById('addCourseConfirmName').textContent = value;
+    pendingSessions = sessions;
+    document.getElementById('addCourseConfirmName').textContent = t('admin.students.courses.withSessions', { name: value, n: sessions });
     document.getElementById('addCourseConfirmModal').classList.add('open');
   });
 
@@ -303,7 +332,7 @@
     const res = await fetch(`/api/students/courses?studentId=${studentId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseName: pendingCourseName }),
+      body: JSON.stringify({ courseName: pendingCourseName, totalSessions: pendingSessions }),
     });
     document.getElementById('addCourseConfirmModal').classList.remove('open');
     if (!res.ok) {

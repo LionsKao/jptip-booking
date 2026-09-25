@@ -157,8 +157,8 @@
       : '';
     return `<div class="teacher-list-card" data-id="${teacher.id}">
       ${ribbon}
-      <span class="teacher-list-card-avatar${teacher.status === 'inactive' ? ' is-inactive' : ''}"><img src="${avatarSrc(teacher.avatar)}" alt=""></span>
-      <h4>${teacher.name}</h4>
+      <span class="teacher-list-card-avatar${teacher.status === 'inactive' ? ' is-inactive' : ''}"><img src="${escapeHtml(avatarSrc(teacher.avatar))}" alt=""></span>
+      <h4>${escapeHtml(teacher.name)}</h4>
     </div>`;
   }
 

@@ -420,8 +420,8 @@
       </div>
       <div class="booking-card-info">
         <p class="booking-card-datetime">${parts.dateLabel} ${parts.startTimeLabel}</p>
-        <p class="booking-card-course">${l.course}</p>
-        <h4>${l.student} ／ ${currentTeacher.name}</h4>
+        <p class="booking-card-course">${escapeHtml(l.course)}</p>
+        <h4>${escapeHtml(l.student)} ／ ${escapeHtml(currentTeacher.name)}</h4>
       </div>
     </div>`;
   }

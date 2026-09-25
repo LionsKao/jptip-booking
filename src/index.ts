@@ -146,8 +146,12 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// 驗證碼用密碼學等級的亂數（Math.random 可被預測）；拒絕取樣避免取餘數造成的分布偏差。
 function generateCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const buf = new Uint32Array(1);
+  const limit = Math.floor(0x1_0000_0000 / 900000) * 900000;
+  do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+  return String(100000 + (buf[0] % 900000));
 }
 
 // ==========================================================================
@@ -210,6 +214,11 @@ async function handleSessionInfo(request: Request, env: Env): Promise<Response> 
   return Response.json(session);
 }
 
+// 帳號被停用時，已經登入的裝置也要立刻登出（停用的帳號也不能再取得驗證碼，見 findActiveAccountId）
+async function revokeSessions(env: Env, role: string, userId: number): Promise<void> {
+  await env.DB.prepare(`DELETE FROM sessions WHERE role = ? AND user_id = ?`).bind(role, userId).run();
+}
+
 async function handleLogout(request: Request, env: Env): Promise<Response> {
   const token = getCookie(request, SESSION_COOKIE);
   if (token) {
@@ -261,6 +270,50 @@ async function sendToTeams(env: Env, role: string, email: string, code: string):
   }
 }
 
+// 帳號存在而且沒有被停用才回傳 id（管理者沒有停用這回事）
+async function findActiveAccountId(env: Env, role: string, email: string): Promise<number | null> {
+  const row = role === 'admin'
+    ? await env.DB.prepare(`SELECT id FROM admins WHERE email = ?`).bind(email).first<{ id: number }>()
+    : await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ? AND status != 'inactive'`).bind(email).first<{ id: number }>();
+  return row ? row.id : null;
+}
+
+// 防暴力猜碼：每組驗證碼最多試 OTP_MAX_TRIES_PER_CODE 次；同一個帳號 1 小時內錯誤累計達
+// OTP_MAX_FAILURES_PER_HOUR 次就暫停驗證（這時即使輸入正確也不接受）。嘗試次數是先用一個
+// UPDATE 原子性地「佔用」一次再比對，所以同時送出大量請求也沒辦法多猜。
+const OTP_MAX_TRIES_PER_CODE = 5;
+const OTP_MAX_FAILURES_PER_HOUR = 10;
+
+async function checkOtpCode(env: Env, email: string, role: string, code: string): Promise<'ok' | 'wrong' | 'locked'> {
+  const failures = await env.DB.prepare(
+    `SELECT COALESCE(SUM(attempts), 0) AS n FROM otp_codes
+     WHERE email = ? AND role = ? AND created_at > datetime('now', '+8 hours', '-1 hour')`
+  ).bind(email, role).first<{ n: number }>();
+  if ((failures?.n ?? 0) >= OTP_MAX_FAILURES_PER_HOUR) return 'locked';
+
+  const claimed = await env.DB.prepare(
+    `UPDATE otp_codes SET attempts = attempts + 1
+     WHERE id = (SELECT id FROM otp_codes WHERE email = ? AND role = ? AND used = 0
+                   AND expires_at > datetime('now', '+8 hours') ORDER BY id DESC LIMIT 1)
+       AND attempts < ?
+     RETURNING id, code, attempts`
+  ).bind(email, role, OTP_MAX_TRIES_PER_CODE).first<{ id: number; code: string; attempts: number }>();
+  if (!claimed) return 'wrong';
+
+  if (claimed.code !== code) {
+    if (claimed.attempts >= OTP_MAX_TRIES_PER_CODE) {
+      await env.DB.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`).bind(claimed.id).run();
+    }
+    return 'wrong';
+  }
+
+  // 猜對：標成已使用（used = 0 的條件確保同一組碼只能成功一次），這次也不算錯誤次數。
+  const used = await env.DB.prepare(
+    `UPDATE otp_codes SET used = 1, attempts = attempts - 1 WHERE id = ? AND used = 0`
+  ).bind(claimed.id).run();
+  return used.meta.changes === 1 ? 'ok' : 'wrong';
+}
+
 async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
   const { email, role } = await request.json<{ email?: string; role?: string }>();
 
@@ -271,13 +324,16 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
     return Response.json({ error: '無效的角色' }, { status: 400 });
   }
 
-  const existing = await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ?`).bind(email).first();
-  if (!existing) {
-    return Response.json({ error: '無此帳號' }, { status: 400 });
+  // 查無帳號或帳號已停用時，回應跟成功完全一樣（只是不發驗證碼），不讓人藉此試出
+  // 哪些 Email 有註冊。
+  if (!(await findActiveAccountId(env, role, email))) {
+    return Response.json({ ok: true });
   }
 
   const code = generateCode();
 
+  // 新的驗證碼發出後，舊的一律作廢：同一時間只會有一組有效的碼，申請再多次也不會增加猜中的機會。
+  await env.DB.prepare(`UPDATE otp_codes SET used = 1 WHERE email = ? AND role = ? AND used = 0`).bind(email, role).run();
   await env.DB.prepare(
     `INSERT INTO otp_codes (email, role, code, expires_at)
      VALUES (?, ?, ?, datetime('now', '+8 hours', '+5 minutes'))`
@@ -302,27 +358,21 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
   const devBypass = env.ALLOW_ANY_OTP === 'true' && /^\d{6}$/.test(code);
 
   if (!devBypass) {
-    const row = await env.DB.prepare(
-      `SELECT id FROM otp_codes
-       WHERE email = ? AND role = ? AND code = ? AND used = 0
-         AND expires_at > datetime('now', '+8 hours')
-       ORDER BY id DESC LIMIT 1`
-    ).bind(email, role, code).first<{ id: number }>();
-
-    if (!row) {
+    const result = await checkOtpCode(env, email, role, code);
+    if (result === 'locked') {
+      return Response.json({ error: '驗證碼錯誤次數過多，請稍後再試' }, { status: 429 });
+    }
+    if (result !== 'ok') {
       return Response.json({ error: '驗證碼錯誤或已過期' }, { status: 400 });
     }
-
-    await env.DB.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`).bind(row.id).run();
   }
 
-  // No account-creation fallback here: handleOtpRequest already refuses to
-  // send a code for an email that isn't in the role's table, so by the time
-  // a code is verified the account is guaranteed to already exist.
-  const account = await env.DB.prepare(`SELECT id FROM ${ROLE_TABLES[role]} WHERE email = ?`).bind(email).first<{ id: number }>();
-  if (!account) {
-    return Response.json({ error: '帳號不存在' }, { status: 400 });
+  // 驗證碼發出後帳號才被停用的話，這裡也要擋（回一樣的錯誤訊息，不透露帳號狀態）。
+  const accountId = await findActiveAccountId(env, role, email);
+  if (!accountId) {
+    return Response.json({ error: '驗證碼錯誤或已過期' }, { status: 400 });
   }
+  const account = { id: accountId };
 
   const token = randomToken();
   const maxAgeSeconds = SESSION_DAYS * 24 * 60 * 60;
@@ -342,6 +392,7 @@ const AVATAR_ROLE_TABLES: Record<string, string> = {
 const UPLOAD_ROLES = new Set(['teacher', 'student', 'course']);
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2MB is generous headroom for a 400x400 JPEG at q0.8
+const UPLOAD_IMAGE_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
 async function handleAvatarUpload(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
@@ -365,9 +416,10 @@ async function handleOwnAvatarUpload(request: Request, env: Env, session: Sessio
 // handleAvatarGet), so every upload gets a fresh key — re-using one key would
 // leave browsers showing the previous photo. The replaced object is deleted.
 async function storeUploadedImage(request: Request, env: Env, role: string, id: number): Promise<Response> {
-  const contentType = request.headers.get('Content-Type') || '';
-  if (!contentType.startsWith('image/')) {
-    return Response.json({ error: '檔案格式必須是圖片' }, { status: 400 });
+  // 只收 JPEG／PNG／WebP：SVG 也是 image/*，但裡面可以藏 JavaScript，從本站網址直接打開就會執行。
+  const contentType = (request.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+  if (!UPLOAD_IMAGE_TYPES[contentType]) {
+    return Response.json({ error: '圖片格式只接受 JPG、PNG、WebP' }, { status: 400 });
   }
 
   const body = await request.arrayBuffer();
@@ -375,7 +427,7 @@ async function storeUploadedImage(request: Request, env: Env, role: string, id: 
     return Response.json({ error: '圖片檔案大小不正確' }, { status: 400 });
   }
 
-  const ext = contentType === 'image/png' ? 'png' : 'jpg';
+  const ext = UPLOAD_IMAGE_TYPES[contentType];
   const version = Date.now();
   const key = role === 'course' ? `courses/course-${id}-${version}.${ext}` : `avatars/${role}-${id}-${version}.${ext}`;
 
@@ -407,6 +459,9 @@ async function handleAvatarGet(request: Request, env: Env, key: string): Promise
   object.writeHttpMetadata(headers);
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   headers.set('ETag', object.httpEtag);
+  // 就算桶子裡有早期上傳的 SVG 之類的檔案，直接打開也不會執行任何腳本
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
   return new Response(object.body, { headers });
 }
 
@@ -427,6 +482,7 @@ interface CourseRow {
   schedule_increment: string;
   min_lead_hours: number;
   max_lead_days: number;
+  default_sessions: number;
 }
 
 function courseRowToJson(row: CourseRow) {
@@ -442,6 +498,7 @@ function courseRowToJson(row: CourseRow) {
     scheduleIncrement: row.schedule_increment,
     minLeadHours: row.min_lead_hours,
     maxLeadDays: row.max_lead_days,
+    defaultSessions: row.default_sessions,
   };
 }
 
@@ -461,6 +518,13 @@ interface CourseBody {
   scheduleIncrement?: string;
   minLeadHours?: number;
   maxLeadDays?: number;
+  defaultSessions?: number;
+}
+
+// 堂數（課程的預設堂數、學生每筆已購買課程的總堂數）共用的檢查
+const MAX_SESSIONS = 999;
+function isValidSessionCount(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= MAX_SESSIONS;
 }
 
 async function handleCourseCreate(request: Request, env: Env): Promise<Response> {
@@ -497,6 +561,7 @@ const COURSE_FIELD_COLUMNS: Record<keyof CourseBody, string> = {
   scheduleIncrement: 'schedule_increment',
   minLeadHours: 'min_lead_hours',
   maxLeadDays: 'max_lead_days',
+  defaultSessions: 'default_sessions',
 };
 
 async function handleCourseUpdate(request: Request, env: Env): Promise<Response> {
@@ -507,6 +572,9 @@ async function handleCourseUpdate(request: Request, env: Env): Promise<Response>
   }
 
   const body = await request.json<CourseBody>();
+  if (body.defaultSessions !== undefined && !isValidSessionCount(body.defaultSessions)) {
+    return Response.json({ error: `預設堂數需為 1 到 ${MAX_SESSIONS} 的整數` }, { status: 400 });
+  }
   const sets: string[] = [];
   const values: unknown[] = [];
   for (const key of Object.keys(COURSE_FIELD_COLUMNS) as (keyof CourseBody)[]) {
@@ -674,6 +742,7 @@ async function handleTeacherUpdate(request: Request, env: Env): Promise<Response
   if (!row) {
     return Response.json({ error: '找不到老師' }, { status: 404 });
   }
+  if (row.status === 'inactive') await revokeSessions(env, 'teacher', row.id);
   return Response.json(await teacherRowToJson(env, row));
 }
 
@@ -904,6 +973,7 @@ async function handleStudentUpdate(request: Request, env: Env): Promise<Response
   if (!row) {
     return Response.json({ error: '找不到學生' }, { status: 404 });
   }
+  if (row.status === 'inactive') await revokeSessions(env, 'student', row.id);
   return Response.json(studentRowToJson(row));
 }
 
@@ -938,18 +1008,21 @@ async function handleStudentCoursesList(env: Env, studentId: number): Promise<Re
 }
 
 async function handleStudentCourseCreate(request: Request, env: Env, studentId: number): Promise<Response> {
-  const { courseName, totalSessions } = await request.json<{ courseName?: string; totalSessions?: number }>();
+  const { courseName, totalSessions } = await request.json<{ courseName?: string; totalSessions?: number | null }>();
   if (!courseName) {
     return Response.json({ error: '缺少課程名稱' }, { status: 400 });
   }
-  const course = await env.DB.prepare(`SELECT id, name FROM courses WHERE name = ?`).bind(courseName).first<{ id: number; name: string }>();
+  if (totalSessions != null && !isValidSessionCount(totalSessions)) {
+    return Response.json({ error: `堂數需為 1 到 ${MAX_SESSIONS} 的整數` }, { status: 400 });
+  }
+  const course = await env.DB.prepare(`SELECT id, name, default_sessions FROM courses WHERE name = ?`).bind(courseName).first<{ id: number; name: string; default_sessions: number }>();
   if (!course) {
     return Response.json({ error: '找不到課程' }, { status: 404 });
   }
 
   const row = await env.DB.prepare(
     `INSERT INTO student_courses (student_id, course_id, total_sessions) VALUES (?, ?, ?) RETURNING *`
-  ).bind(studentId, course.id, Number.isInteger(totalSessions) && totalSessions! > 0 ? totalSessions : 16).first<Omit<StudentCourseRow, 'course_name'>>();
+  ).bind(studentId, course.id, totalSessions ?? course.default_sessions).first<Omit<StudentCourseRow, 'course_name'>>();
 
   return Response.json(studentCourseRowToJson({ ...row!, course_name: course.name }), { status: 201 });
 }
@@ -1086,6 +1159,14 @@ async function generateBookingCode(env: Env, date: string, time: string): Promis
   return `${date.replace(/-/g, '')}-${time.replace(':', '')}-${seq}`;
 }
 
+// 上課日期時間一律以 UTC+8（台北時間）儲存，預約／取消的時限也都以 UTC+8 判斷，不受瀏覽器所在時區影響。
+function hoursUntilUtc8(date: string, time: string): number {
+  return (Date.parse(`${date}T${time}:00+08:00`) - Date.now()) / 3_600_000;
+}
+function utc8DateISO(offsetDays = 0): string {
+  return new Date(Date.now() + 8 * 3_600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10);
+}
+
 async function handleBookingCreate(request: Request, env: Env, session: Session): Promise<Response> {
   if (session.role !== 'student') {
     return Response.json({ error: '未授權' }, { status: 401 });
@@ -1103,6 +1184,22 @@ async function handleBookingCreate(request: Request, env: Env, session: Session)
   }
   if (studentCourse.booked_count >= studentCourse.total_sessions) {
     return Response.json({ error: '課程堂數已用完' }, { status: 400 });
+  }
+
+  // 課程的「不可預約／不可取消」時數與「最久可預約的日期」——預約精靈只在畫面上把不能選的
+  // 時段反灰，學生停在確認畫面太久、或直接打 API，都要在這裡擋下來。
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time) || Number.isNaN(hoursUntilUtc8(date, time))) {
+    return Response.json({ error: '無效的日期或時間' }, { status: 400 });
+  }
+  const course = await env.DB.prepare(`SELECT min_lead_hours, max_lead_days FROM courses WHERE id = ?`).bind(courseId).first<{ min_lead_hours: number; max_lead_days: number }>();
+  if (!course) {
+    return Response.json({ error: '找不到課程' }, { status: 404 });
+  }
+  if (hoursUntilUtc8(date, time) < course.min_lead_hours) {
+    return Response.json({ error: `距離上課時間不足 ${course.min_lead_hours} 小時，已無法預約這個時段，請重新選擇` }, { status: 400 });
+  }
+  if (date > utc8DateISO(course.max_lead_days)) {
+    return Response.json({ error: `只能預約 ${course.max_lead_days} 天內的課程` }, { status: 400 });
   }
 
   // Atomic "book if still free" — the same slot can't be double-booked by a
@@ -1168,6 +1265,18 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
     if (hasStatus && (existing.student_id !== session.userId || status !== 'cancelled')) {
       return Response.json({ error: '未授權' }, { status: 401 });
     }
+    // 學生只能取消還沒上的課（已完成、缺席、待處理的都不行，否則會把已上課／已預約次數拿回來），
+    // 而且要在該課程「不可預約／不可取消」的時數之前；時限內要取消請管理者處理（管理者不受限）。
+    if (hasStatus) {
+      if (existing.status !== 'upcoming') {
+        return Response.json({ error: '這堂課已經無法取消' }, { status: 400 });
+      }
+      const course = await env.DB.prepare(`SELECT min_lead_hours FROM courses WHERE id = ?`).bind(existing.course_id).first<{ min_lead_hours: number }>();
+      const minLeadHours = course?.min_lead_hours ?? 48;
+      if (!(hoursUntilUtc8(existing.date, existing.time) >= minLeadHours)) {
+        return Response.json({ error: `距離上課時間不足 ${minLeadHours} 小時，已無法取消預約，如有需要請聯絡管理者協助處理。` }, { status: 400 });
+      }
+    }
     // 學生只能對自己已經上過（attended）的課評分留言，避免直接打 API 對還沒上的課評分。
     if (hasRating && (existing.student_id !== session.userId || existing.status !== 'attended')) {
       return Response.json({ error: '未授權' }, { status: 401 });
@@ -1214,9 +1323,15 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
   if (oldStatus !== 'attended' && newStatus === 'attended') attendedDelta = 1;
   if (oldStatus === 'attended' && newStatus !== 'attended') attendedDelta = -1;
   if (bookedDelta || attendedDelta) {
+    // 堂數全部上完就把這筆已購買課程標成 completed；管理者把某堂課從完成改回其他狀態
+    // （已上課 -1）時也跟著變回 ongoing。SET 裡的欄位讀到的是更新前的值，所以要自己加上 delta。
     await env.DB.prepare(
-      `UPDATE student_courses SET booked_count = booked_count + ?, attended_count = attended_count + ? WHERE id = ?`
-    ).bind(bookedDelta, attendedDelta, existing.student_course_id).run();
+      `UPDATE student_courses
+       SET booked_count = booked_count + ?,
+           attended_count = attended_count + ?,
+           status = CASE WHEN attended_count + ? >= total_sessions THEN 'completed' ELSE 'ongoing' END
+       WHERE id = ?`
+    ).bind(bookedDelta, attendedDelta, attendedDelta, existing.student_course_id).run();
   }
 
   const updated = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<BookingRow>();
@@ -1265,245 +1380,268 @@ async function handleRecentlyViewedList(request: Request, env: Env): Promise<Res
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-
-    if (url.pathname === '/api/config' && request.method === 'GET') {
-      // Lets the frontend tell test/dev sites apart from production (e.g. to
-      // show the test-account quick-fill avatars only where ALLOW_ANY_OTP is
-      // set) without duplicating that flag anywhere else.
-      return Response.json({ testMode: env.ALLOW_ANY_OTP === 'true' });
-    }
-    if (url.pathname === '/api/otp/request' && request.method === 'POST') {
-      return handleOtpRequest(request, env);
-    }
-    if (url.pathname === '/api/otp/verify' && request.method === 'POST') {
-      return handleOtpVerify(request, env);
-    }
-    if (url.pathname === '/api/session' && request.method === 'GET') {
-      return handleSessionInfo(request, env);
-    }
-    if (url.pathname === '/api/logout' && request.method === 'POST') {
-      return handleLogout(request, env);
-    }
-    if ((url.pathname.startsWith('/avatars/') || url.pathname.startsWith('/courses/')) && request.method === 'GET') {
-      return handleAvatarGet(request, env, url.pathname.slice(1));
-    }
-
-    // email.html / ui.html are internal design/preview pages, not part of the
-    // product — never served on the real deployment (ALLOW_ANY_OTP unset
-    // there), only on local/test. html_handling drops the .html extension,
-    // so both forms need covering.
-    const DEV_ONLY_PAGES = new Set(['/email', '/email.html', '/ui', '/ui.html']);
-    if (DEV_ONLY_PAGES.has(url.pathname) && env.ALLOW_ANY_OTP !== 'true') {
-      return new Response('Not found', { status: 404 });
-    }
-
-    // Everything below here needs a real, server-verified session — avatar
-    // uploads and the recently-viewed list are both admin-only tools (see the
-    // call sites in public/admin/*.html), and the admin/teacher/student
-    // static pages must never render for a visitor who never logged in.
-    if (url.pathname === '/api/avatar/upload' && request.method === 'PUT') {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') {
-        return Response.json({ error: '未授權' }, { status: 401 });
-      }
-      return handleAvatarUpload(request, env);
-    }
-    if (url.pathname === '/api/recently-viewed' && (request.method === 'PUT' || request.method === 'GET')) {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') {
-        return Response.json({ error: '未授權' }, { status: 401 });
-      }
-      return request.method === 'PUT' ? handleRecentlyViewedMark(request, env) : handleRecentlyViewedList(request, env);
-    }
-    if (url.pathname === '/api/courses' && request.method === 'GET') {
-      // All three roles browse the catalog (admin manages it, students pick
-      // from it when booking, teachers look up a course's duration) — any
-      // logged-in session is enough, it doesn't need to be an admin.
-      const session = await getSession(request, env);
-      if (!session) {
-        return Response.json({ error: '未授權' }, { status: 401 });
-      }
-      return handleCoursesList(env);
-    }
-    if (url.pathname === '/api/courses' && (request.method === 'POST' || request.method === 'PATCH')) {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') {
-        return Response.json({ error: '未授權' }, { status: 401 });
-      }
-      return request.method === 'POST' ? handleCourseCreate(request, env) : handleCourseUpdate(request, env);
-    }
-
-    if (url.pathname === '/api/teachers' && request.method === 'GET') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleTeachersList(env, session);
-    }
-    if (url.pathname === '/api/teachers/me' && request.method === 'GET') {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'teacher') return Response.json({ error: '未授權' }, { status: 401 });
-      return handleTeacherSelf(env, session);
-    }
-    if (url.pathname === '/api/teachers' && (request.method === 'POST' || request.method === 'PATCH')) {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
-      return request.method === 'POST' ? handleTeacherCreate(request, env) : handleTeacherUpdate(request, env);
-    }
-    if (url.pathname === '/api/teachers/courses' && request.method === 'PATCH') {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
-      const teacherId = Number(url.searchParams.get('teacherId'));
-      if (!Number.isInteger(teacherId) || teacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
-      return handleTeacherCoursesUpdate(request, env, teacherId);
-    }
-
-    // Weekly hours / leave: readable by any logged-in session (the student
-    // booking wizard reads them to compute bookable slots); writable by the
-    // teacher themselves or an admin managing on their behalf, matching the
-    // ?teacherId= honored-only-for-admin pattern (the /admin/teacher-* pages).
-    if (url.pathname === '/api/teachers/hours' || url.pathname === '/api/teachers/leave') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-
-      const qsTeacherId = Number(url.searchParams.get('teacherId'));
-      let teacherId: number;
-      if (request.method === 'GET') {
-        if (!Number.isInteger(qsTeacherId) || qsTeacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
-        teacherId = qsTeacherId;
-      } else {
-        if (session.role === 'admin') {
-          if (!Number.isInteger(qsTeacherId) || qsTeacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
-          teacherId = qsTeacherId;
-        } else if (session.role === 'teacher') {
-          teacherId = session.userId;
-        } else {
-          return Response.json({ error: '未授權' }, { status: 401 });
-        }
-      }
-
-      const isHours = url.pathname === '/api/teachers/hours';
-      if (request.method === 'GET') {
-        return isHours ? handleTeacherHoursList(env, teacherId) : handleTeacherLeaveList(env, teacherId);
-      }
-      if (request.method === 'POST') {
-        return isHours ? handleTeacherHoursCreate(request, env, teacherId) : handleTeacherLeaveCreate(request, env, teacherId);
-      }
-      if (request.method === 'DELETE') {
-        const entryId = Number(url.searchParams.get('id'));
-        if (!Number.isInteger(entryId) || entryId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
-        return isHours ? handleTeacherHoursDelete(env, teacherId, entryId) : handleTeacherLeaveDelete(env, teacherId, entryId);
-      }
-    }
-
-    if (url.pathname === '/api/students/me' && request.method === 'GET') {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'student') return Response.json({ error: '未授權' }, { status: 401 });
-      return handleStudentSelf(env, session);
-    }
-    if (url.pathname === '/api/admins/me' && request.method === 'GET') {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
-      return handleAdminSelf(env, session);
-    }
-    // Language switch — any logged-in role, always on their own record.
-    if (url.pathname === '/api/me/language' && request.method === 'PATCH') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleOwnLanguageUpdate(request, env, session);
-    }
-    // Settings pages — a student/teacher edits a few fields of their own record.
-    if (url.pathname === '/api/me/profile' && request.method === 'PATCH') {
-      const session = await getSession(request, env);
-      if (!session || (session.role !== 'student' && session.role !== 'teacher')) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleOwnProfileUpdate(request, env, session);
-    }
-    if (url.pathname === '/api/me/avatar' && request.method === 'PUT') {
-      const session = await getSession(request, env);
-      if (!session || (session.role !== 'student' && session.role !== 'teacher')) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleOwnAvatarUpload(request, env, session);
-    }
-    if (url.pathname === '/api/students' && request.method === 'GET') {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
-      return handleStudentsList(env);
-    }
-    if (url.pathname === '/api/students' && (request.method === 'POST' || request.method === 'PATCH')) {
-      const session = await getSession(request, env);
-      if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
-      return request.method === 'POST' ? handleStudentCreate(request, env) : handleStudentUpdate(request, env);
-    }
-
-    // A student's own enrolled courses: readable by the student themselves
-    // (the booking wizard needs to know which course(s) they can book) or an
-    // admin; writable by an admin only.
-    if (url.pathname === '/api/students/courses') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-
-      const qsStudentId = Number(url.searchParams.get('studentId'));
-      let studentId: number;
-      if (session.role === 'admin') {
-        if (!Number.isInteger(qsStudentId) || qsStudentId <= 0) return Response.json({ error: '缺少或無效的 studentId' }, { status: 400 });
-        studentId = qsStudentId;
-      } else if (session.role === 'student' && request.method === 'GET') {
-        studentId = session.userId;
-      } else {
-        return Response.json({ error: '未授權' }, { status: 401 });
-      }
-
-      if (request.method === 'GET') return handleStudentCoursesList(env, studentId);
-      if (request.method === 'POST') return handleStudentCourseCreate(request, env, studentId);
-      if (request.method === 'DELETE') {
-        const scId = Number(url.searchParams.get('id'));
-        if (!Number.isInteger(scId) || scId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
-        return handleStudentCourseDelete(env, studentId, scId);
-      }
-    }
-
-    if (url.pathname === '/api/bookings' && request.method === 'GET') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleBookingsList(request, env, session);
-    }
-    if (url.pathname === '/api/bookings' && request.method === 'POST') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-      return handleBookingCreate(request, env, session);
-    }
-    if (url.pathname === '/api/bookings' && request.method === 'PATCH') {
-      const session = await getSession(request, env);
-      if (!session) return Response.json({ error: '未授權' }, { status: 401 });
-      const id = Number(url.searchParams.get('id'));
-      if (!Number.isInteger(id) || id <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
-      return handleBookingUpdate(request, env, session, id);
-    }
-
-    // Each role's pages are gated to that role only. Admins manage a teacher's
-    // hours/leave/lessons through the /admin/teacher-* aliases below instead of
-    // entering /teacher/* themselves.
-    const ALLOWED_SESSION_ROLES: Record<string, readonly string[]> = {
-      admin: ['admin'],
-      teacher: ['teacher'],
-      student: ['student'],
-    };
-    const protectedRole = (['admin', 'teacher', 'student'] as const).find(
-      (role) => url.pathname === `/${role}` || url.pathname.startsWith(`/${role}/`)
-    );
-    if (protectedRole) {
-      const session = await getSession(request, env);
-      if (!session || !ALLOWED_SESSION_ROLES[protectedRole].includes(session.role)) {
-        return Response.redirect(new URL('/', request.url).toString(), 302);
-      }
-    }
-
-    // Admin-only alias (already gated by the /admin prefix above) that serves
-    // the same HTML as the teacher's own page — the page tells the two apart
-    // by location.pathname, so the URL alone says whose view it is.
-    const adminTeacherPage = ADMIN_TEACHER_PAGE_ALIASES[url.pathname.replace(/\.html$/, '')];
-    if (adminTeacherPage) {
-      return env.ASSETS.fetch(new Request(new URL(adminTeacherPage, request.url), request));
-    }
-
-    return env.ASSETS.fetch(request);
+    return withSecurityHeaders(await route(request, env));
   },
 };
+
+// 所有經過 Worker 的回應都加上基本的安全標頭（直接由靜態資源回應的檔案，例如登入頁，
+// 改由 public/_headers 設定——Cloudflare 的 _headers 不會套用在 Worker 產生的回應上）：
+// 禁止被其他網站用 iframe 嵌入（防點擊劫持）、禁止瀏覽器猜測檔案類型、限制 Referer 外洩。
+// 已經自己設定的標頭（例如頭像圖片更嚴格的 CSP）不覆蓋。
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "frame-ancestors 'none'",
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+};
+
+function withSecurityHeaders(response: Response): Response {
+  const secured = new Response(response.body, response);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    if (!secured.headers.has(name)) secured.headers.set(name, value);
+  }
+  return secured;
+}
+
+async function route(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (url.pathname === '/api/config' && request.method === 'GET') {
+    // Lets the frontend tell test/dev sites apart from production (e.g. to
+    // show the test-account quick-fill avatars only where ALLOW_ANY_OTP is
+    // set) without duplicating that flag anywhere else.
+    return Response.json({ testMode: env.ALLOW_ANY_OTP === 'true' });
+  }
+  if (url.pathname === '/api/otp/request' && request.method === 'POST') {
+    return handleOtpRequest(request, env);
+  }
+  if (url.pathname === '/api/otp/verify' && request.method === 'POST') {
+    return handleOtpVerify(request, env);
+  }
+  if (url.pathname === '/api/session' && request.method === 'GET') {
+    return handleSessionInfo(request, env);
+  }
+  if (url.pathname === '/api/logout' && request.method === 'POST') {
+    return handleLogout(request, env);
+  }
+  if ((url.pathname.startsWith('/avatars/') || url.pathname.startsWith('/courses/')) && request.method === 'GET') {
+    return handleAvatarGet(request, env, url.pathname.slice(1));
+  }
+
+  // email.html / ui.html are internal design/preview pages, not part of the
+  // product — never served on the real deployment (ALLOW_ANY_OTP unset
+  // there), only on local/test. html_handling drops the .html extension,
+  // so both forms need covering.
+  const DEV_ONLY_PAGES = new Set(['/email', '/email.html', '/ui', '/ui.html']);
+  if (DEV_ONLY_PAGES.has(url.pathname) && env.ALLOW_ANY_OTP !== 'true') {
+    return new Response('Not found', { status: 404 });
+  }
+
+  // Everything below here needs a real, server-verified session — avatar
+  // uploads and the recently-viewed list are both admin-only tools (see the
+  // call sites in public/admin/*.html), and the admin/teacher/student
+  // static pages must never render for a visitor who never logged in.
+  if (url.pathname === '/api/avatar/upload' && request.method === 'PUT') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    return handleAvatarUpload(request, env);
+  }
+  if (url.pathname === '/api/recently-viewed' && (request.method === 'PUT' || request.method === 'GET')) {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    return request.method === 'PUT' ? handleRecentlyViewedMark(request, env) : handleRecentlyViewedList(request, env);
+  }
+  if (url.pathname === '/api/courses' && request.method === 'GET') {
+    // All three roles browse the catalog (admin manages it, students pick
+    // from it when booking, teachers look up a course's duration) — any
+    // logged-in session is enough, it doesn't need to be an admin.
+    const session = await getSession(request, env);
+    if (!session) {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    return handleCoursesList(env);
+  }
+  if (url.pathname === '/api/courses' && (request.method === 'POST' || request.method === 'PATCH')) {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+    return request.method === 'POST' ? handleCourseCreate(request, env) : handleCourseUpdate(request, env);
+  }
+
+  if (url.pathname === '/api/teachers' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+    return handleTeachersList(env, session);
+  }
+  if (url.pathname === '/api/teachers/me' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'teacher') return Response.json({ error: '未授權' }, { status: 401 });
+    return handleTeacherSelf(env, session);
+  }
+  if (url.pathname === '/api/teachers' && (request.method === 'POST' || request.method === 'PATCH')) {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return request.method === 'POST' ? handleTeacherCreate(request, env) : handleTeacherUpdate(request, env);
+  }
+  if (url.pathname === '/api/teachers/courses' && request.method === 'PATCH') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    const teacherId = Number(url.searchParams.get('teacherId'));
+    if (!Number.isInteger(teacherId) || teacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
+    return handleTeacherCoursesUpdate(request, env, teacherId);
+  }
+
+  // Weekly hours / leave: readable by any logged-in session (the student
+  // booking wizard reads them to compute bookable slots); writable by the
+  // teacher themselves or an admin managing on their behalf, matching the
+  // ?teacherId= honored-only-for-admin pattern (the /admin/teacher-* pages).
+  if (url.pathname === '/api/teachers/hours' || url.pathname === '/api/teachers/leave') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+
+    const qsTeacherId = Number(url.searchParams.get('teacherId'));
+    let teacherId: number;
+    if (request.method === 'GET') {
+      if (!Number.isInteger(qsTeacherId) || qsTeacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
+      teacherId = qsTeacherId;
+    } else {
+      if (session.role === 'admin') {
+        if (!Number.isInteger(qsTeacherId) || qsTeacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
+        teacherId = qsTeacherId;
+      } else if (session.role === 'teacher') {
+        teacherId = session.userId;
+      } else {
+        return Response.json({ error: '未授權' }, { status: 401 });
+      }
+    }
+
+    const isHours = url.pathname === '/api/teachers/hours';
+    if (request.method === 'GET') {
+      return isHours ? handleTeacherHoursList(env, teacherId) : handleTeacherLeaveList(env, teacherId);
+    }
+    if (request.method === 'POST') {
+      return isHours ? handleTeacherHoursCreate(request, env, teacherId) : handleTeacherLeaveCreate(request, env, teacherId);
+    }
+    if (request.method === 'DELETE') {
+      const entryId = Number(url.searchParams.get('id'));
+      if (!Number.isInteger(entryId) || entryId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
+      return isHours ? handleTeacherHoursDelete(env, teacherId, entryId) : handleTeacherLeaveDelete(env, teacherId, entryId);
+    }
+  }
+
+  if (url.pathname === '/api/students/me' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'student') return Response.json({ error: '未授權' }, { status: 401 });
+    return handleStudentSelf(env, session);
+  }
+  if (url.pathname === '/api/admins/me' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return handleAdminSelf(env, session);
+  }
+  // Language switch — any logged-in role, always on their own record.
+  if (url.pathname === '/api/me/language' && request.method === 'PATCH') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+    return handleOwnLanguageUpdate(request, env, session);
+  }
+  // Settings pages — a student/teacher edits a few fields of their own record.
+  if (url.pathname === '/api/me/profile' && request.method === 'PATCH') {
+    const session = await getSession(request, env);
+    if (!session || (session.role !== 'student' && session.role !== 'teacher')) return Response.json({ error: '未授權' }, { status: 401 });
+    return handleOwnProfileUpdate(request, env, session);
+  }
+  if (url.pathname === '/api/me/avatar' && request.method === 'PUT') {
+    const session = await getSession(request, env);
+    if (!session || (session.role !== 'student' && session.role !== 'teacher')) return Response.json({ error: '未授權' }, { status: 401 });
+    return handleOwnAvatarUpload(request, env, session);
+  }
+  if (url.pathname === '/api/students' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return handleStudentsList(env);
+  }
+  if (url.pathname === '/api/students' && (request.method === 'POST' || request.method === 'PATCH')) {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return request.method === 'POST' ? handleStudentCreate(request, env) : handleStudentUpdate(request, env);
+  }
+
+  // A student's own enrolled courses: readable by the student themselves
+  // (the booking wizard needs to know which course(s) they can book) or an
+  // admin; writable by an admin only.
+  if (url.pathname === '/api/students/courses') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+
+    const qsStudentId = Number(url.searchParams.get('studentId'));
+    let studentId: number;
+    if (session.role === 'admin') {
+      if (!Number.isInteger(qsStudentId) || qsStudentId <= 0) return Response.json({ error: '缺少或無效的 studentId' }, { status: 400 });
+      studentId = qsStudentId;
+    } else if (session.role === 'student' && request.method === 'GET') {
+      studentId = session.userId;
+    } else {
+      return Response.json({ error: '未授權' }, { status: 401 });
+    }
+
+    if (request.method === 'GET') return handleStudentCoursesList(env, studentId);
+    if (request.method === 'POST') return handleStudentCourseCreate(request, env, studentId);
+    if (request.method === 'DELETE') {
+      const scId = Number(url.searchParams.get('id'));
+      if (!Number.isInteger(scId) || scId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
+      return handleStudentCourseDelete(env, studentId, scId);
+    }
+  }
+
+  if (url.pathname === '/api/bookings' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+    return handleBookingsList(request, env, session);
+  }
+  if (url.pathname === '/api/bookings' && request.method === 'POST') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+    return handleBookingCreate(request, env, session);
+  }
+  if (url.pathname === '/api/bookings' && request.method === 'PATCH') {
+    const session = await getSession(request, env);
+    if (!session) return Response.json({ error: '未授權' }, { status: 401 });
+    const id = Number(url.searchParams.get('id'));
+    if (!Number.isInteger(id) || id <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
+    return handleBookingUpdate(request, env, session, id);
+  }
+
+  // Each role's pages are gated to that role only. Admins manage a teacher's
+  // hours/leave/lessons through the /admin/teacher-* aliases below instead of
+  // entering /teacher/* themselves.
+  const ALLOWED_SESSION_ROLES: Record<string, readonly string[]> = {
+    admin: ['admin'],
+    teacher: ['teacher'],
+    student: ['student'],
+  };
+  const protectedRole = (['admin', 'teacher', 'student'] as const).find(
+    (role) => url.pathname === `/${role}` || url.pathname.startsWith(`/${role}/`)
+  );
+  if (protectedRole) {
+    const session = await getSession(request, env);
+    if (!session || !ALLOWED_SESSION_ROLES[protectedRole].includes(session.role)) {
+      return Response.redirect(new URL('/', request.url).toString(), 302);
+    }
+  }
+
+  // Admin-only alias (already gated by the /admin prefix above) that serves
+  // the same HTML as the teacher's own page — the page tells the two apart
+  // by location.pathname, so the URL alone says whose view it is.
+  const adminTeacherPage = ADMIN_TEACHER_PAGE_ALIASES[url.pathname.replace(/\.html$/, '')];
+  if (adminTeacherPage) {
+    return env.ASSETS.fetch(new Request(new URL(adminTeacherPage, request.url), request));
+  }
+
+  return env.ASSETS.fetch(request);
+}

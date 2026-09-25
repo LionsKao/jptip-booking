@@ -1,0 +1,8 @@
+# 直接由靜態資源回應的檔案（登入頁、script.js、style.css、圖示…）的安全標頭。
+# 經過 Worker 的回應（/admin、/teacher、/student 頁面與所有 /api）不會套用這個檔案，
+# 由 src/index.ts 的 withSecurityHeaders() 加上同樣的標頭。
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

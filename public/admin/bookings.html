@@ -329,10 +329,10 @@
         ${b.status === 'attended' ? studentFeedbackPillHtml(b) + teacherFeedbackPillHtml(b) : ''}
       </div>
       <div class="booking-card-info">
-        ${b.bookingCode ? `<p class="booking-card-code">${b.bookingCode}</p>` : ''}
+        ${b.bookingCode ? `<p class="booking-card-code">${escapeHtml(b.bookingCode)}</p>` : ''}
         <p class="booking-card-datetime">${formatBookingDateTime(b)}</p>
-        <p class="booking-card-course">${b.course}</p>
-        <h4>${b.studentName} ／ ${b.teacher}</h4>
+        <p class="booking-card-course">${escapeHtml(b.course)}</p>
+        <h4>${escapeHtml(b.studentName)} ／ ${escapeHtml(b.teacher)}</h4>
       </div>
     </div>`;
   }

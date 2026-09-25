@@ -322,9 +322,9 @@
     return `<div class="booking-card is-clickable" data-id="${b.id}">
       <span class="pill ${s.cls} has-icon booking-card-status"><img class="pill-icon" src="../assets/icons/${s.icon}" alt="">${s.label}</span>
       <div class="booking-card-info">
-        ${b.bookingCode ? `<p class="booking-card-code">${b.bookingCode}</p>` : ''}
-        <p class="booking-card-course">${b.course}</p>
-        <h4>${student.name} ／ ${b.teacher}</h4>
+        ${b.bookingCode ? `<p class="booking-card-code">${escapeHtml(b.bookingCode)}</p>` : ''}
+        <p class="booking-card-course">${escapeHtml(b.course)}</p>
+        <h4>${escapeHtml(student.name)} ／ ${escapeHtml(b.teacher)}</h4>
         <p class="booking-card-datetime">${formatBookingDateTime(b)}</p>
       </div>
     </div>`;

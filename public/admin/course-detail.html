@@ -130,6 +130,15 @@
         <input type="text" id="edit-course-description" class="text-input" data-i18n-placeholder="admin.courses.field.descriptionPlaceholder" placeholder="選課時會顯示在課程下方的說明文字" maxlength="100">
       </div>
     </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label for="edit-default-sessions"><i class="fa-solid fa-fw fa-layer-group"></i> <span data-i18n="admin.courses.field.defaultSessions">預設堂數</span></label>
+        <div class="duration-unit">
+          <input type="text" id="edit-default-sessions" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="3">
+          <span data-i18n="admin.common.sessionUnit">堂</span>
+        </div>
+      </div>
+    </div>
 
     <div class="wizard-nav">
       <button type="button" class="btn blue" id="basic-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
@@ -324,10 +333,10 @@
     function renderHeader() {
       const imageEl = document.getElementById('course-header-image');
       if (course.image) {
-        imageEl.innerHTML = `<img src="${courseImageSrc(course.image)}" alt="">`;
+        imageEl.innerHTML = `<img src="${escapeHtml(courseImageSrc(course.image))}" alt="">`;
       } else {
         const b = courseBadge(course.name);
-        imageEl.innerHTML = `<span class="course-header-badge" style="width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${b.color};">${b.label}</span>`;
+        imageEl.innerHTML = `<span class="course-header-badge" style="width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${b.color};">${escapeHtml(b.label)}</span>`;
       }
       document.getElementById('course-header-name').textContent = course.name;
     }
@@ -441,6 +450,8 @@
 
     document.getElementById('edit-course-name').value = course.name || '';
     document.getElementById('edit-course-description').value = course.description || '';
+    // 幫學生新增這門已購買課程時，堂數預設帶入這個值（新增時還可以針對個別學生調整）
+    document.getElementById('edit-default-sessions').value = course.defaultSessions ?? 16;
     document.getElementById('duration-hours').value = Math.floor(durationMinutes / 60);
     document.getElementById('duration-minutes').value = durationMinutes % 60;
     document.getElementById('buffer-before-hours').value = Math.floor(bufferBeforeMinutes / 60);
@@ -451,7 +462,7 @@
     document.getElementById('max-lead-days').value = course.maxLeadDays ?? 30;
     setDropdownValue('schedule-increment-dropdown', course.scheduleIncrement || '1 小時');
 
-    ['duration-hours', 'buffer-before-hours', 'buffer-after-hours', 'min-lead-hours', 'max-lead-days'].forEach((id) => {
+    ['edit-default-sessions', 'duration-hours', 'buffer-before-hours', 'buffer-after-hours', 'min-lead-hours', 'max-lead-days'].forEach((id) => {
       document.getElementById(id).addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/[^0-9]/g, '');
       });
@@ -484,10 +495,16 @@
         showBasicAlert(t('admin.courses.fillNameRequired'));
         return;
       }
+      const defaultSessions = Number(document.getElementById('edit-default-sessions').value);
+      if (!Number.isInteger(defaultSessions) || defaultSessions < 1 || defaultSessions > 999) {
+        showBasicAlert(t('admin.common.invalidSessions'));
+        return;
+      }
 
       const ok = await patchCourse({
         name,
         description: document.getElementById('edit-course-description').value.trim(),
+        defaultSessions,
         image: currentImage,
         status: document.getElementById('edit-status-toggle').checked ? 'active' : 'inactive',
       });
@@ -525,6 +542,7 @@
       return JSON.stringify({
         name: document.getElementById('edit-course-name').value,
         description: document.getElementById('edit-course-description').value,
+        defaultSessions: document.getElementById('edit-default-sessions').value,
         image: currentImage,
         status: document.getElementById('edit-status-toggle').checked,
       });

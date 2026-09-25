@@ -184,7 +184,7 @@
     const courseDropdown = document.getElementById('add-course-dropdown');
     const courseMenu = document.getElementById('add-course-menu');
     const courseDropdownLabel = courseDropdown.querySelector('.dropdown-trigger .label');
-    courseMenu.innerHTML = courses.map((c) => `<li data-value="${c.name}">${c.name}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('');
+    courseMenu.innerHTML = courses.map((c) => `<li data-value="${escapeHtml(c.name)}">${escapeHtml(c.name)}<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span></li>`).join('');
     courseMenu.querySelectorAll('li').forEach((li) => {
       li.addEventListener('click', () => {
         courseMenu.querySelectorAll('li').forEach((l) => l.classList.remove('selected'));
@@ -234,8 +234,8 @@
       const listEl = document.getElementById('course-cap-list');
       listEl.innerHTML = teacher.courses.length
         ? teacher.courses.map((name) => `<div class="course-cap-row">
-            <h4>${name}</h4>
-            <button type="button" class="btn sm red" data-name="${name}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>
+            <h4>${escapeHtml(name)}</h4>
+            <button type="button" class="btn sm red" data-name="${escapeHtml(name)}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>
           </div>`).join('')
         : `<div class="booking-card-empty">${t('admin.teachers.courses.empty')}</div>`;
       listEl.querySelectorAll('.course-cap-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));

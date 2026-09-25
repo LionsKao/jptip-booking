@@ -61,6 +61,7 @@ describe('POST /api/courses', () => {
       scheduleIncrement: '1 小時',
       minLeadHours: 48,
       maxLeadDays: 30,
+      defaultSessions: 16,
     });
     expect(course.id).toEqual(expect.any(Number));
   });
@@ -135,5 +136,20 @@ describe('PATCH /api/courses', () => {
     expect(afterSchedule.minLeadHours).toBe(24);
     // Untouched by either PATCH — proves this really is a partial update.
     expect(afterSchedule.name).toBe('N5 綜合日本語 J1（改）');
+  });
+
+  it('updates defaultSessions, and only accepts a whole number from 1 to 999', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const course = (await (await createCourse(cookie, { name: '堂數測試課程' })).json()) as { id: number };
+    const patch = (body: unknown) => fetchWorker(`/api/courses?id=${course.id}`, withCookie(cookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }));
+
+    for (const bad of [0, -1, 1000, 2.5, '8', null]) {
+      expect((await patch({ defaultSessions: bad })).status).toBe(400);
+    }
+    const res = await patch({ defaultSessions: 8 });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Record<string, unknown>).defaultSessions).toBe(8);
   });
 });

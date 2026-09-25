@@ -173,14 +173,14 @@
   function renderCourseCard(c) {
     let badge;
     if (c.image) {
-      badge = `<img src="${courseImageSrc(c.image)}" alt="">`;
+      badge = `<img src="${escapeHtml(courseImageSrc(c.image))}" alt="">`;
     } else {
       const b = courseBadge(c.name);
-      badge = `<span class="course-list-card-badge" style="background:${b.color};">${b.label}</span>`;
+      badge = `<span class="course-list-card-badge" style="background:${b.color};">${escapeHtml(b.label)}</span>`;
     }
     return `<div class="course-list-card" data-id="${c.id}">
       <span class="course-list-card-image">${badge}</span>
-      <h4>${c.name}</h4>
+      <h4>${escapeHtml(c.name)}</h4>
     </div>`;
   }
 

@@ -114,6 +114,25 @@ describe('/api/students/courses', () => {
     expect(enrollment.booked).toBe('0/16');
   });
 
+  it("uses the course's defaultSessions when totalSessions is omitted, an explicit totalSessions when given, and rejects an invalid one", async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const course = (await (await fetchWorker('/api/courses', withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: '衝刺班 S' }),
+    }))).json()) as { id: number; name: string };
+    await fetchWorker(`/api/courses?id=${course.id}`, withCookie(cookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ defaultSessions: 8 }),
+    }));
+    const enroll = (studentId: number, body: Record<string, unknown>) => fetchWorker(`/api/students/courses?studentId=${studentId}`, withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseName: course.name, ...body }),
+    }));
+
+    expect(((await (await enroll(1, {})).json()) as Record<string, unknown>).booked).toBe('0/8');
+    expect(((await (await enroll(2, { totalSessions: 24 })).json()) as Record<string, unknown>).booked).toBe('0/24');
+    for (const bad of [0, 1000, 1.5, '16']) {
+      expect((await enroll(3, { totalSessions: bad })).status).toBe(400);
+    }
+  });
+
   it('DELETE is blocked once the enrollment has any booked or attended sessions', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const course = (await (await fetchWorker('/api/courses', withCookie(cookie, {
@@ -134,7 +153,8 @@ describe('/api/students/courses', () => {
     const studentCookie = await login(SEEDED.student.email, 'student');
     await fetchWorker('/api/bookings', withCookie(studentCookie, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId: course.id, teacherId: 1, date: '2026-11-02', time: '10:00' }),
+      // 10 天後（UTC+8）：落在課程預設的可預約時限內（48 小時後～30 天內）
+      body: JSON.stringify({ courseId: course.id, teacherId: 1, date: new Date(Date.now() + 8 * 3_600_000 + 10 * 86_400_000).toISOString().slice(0, 10), time: '10:00' }),
     }));
 
     const blockedDelete = await fetchWorker(`/api/students/courses?studentId=1&id=${enrollment2.id}`, withCookie(cookie, { method: 'DELETE' }));

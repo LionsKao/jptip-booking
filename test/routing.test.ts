@@ -103,3 +103,15 @@ describe('dev-only pages (email.html / ui.html)', () => {
     expect(res.status).not.toBe(404);
   });
 });
+
+describe('security headers', () => {
+  it('adds anti-framing, nosniff and referrer headers to Worker responses (APIs and gated pages)', async ({ expect }) => {
+    for (const path of ['/api/config', '/admin/students.html']) {
+      const res = await fetchWorker(path, { redirect: 'manual' });
+      expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+      expect(res.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
+      expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+      expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    }
+  });
+});

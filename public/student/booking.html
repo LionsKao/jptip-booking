@@ -292,7 +292,7 @@
       <h2 data-i18n="booking.notice.title">預約須知</h2>
       <ul class="notice-list">
         <li data-i18n="booking.notice.item1">請於課程開始前 10 分鐘進入會議室，並確認麥克風與鏡頭運作正常</li>
-        <li data-i18n="booking.notice.item2">如需取消或更改預約，請於課程開始前 24 小時完成操作，逾時將視同完成該堂課程</li>
+        <li data-i18n="booking.notice.item2">如需取消或更改預約，請於課程規定的時限前完成操作，逾時將視同完成該堂課程</li>
         <li data-i18n="booking.notice.item3">同一時段僅能預約一位老師，重複預約會自動取消較早的一筆</li>
         <li data-i18n="booking.notice.item4">上課遲到超過 15 分鐘，老師有權視同學生缺席並結束該堂課程</li>
         <li data-i18n="booking.notice.item5">課程講義與教材將於預約成功後寄送至你的信箱，請記得提前下載</li>
@@ -520,7 +520,6 @@
 
     const incrementMinutes = course.scheduleIncrement === '30 分鐘' ? 30 : 60;
     const existingRanges = findTeacherBookingsOnDate(dateISO).map(occupiedRangeForBooking);
-    const nowMs = Date.now();
 
     const candidates = [];
     weeklyWindows.forEach((win) => {
@@ -534,8 +533,7 @@
     return candidates.filter((startMin) => {
       if (startMin < DISPLAY_HOUR_START * 60 || startMin > DISPLAY_HOUR_END * 60) return false;
       if (collidesWithRanges(startMin, course, existingRanges)) return false;
-      const slotDateTime = new Date(`${dateISO}T${minutesToTime(startMin)}:00`);
-      if (slotDateTime.getTime() - nowMs < course.minLeadHours * 3600 * 1000) return false;
+      if (hoursUntilUtc8(dateISO, minutesToTime(startMin)) < course.minLeadHours) return false;
       return true;
     });
   }
@@ -578,14 +576,14 @@
     buttons.forEach((btn) => btn.classList.remove('disabled'));
     if (!course || !teacherId || scheduleCache.teacherId !== teacherId) return;
     const leaveDates = scheduleCache.leave.map((l) => l.date);
-    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
-    const maxDate = new Date(today0); maxDate.setDate(maxDate.getDate() + course.maxLeadDays);
+    // 「今天」跟「最久可預約的日期」都以 UTC+8 的日期為準（跟後端 POST /api/bookings 的檢查一致）
+    const todayISO = utc8DateISO();
+    const maxDateISO = utc8DateISO(course.maxLeadDays);
     buttons.forEach((btn) => {
       const dateISO = buttonToISODate(btn);
       if (!dateISO) return;
-      const d = new Date(`${dateISO}T00:00:00`);
-      const tooOld = d < today0;
-      const tooFar = d > maxDate;
+      const tooOld = dateISO < todayISO;
+      const tooFar = dateISO > maxDateISO;
       const onLeave = leaveDates.includes(dateISO);
       const noSlots = !tooOld && !tooFar && !onLeave && getBookableSlotsForDate(course, teacherId, dateISO).length === 0;
       if (tooOld || tooFar || onLeave || noSlots) btn.classList.add('disabled');
@@ -699,15 +697,15 @@
       else ribbonHtml = `<span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>`;
 
       const quotaBtnHtml = (owned && !isCompleted)
-        ? ` <button type="button" class="quota-info-btn" data-course-name="${course.name}" data-attended="${owned.attended}" data-booked="${owned.booked}" aria-label="${t('booking.viewQuota')}"><i class="fa-solid fa-fw fa-circle-question"></i></button>`
+        ? ` <button type="button" class="quota-info-btn" data-course-name="${escapeHtml(course.name)}" data-attended="${owned.attended}" data-booked="${owned.booked}" aria-label="${t('booking.viewQuota')}"><i class="fa-solid fa-fw fa-circle-question"></i></button>`
         : '';
 
       return `<div class="tilt-card course-card ${locked ? 'has-ribbon locked' : ''} ${isCompleted ? 'completed' : ''} ${isNotPurchased ? 'not-purchased' : ''}"
                    data-group="course" data-course-id="${course.id}">
         ${ribbonHtml}
         <div class="course-tag" style="background:${courseBadgeColor(course.name)};"></div>
-        <h4>${course.name}${quotaBtnHtml}</h4>
-        <p class="text-small">${course.description || ''}</p>
+        <h4>${escapeHtml(course.name)}${quotaBtnHtml}</h4>
+        <p class="text-small">${escapeHtml(course.description)}</p>
       </div>`;
     }).join('');
 
@@ -744,12 +742,12 @@
       return `
       <div class="tilt-card teacher-card${bookable ? '' : ' locked'}" data-group="teacher" data-teacher-id="${t.id}">
         <span class="select-badge"><i class="fa-solid fa-fw fa-check"></i></span>
-        <div class="teacher-avatar" style="background-image: url('${avatarSrc(t.avatar)}');"></div>
+        <div class="teacher-avatar" style="background-image: url('${escapeHtml(avatarSrc(t.avatar))}');"></div>
         <div class="teacher-info">
-          <h4>${t.name}</h4>
-          <p class="text-small">${t.specialty || ''}</p>
+          <h4>${escapeHtml(t.name)}</h4>
+          <p class="text-small">${escapeHtml(t.specialty)}</p>
         </div>
-        ${t.motto ? `<p class="text-caption teacher-motto">「${t.motto}」</p>` : ''}
+        ${t.motto ? `<p class="text-caption teacher-motto">「${escapeHtml(t.motto)}」</p>` : ''}
       </div>`;
     }).join('');
 
@@ -804,6 +802,17 @@
     const dateISO = getSelectedDateISO();
     const timeStr = document.querySelector('.time-slot.selected')?.textContent;
     if (!course || !teacherId || !dateISO || !timeStr) { showBookingAlert(t('booking.error.incomplete')); return; }
+
+    // 送出前再檢查一次時限：學生可能在確認畫面停留太久，這個時段已經進入課程「不可預約」的時數內。
+    // 帶回選時段那一步並重畫時段（進入時限的時段會變成反灰、原本的選取會清掉）。後端也會擋。
+    if (hoursUntilUtc8(dateISO, timeStr) < course.minLeadHours) {
+      refreshDayDisabledStates();
+      renderTimeSlotsForSelectedDate();
+      refreshNextButtonState(4);
+      showStep(4, false);
+      showBookingAlert(t('booking.error.tooLate', { hours: course.minLeadHours }));
+      return;
+    }
 
     // 先約先贏：送出前再檢查一次這個時段是否還可預約，避免使用者在確認畫面停留太久、時段被搶走。
     // 這裡只是即時 UX 回饋，真正權威的檢查是下面 POST /api/bookings 回傳的 409。

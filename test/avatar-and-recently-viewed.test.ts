@@ -69,6 +69,28 @@ describe('PUT /api/avatar/upload', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects SVG (an image/* type that can carry script) and accepts JPEG/PNG/WebP only', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+    expect((await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie, svg, 'image/svg+xml'))).status).toBe(400);
+    expect((await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie, FAKE_JPEG, 'image/gif'))).status).toBe(400);
+    const webp = await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie, FAKE_JPEG, 'image/webp'));
+    expect(webp.status).toBe(200);
+    expect(((await webp.json()) as { path: string }).path).toMatch(/\.webp$/);
+
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    expect((await fetchWorker('/api/me/avatar', uploadInit(studentCookie, svg, 'image/svg+xml'))).status).toBe(400);
+  });
+
+  it('serves uploaded images with nosniff and a sandboxing CSP, so nothing in them can run', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const { path } = (await (await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie))).json()) as { path: string };
+    const res = await fetchWorker(`/${path}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('Content-Security-Policy')).toContain('sandbox');
+  });
+
   it('rejects a non-image content type', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const res = await fetchWorker('/api/avatar/upload?role=teacher&id=1', uploadInit(cookie, FAKE_JPEG, 'text/plain'));

@@ -14,6 +14,12 @@ const AVATAR_LIST = [
   '046-walrus.png', '047-bee.png', '048-sheep.png', '049-monkey.png', '050-octopus.png',
   '051-bear-1.png', '052-sea-lion.png', '053-polar-bear.png',
 ];
+// 把資料放進 innerHTML 的樣板字串之前一律先跳脫：老師的專長／座右銘可以自己改，姓名、課程名稱
+// 等也都是使用者輸入的文字，直接塞進 HTML 會讓裡面的 <script>、onerror= 之類的內容被執行（XSS）。
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
 function randomAvatar() { return AVATAR_LIST[Math.floor(Math.random() * AVATAR_LIST.length)]; }
 function avatarSrc(avatar) {
   if (!avatar) return `../assets/avatars/${randomAvatar()}`;
@@ -386,6 +392,15 @@ function myMonthYearLabel(year, month) {
 // 差，統一在這裡處理，courses/hours/lessons/booking-history 等頁面都共用，
 // 才不用每個頁面各自寫一份、又漏掉緬甸這種非整數小時的時區。
 // ==========================================================================
+// 上課日期時間一律以 UTC+8（台北時間）儲存，預約／取消的時限也都以 UTC+8 判斷，不受瀏覽器
+// 所在時區影響（跟後端 src/index.ts 的同名函式算法一致）。
+function hoursUntilUtc8(dateISO, timeStr) {
+  return (Date.parse(`${dateISO}T${timeStr}:00+08:00`) - Date.now()) / 3600000;
+}
+function utc8DateISO(offsetDays = 0) {
+  return new Date(Date.now() + 8 * 3600000 + offsetDays * 86400000).toISOString().slice(0, 10);
+}
+
 function parseUtcOffset(label) {
   const m = /UTC([+-]\d+)(?::(\d+))?/.exec(label || '');
   if (!m) return 8; // 沒有設定時區時，跟資料庫時間基準（UTC+8）一致
@@ -945,9 +960,9 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput.value.trim(), role: card.dataset.role, code }),
       });
-      const data = await res.json();
       if (!res.ok) {
-        showLoginAlert(data.error || t('login.error.invalidOtp'), 'error');
+        // 錯誤訊息用翻譯好的文字，不直接顯示後端回傳的中文；錯太多次（429）另外提示要稍後再試
+        showLoginAlert(t(res.status === 429 ? 'login.error.tooManyAttempts' : 'login.error.invalidOtp'), 'error');
         submitBtn.disabled = false;
         return;
       }

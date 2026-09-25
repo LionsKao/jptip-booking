@@ -396,8 +396,8 @@
       </div>
       <div class="booking-card-info">
         <p class="booking-card-datetime">${formatDateTime(r, false)}</p>
-        <p class="booking-card-course">${r.course}</p>
-        <h4>${r.studentName} ／ ${r.teacher}</h4>
+        <p class="booking-card-course">${escapeHtml(r.course)}</p>
+        <h4>${escapeHtml(r.studentName)} ／ ${escapeHtml(r.teacher)}</h4>
       </div>
     </div>`;
   }
@@ -513,16 +513,20 @@
     return hrs >= 0 && hrs <= 24;
   }
 
+  // 已經進入課程「不可取消」的時數內就改顯示「已無法取消此預約」，回傳 true 表示擋下來了
+  function showTooLateIfNeeded(record) {
+    const course = loadCourses().find((c) => (record.courseId != null && c.id === record.courseId) || c.name === record.course);
+    const minLeadHours = course?.minLeadHours ?? 48;
+    if (hoursUntilStart(record) >= minLeadHours) return false;
+    document.getElementById('cancel-too-late-note').textContent = t('history.tooLate.note', { hours: minLeadHours });
+    document.getElementById('cancelTooLateModal').classList.add('open');
+    return true;
+  }
+
   document.getElementById('cancel-booking-btn').addEventListener('click', () => {
     const record = records.find((r) => r.id === activeRecordId);
     if (!record) return;
-    const course = loadCourses().find((c) => (record.courseId != null && c.id === record.courseId) || c.name === record.course);
-    const minLeadHours = course?.minLeadHours ?? 48;
-    if (hoursUntilStart(record) < minLeadHours) {
-      document.getElementById('cancel-too-late-note').textContent = t('history.tooLate.note', { hours: minLeadHours });
-      document.getElementById('cancelTooLateModal').classList.add('open');
-      return;
-    }
+    if (showTooLateIfNeeded(record)) return;
     document.getElementById('cancelConfirmModal').classList.add('open');
   });
 
@@ -530,6 +534,8 @@
     const record = records.find((r) => r.id === activeRecordId);
     document.getElementById('cancelConfirmModal').classList.remove('open');
     if (!record) return;
+    // 確認視窗可能開著放很久：按下「確定取消」的當下再檢查一次時限（後端也會擋）
+    if (showTooLateIfNeeded(record)) return;
 
     const res = await fetch(`/api/bookings?id=${record.id}`, {
       method: 'PATCH',
