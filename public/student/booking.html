@@ -255,6 +255,18 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="bookingTimezoneModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
+    <h3 data-i18n="hours.tzModal.title">時段顯示時區</h3>
+    <p class="text-small" id="booking-timezone-note"></p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="leaveConfirmModal" data-modal-persistent>
   <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
@@ -334,7 +346,7 @@
   <!-- Step 4: 請選擇日期與時間 -->
   <div class="booking-step" data-step="4" hidden>
     <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/icon-calendar.png" alt=""><h2 data-i18n="booking.step4.title">請選擇日期與時間</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/icon-calendar.png" alt=""><h2 data-i18n="booking.step4.title">請選擇日期與時間</h2><button type="button" class="info-btn" data-modal-open="bookingTimezoneModal" data-i18n-aria-label="history.tzInfo" aria-label="時區說明"><i class="fa-solid fa-fw fa-globe"></i></button></div>
     <div class="row" style="align-items:flex-start; gap: var(--space-5);">
       <div class="datepicker" data-datepicker>
         <div class="datepicker-header">
@@ -405,11 +417,20 @@
   // 語言設定的真相是帳號的 language 欄位；這裡不放語言切換鈕（已在學生主頁），
   // 純粹只是套用帳號目前的語言，讓下面動態組出來的文字（課程 ribbon、alert 訊息等）
   // 一開始就是對的語言，不用等使用者手動切換。
+  //
+  // 日曆和時段依學生個人設定的時區顯示（跟「我的課程」一樣）；老師時段、既有預約、可預約時限
+  // 都以 UTC+8 儲存和計算（跟後端一致），送出時也送 UTC+8 的日期時間，只有畫面換算。
+  let studentTzOffset = 8;
+  let studentTzDeltaMinutes = 0;
   const i18nReadyPromise = (async () => {
     const me = await fetch('/api/students/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
     const lang = (me && me.language) || getCurrentLang();
     setCurrentLang(lang);
     await initI18n(lang);
+    const tzLabel = (me && me.timezone) || 'UTC+08:00 台北';
+    studentTzOffset = parseUtcOffset(tzLabel);
+    studentTzDeltaMinutes = Math.round((studentTzOffset - 8) * 60);
+    document.getElementById('booking-timezone-note').textContent = t('hours.allTimesIn', { tz: formatTimezoneForSentence(tzLabel) });
   })();
 
   const steps = [...document.querySelectorAll('.booking-step')];
@@ -449,7 +470,9 @@
       const time = selectedSlot ? selectedSlot.textContent : '';
       const isMobile = window.matchMedia('(max-width: 640px)').matches;
       const dateLabel = isMobile ? formatDateShort(date) : formatDateLong(date);
-      document.querySelector('[data-confirm-datetime]').textContent = `${dateLabel} ${time}`;
+      const el = document.querySelector('[data-confirm-datetime]');
+      el.textContent = `${dateLabel} ${time}`;
+      el.insertAdjacentHTML('beforeend', `<span class="tz-tag">UTC${formatUtcOffset(studentTzOffset)}</span>`);
     }
   }
   document.querySelectorAll('.confirm-highlight').forEach((card) => applyTiltEffect(card, 6));
@@ -485,7 +508,7 @@
   // ------------------------------------------------------------------------
   function timeToMinutes(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; }
   function minutesToTime(mins) { return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`; }
-  // 現實中不會有課排在這個區間以外（凌晨），所以不管老師實際設定的時段多寬，能
+  // 現實中不會有課排在這個區間以外（學生時區的凌晨），所以不管老師實際設定的時段多寬，能
   // 預約的時間一律夾在這個範圍內——日曆判斷某天是否還有空位、跟右側時間格子的
   // 顯示，都要用同一個範圍，不然會出現「日曆說這天還有空位，但格子一個都不能按」
   // 的不一致。
@@ -513,8 +536,25 @@
     return scheduleCache.bookings.filter((b) => b.date === dateISO && b.status !== 'cancelled');
   }
 
-  function getBookableSlotsForDate(course, teacherId, dateISO) {
+  // 日期加減天數（YYYY-MM-DD，不受瀏覽器時區影響）
+  function addDaysISO(dateISO, days) {
+    const d = new Date(`${dateISO}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+  // 某一天的第幾分鐘換到另一個時區：分鐘數超出當天時進位到前一天／後一天
+  function shiftDateMinutes(dateISO, minutes, deltaMinutes) {
+    const total = minutes + deltaMinutes;
+    const dayShift = Math.floor(total / 1440);
+    return { date: addDaysISO(dateISO, dayShift), minutes: total - dayShift * 1440 };
+  }
+
+  // UTC+8 某一天可以預約的開始時間（當天第幾分鐘，UTC+8）。請假、超過最久可預約的日期、
+  // 進入開始前不可預約的時數，都跟後端 POST /api/bookings 一樣以 UTC+8 判斷。
+  function getBookableUtc8Slots(course, teacherId, dateISO) {
     if (scheduleCache.teacherId !== teacherId) return [];
+    if (scheduleCache.leave.some((l) => l.date === dateISO)) return [];
+    if (dateISO > utc8DateISO(course.maxLeadDays)) return [];
     const weeklyWindows = scheduleCache.hours.filter((h) => h.day === getWeekdayKey(dateISO));
     if (!weeklyWindows.length) return [];
 
@@ -531,11 +571,27 @@
     });
 
     return candidates.filter((startMin) => {
-      if (startMin < DISPLAY_HOUR_START * 60 || startMin > DISPLAY_HOUR_END * 60) return false;
       if (collidesWithRanges(startMin, course, existingRanges)) return false;
       if (hoursUntilUtc8(dateISO, minutesToTime(startMin)) < course.minLeadHours) return false;
       return true;
     });
+  }
+
+  // 學生時區的某一天可以預約的時段。學生的一天可能橫跨 UTC+8 的前一天到後一天，所以三天都算，
+  // 換算成學生時區後只留落在這一天、而且在顯示範圍內的。
+  // 回傳 [{ minutes: 學生時區的第幾分鐘（畫面用）, date, time: UTC+8 的日期時間（送出用） }]
+  function getBookableSlotsForLocalDate(course, teacherId, localDateISO) {
+    const slots = [];
+    [-1, 0, 1].forEach((dayShift) => {
+      const utc8Date = addDaysISO(localDateISO, dayShift);
+      getBookableUtc8Slots(course, teacherId, utc8Date).forEach((startMin) => {
+        const local = shiftDateMinutes(utc8Date, startMin, studentTzDeltaMinutes);
+        if (local.date !== localDateISO) return;
+        if (local.minutes < DISPLAY_HOUR_START * 60 || local.minutes > DISPLAY_HOUR_END * 60) return;
+        slots.push({ minutes: local.minutes, date: utc8Date, time: minutesToTime(startMin) });
+      });
+    });
+    return slots;
   }
 
   // ------------------------------------------------------------------------
@@ -569,37 +625,34 @@
     return card ? Number(card.dataset.teacherId) : null;
   }
 
+  // 日曆上的日期是學生時區的日期：這一天沒有任何可預約的時段就反灰（已經過去、太久以後、
+  // 老師請假或沒開放，都會讓這天沒有時段）
   function refreshDayDisabledStates() {
     const course = getSelectedCourse();
     const teacherId = getSelectedTeacherId();
     const buttons = document.querySelectorAll('.datepicker-grid button:not(.muted)');
     buttons.forEach((btn) => btn.classList.remove('disabled'));
     if (!course || !teacherId || scheduleCache.teacherId !== teacherId) return;
-    const leaveDates = scheduleCache.leave.map((l) => l.date);
-    // 「今天」跟「最久可預約的日期」都以 UTC+8 的日期為準（跟後端 POST /api/bookings 的檢查一致）
-    const todayISO = utc8DateISO();
-    const maxDateISO = utc8DateISO(course.maxLeadDays);
     buttons.forEach((btn) => {
       const dateISO = buttonToISODate(btn);
       if (!dateISO) return;
-      const tooOld = dateISO < todayISO;
-      const tooFar = dateISO > maxDateISO;
-      const onLeave = leaveDates.includes(dateISO);
-      const noSlots = !tooOld && !tooFar && !onLeave && getBookableSlotsForDate(course, teacherId, dateISO).length === 0;
-      if (tooOld || tooFar || onLeave || noSlots) btn.classList.add('disabled');
+      if (getBookableSlotsForLocalDate(course, teacherId, dateISO).length === 0) btn.classList.add('disabled');
     });
   }
 
   // 固定顯示 08:00–23:00 這個範圍，讓還沒選日期時右側就能先出現一整排格子（灰階、
   // 不可選），而不是一片空白，也讓版面固定是一個整齊的方格；選了日期之後，同一批
   // 格子裡屬於當天可預約的時段會「亮起來」，其餘的維持灰階，而不是整個重新排版，
-  // 畫面才不會感覺是憑空冒出來的。是否真的可預約仍然由 getBookableSlotsForDate()
+  // 畫面才不會感覺是憑空冒出來的。是否真的可預約仍然由 getBookableSlotsForLocalDate()
   // 判斷（該函式也夾在同一個範圍內，不然會出現日曆說這天有空位、格子卻一個都點不動
   // 的不一致），這裡只負責固定要畫出哪些格子。
   function getDisplaySlotMinutes(course) {
     const incrementMinutes = course.scheduleIncrement === '30 分鐘' ? 30 : 60;
+    // 格子要對齊老師時段（UTC+8 的整點／半點）換算過來的時間：緬甸（UTC+6:30）這種差半小時的
+    // 時區，每小時一格的課程會落在 08:30、09:30…
+    const alignMinutes = ((studentTzDeltaMinutes % incrementMinutes) + incrementMinutes) % incrementMinutes;
     const minutes = [];
-    for (let t = DISPLAY_HOUR_START * 60; t <= DISPLAY_HOUR_END * 60; t += incrementMinutes) {
+    for (let t = DISPLAY_HOUR_START * 60 + alignMinutes; t <= DISPLAY_HOUR_END * 60; t += incrementMinutes) {
       minutes.push(t);
     }
     return minutes;
@@ -613,7 +666,13 @@
     if (!course || !teacherId) { container.innerHTML = ''; return; }
 
     const allSlots = getDisplaySlotMinutes(course);
-    const bookableSlots = dateISO ? new Set(getBookableSlotsForDate(course, teacherId, dateISO)) : new Set();
+    // 學生時區的第幾分鐘 → 這個時段對應的 UTC+8 日期時間（記在格子的 data-date／data-time，送出時用）
+    const bookableSlots = new Map((dateISO ? getBookableSlotsForLocalDate(course, teacherId, dateISO) : []).map((slot) => [slot.minutes, slot]));
+    const setSlotTarget = (slotEl, minutes) => {
+      const target = bookableSlots.get(minutes);
+      slotEl.dataset.date = target ? target.date : '';
+      slotEl.dataset.time = target ? target.time : '';
+    };
 
     // 換日期時，同一門課的時段清單（allSlots）不會變，只有「這天可不可訂」會變。
     // 盡量重用既有的 .time-slot 元素、只切換 disabled class，讓 .time-slot 本來就
@@ -629,13 +688,15 @@
         const bookable = dateISO && bookableSlots.has(allSlots[i]);
         slot.classList.toggle('disabled', !bookable);
         slot.classList.remove('selected');
+        setSlotTarget(slot, allSlots[i]);
       });
     } else {
       container.innerHTML = allSlots.map((m) => {
         const bookable = dateISO && bookableSlots.has(m);
         return `<div class="time-slot${bookable ? '' : ' disabled'}">${minutesToTime(m)}</div>`;
       }).join('');
-      container.querySelectorAll('.time-slot').forEach((slot) => {
+      container.querySelectorAll('.time-slot').forEach((slot, i) => {
+        setSlotTarget(slot, allSlots[i]);
         applyTiltEffect(slot, 28);
         slot.addEventListener('click', () => {
           if (slot.classList.contains('disabled')) return;
@@ -812,8 +873,10 @@
 
     const course = getSelectedCourse();
     const teacherId = getSelectedTeacherId();
-    const dateISO = getSelectedDateISO();
-    const timeStr = document.querySelector('.time-slot.selected')?.textContent;
+    // 格子上顯示的是學生時區的時間，送出、檢查都用它對應的 UTC+8 日期時間
+    const selectedSlot = document.querySelector('.time-slot.selected');
+    const dateISO = selectedSlot?.dataset.date;
+    const timeStr = selectedSlot?.dataset.time;
     if (!course || !teacherId || !dateISO || !timeStr) { showBookingAlert(t('booking.error.incomplete')); return; }
 
     // 送出前再檢查一次時限：學生可能在確認畫面停留太久，這個時段已經進入課程「不可預約」的時數內。
