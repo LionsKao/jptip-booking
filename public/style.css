@@ -2947,6 +2947,16 @@
     opacity: 1;
   }
 }
+@layer utilities {
+  .btn:disabled, .btn.is-disabled, .btn:disabled:hover, .btn.is-disabled:hover, .btn:disabled:active, .btn.is-disabled:active {
+    background: #d8d3ca;
+    color: #a89f92;
+    box-shadow: none;
+    outline: none;
+    filter: none;
+    transform: none;
+  }
+}
 @property --tw-rotate-x {
   syntax: "*";
   inherits: false;

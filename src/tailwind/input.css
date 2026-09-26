@@ -2156,3 +2156,23 @@
   40%  { transform: scale(.6) rotate(180deg); opacity: .3; }
   100% { transform: scale(1) rotate(360deg); opacity: 1; }
 }
+
+/* 停用的按鈕不管是哪一種顏色、滑鼠移上去或按下，一律長得跟停用的 .btn.blue 一樣：灰色底、灰字、
+   沒有外框。寫在 utilities 層是因為：
+   - 按鈕的 .outline（外框按鈕）剛好跟 Tailwind 的 outline 工具類同名，Tailwind 會多產生一條
+     `.outline { outline-width: 1px }`（utilities 層），停用時會多一圈灰色外框；
+   - 外框按鈕的 :hover／:active（例如 .btn.outline.green:hover）權重比 components 層的
+     .btn:disabled 高，滑鼠移上去會換成淡色底。
+   utilities 層一律比 components 層優先，所以在這裡蓋掉。可按的按鈕不受影響。 */
+@layer utilities {
+  .btn:disabled, .btn.is-disabled,
+  .btn:disabled:hover, .btn.is-disabled:hover,
+  .btn:disabled:active, .btn.is-disabled:active {
+    background: #d8d3ca;
+    color: #a89f92;
+    box-shadow: none;
+    outline: none;
+    filter: none;
+    transform: none;
+  }
+}
