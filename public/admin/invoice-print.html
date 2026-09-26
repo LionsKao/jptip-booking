@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=800, initial-scale=1" />
+<title>請求書</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<style>
+  /* 文件本身的版面沿用原本的請求書／業務委託実績通知書（日文，列印後存成 PDF 寄給老師）；
+     上方的「列印／存成 PDF」工具列只在畫面上出現，列印時隱藏 */
+  body {
+    font-family: "MS PGothic", "游ゴシック", YuGothic, sans-serif;
+    margin: 20px auto;
+    max-width: 700px;
+    font-size: 12pt;
+    color: #000;
+  }
+  .page {
+    padding: 20px 40px;
+    box-sizing: border-box;
+    position: relative;
+  }
+  h1 {
+    text-align: center;
+    font-weight: bold;
+  }
+  .doc-invoice h1 {
+    font-size: 25pt;
+    letter-spacing: 0.3em;
+  }
+  .doc-notice h1 {
+    font-size: 24pt;
+    margin-bottom: 30px;
+  }
+  .date {
+    text-align: right;
+    margin-bottom: 30px;
+  }
+  .doc-invoice .date {
+    margin-top: 10px;
+  }
+  .address {
+    margin-bottom: 30px;
+    line-height: 1.5;
+  }
+  p.notice {
+    margin-bottom: 40px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 40px;
+    border: 1px solid #000;
+  }
+  th, td {
+    border: 1px solid #000;
+    padding: 8px;
+    vertical-align: top;
+  }
+  th {
+    background-color: #eee;
+    text-align: left;
+  }
+  .center-text {
+    text-align: center;
+  }
+  .amount-row td {
+    padding-top: 12px;
+    font-weight: bold;
+  }
+  .footer-text {
+    text-align: right;
+    margin-top: 50px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 0 40px 20px;
+    font-family: sans-serif;
+  }
+  .toolbar[hidden] {
+    display: none;
+  }
+  .btn-print {
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #2b4b8a;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  .toolbar-hint {
+    font-size: 13px;
+    color: #666;
+  }
+  .doc-message {
+    padding: 40px;
+    font-family: sans-serif;
+    font-size: 15px;
+    color: #a0522d;
+  }
+
+  @media print {
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      padding: 40px 60px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .no-print {
+      display: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar no-print" id="toolbar" hidden>
+  <button type="button" class="btn-print" id="print-btn" data-i18n="admin.invoices.printButton">列印／存成 PDF</button>
+  <span class="toolbar-hint" data-i18n="admin.invoices.printHint">在列印視窗把「目的地」選成「另存為 PDF」，就能存成 PDF 檔</span>
+</div>
+
+<div class="page" id="doc"></div>
+
+<script src="../script.js"></script>
+<script>
+function yen(value) {
+  return Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+(async () => {
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  const params = new URLSearchParams(window.location.search);
+  const teacherId = params.get('teacherId') || '';
+  const month = params.get('month') || '';
+  const type = params.get('type') === 'notice' ? 'notice' : 'invoice';
+  const docEl = document.getElementById('doc');
+  const showMessage = (text) => {
+    docEl.innerHTML = `<p class="doc-message">${escapeHtml(text)}</p>`;
+  };
+
+  const res = await fetch(`/api/invoices?month=${encodeURIComponent(month)}&teacherId=${encodeURIComponent(teacherId)}`).catch(() => null);
+  const [inv] = res && res.ok ? await res.json() : [];
+  if (!inv) {
+    showMessage(t('admin.invoices.loadFailed'));
+    return;
+  }
+  if (inv.missing.length) {
+    showMessage(t('admin.invoices.printIncomplete'));
+    return;
+  }
+
+  // 上課月份的 1 日到月底是服務期間；文件日期是下個月 1 日
+  const [y, m] = month.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const issue = m === 12 ? { y: y + 1, m: 1 } : { y, m: m + 1 };
+  const issueDate = `${issue.y}年${issue.m}月1日`;
+  const period = `${y}年${m}月1日〜${y}年${m}月${lastDay}日`;
+  const name = escapeHtml(inv.name);
+  const r = {
+    address: escapeHtml(inv.receipt.address),
+    companyName: escapeHtml(inv.receipt.companyName),
+    companyAddress: escapeHtml(inv.receipt.companyAddress),
+  };
+
+  if (type === 'invoice') {
+    // 稅率 0% 的老師不寫「消費税0%込」
+    const taxNote = inv.taxRate > 0 ? `（消費税${inv.taxRate}%込）` : '';
+    docEl.classList.add('doc-invoice');
+    docEl.innerHTML = `
+      <h1>請 求 書</h1>
+      <div class="date">${issueDate}</div>
+      <div class="address">${r.companyName} 御中<br />${r.address}<br />${name}</div>
+      <p>業務委託料について、下記のとおり請求します。</p>
+      <table>
+        <tr>
+          <th style="width: 60%;">請求金額&lt;合計&gt;</th>
+          <td class="center-text">${yen(inv.total)}円${taxNote}</td>
+        </tr>
+      </table>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30%;">サービス提供期間</th>
+            <th>内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${period}</td>
+            <td>台湾内及び日本国内での日本語教育業務に関する業務委託料</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>以上</p>`;
+  } else {
+    docEl.classList.add('doc-notice');
+    docEl.innerHTML = `
+      <h1>業務委託実績通知書</h1>
+      <div class="date">${issueDate}</div>
+      <div class="address">${name} 様<br />${r.companyAddress}<br />${r.companyName}</div>
+      <p class="notice">業務委託料について、下記のとおり連絡します。</p>
+      <table>
+        <tbody>
+          <tr>
+            <th width="65%">実績コマ数（コマ）</th>
+            <td>${inv.lessonCount}</td>
+          </tr>
+          <tr>
+            <th>1コマ単価（円）＜消費税込＞</th>
+            <td>${yen(inv.unitPriceWithTax)}</td>
+          </tr>
+          <tr class="amount-row">
+            <th>合計振込金額</th>
+            <td>${yen(inv.total)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footer-text">以上</p>`;
+  }
+
+  // 存 PDF 時瀏覽器會拿 title 當預設檔名
+  document.title = `${type === 'invoice' ? '請求書' : '業務委託実績通知書'}_${inv.name}_${y}年${String(m).padStart(2, '0')}月`;
+  document.getElementById('toolbar').hidden = false;
+  document.getElementById('print-btn').addEventListener('click', () => window.print());
+})();
+</script>
+</body>
+</html>

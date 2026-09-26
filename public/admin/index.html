@@ -17,7 +17,7 @@
   }
   body.dashboard .page {
     width: 100%;
-    max-width: 548px;
+    max-width: 1000px;
     margin: 0 auto;
     padding-top: var(--space-6);
     padding-bottom: var(--space-6);
@@ -32,18 +32,18 @@
     }
   }
 
+  /* 項目變多了，桌機排成兩欄（手機一欄，見下方 media query） */
   .dash-cards {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-5);
+    padding: 0 var(--space-4);
   }
   .dash-card {
     display: flex;
     align-items: center;
     gap: var(--space-5);
-    width: 550px;
-    max-width: 100%;
-    margin: 0 auto;
+    width: 100%;
     border-radius: var(--radius-lg);
     border: 3px solid var(--line);
     background: var(--bg-card);
@@ -73,6 +73,9 @@
   .dash-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); }
 
   @media (max-width: 640px) {
+    .dash-cards {
+      grid-template-columns: 1fr;
+    }
     .dash-card {
       padding: var(--space-4) var(--space-4);
       gap: var(--space-3);
@@ -131,8 +134,15 @@
         <p data-i18n="admin.dash.courses.desc">設定課程項目與預約規則</p>
       </span>
     </button>
+    <button type="button" class="dash-card" data-action="invoices">
+      <span class="dash-card-icon"><img src="../assets/icons/invoice.png" alt=""></span>
+      <span>
+        <h3 data-i18n="admin.dash.invoices.title">請求書</h3>
+        <p data-i18n="admin.dash.invoices.desc">每月老師的請求書與實績通知書</p>
+      </span>
+    </button>
     <button type="button" class="dash-card" data-action="emails">
-      <span class="dash-card-icon"><img src="../assets/icons/mail.png" alt=""></span>
+      <span class="dash-card-icon"><img src="../assets/icons/email.png" alt=""></span>
       <span>
         <h3 data-i18n="admin.dash.emails.title">系統信件</h3>
         <p data-i18n="admin.dash.emails.desc">管理系統自動寄出的信件內容</p>
@@ -171,6 +181,9 @@
   });
   document.querySelector('[data-action="courses"]').addEventListener('click', () => {
     window.location.href = 'courses.html';
+  });
+  document.querySelector('[data-action="invoices"]').addEventListener('click', () => {
+    window.location.href = 'invoices.html';
   });
   document.querySelector('[data-action="emails"]').addEventListener('click', () => {
     window.location.href = 'email-templates.html';

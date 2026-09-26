@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 請求書</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  /* 月份切換：‹ 2025 年 06 月 › */
+  .invoice-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+  .invoice-month-label {
+    min-width: 170px;
+    text-align: center;
+    font-size: 1.375rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .invoice-summary {
+    margin: 0 0 var(--space-5);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+  }
+
+  #invoice-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .invoice-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    border: 3px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    transform-style: preserve-3d;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+  }
+  .invoice-card:hover { border-color: var(--color-blue); }
+  .invoice-card-empty { grid-column: 1 / -1; min-height: 88px; }
+  .invoice-card-head { display: flex; align-items: center; gap: var(--space-3); padding-right: 64px; }
+  .invoice-card-avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--bg-card-alt); }
+  .invoice-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .invoice-card-avatar.is-inactive img { filter: grayscale(1); }
+  .invoice-card h4 { margin: 0; font-size: 1.125rem; }
+  /* 合計金額放大，單價 × 堂數、稅率縮成一行小字 */
+  .invoice-card-total { font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .invoice-card-breakdown { margin: 0; color: var(--text-muted); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
+  .invoice-card-missing { margin: 0; color: var(--color-orange); font-size: var(--fs-small); font-weight: 700; }
+  .invoice-card-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    #invoice-cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.dash.invoices.title">請求書</h2></div>
+    <div class="invoice-month-nav">
+      <button type="button" class="btn outline sm" id="prev-month-btn" data-i18n-aria-label="admin.invoices.prevMonth" aria-label="上個月"><i class="fa-solid fa-fw fa-chevron-left"></i></button>
+      <span class="invoice-month-label" id="month-label"></span>
+      <button type="button" class="btn outline sm" id="next-month-btn" data-i18n-aria-label="admin.invoices.nextMonth" aria-label="下個月"><i class="fa-solid fa-fw fa-chevron-right"></i></button>
+    </div>
+    <p class="invoice-summary" id="invoice-summary"></p>
+    <div id="invoice-cards"></div>
+  </section>
+</div>
+
+<div class="modal-overlay" id="invoiceAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="invoiceAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+// 月份（'YYYY-MM'）加減幾個月
+function shiftMonth(month, delta) {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+// 月份標題：繁中寫成「2025 年 06 月」，緬甸文查表，其他語言交給 Intl
+function formatInvoiceMonth(month) {
+  const [y, m] = month.split('-').map(Number);
+  const lang = getCurrentLang();
+  if (lang === 'zh-Hant') return `${y} 年 ${String(m).padStart(2, '0')} 月`;
+  if (lang === 'my') return myMonthYearLabel(y, m - 1);
+  return new Intl.DateTimeFormat(DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'], { year: 'numeric', month: 'long' }).format(new Date(y, m - 1, 1));
+}
+
+function formatYen(value) {
+  return Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+// 缺少的領收書欄位名稱，沿用老師資料頁的欄位名稱
+const MISSING_FIELD_KEYS = {
+  unitPrice: 'admin.teachers.receipt.wage',
+  address: 'admin.teachers.receipt.address',
+  companyName: 'admin.teachers.receipt.companyName',
+  companyAddress: 'admin.teachers.receipt.companyAddress',
+};
+
+(async () => {
+  // 這頁沒有語言切換鈕（已在管理者主頁），純粹套用該管理者帳號目前的語言。
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  // 月份記在網址（?month=YYYY-MM），重新整理或從明細頁返回都停在同一個月；沒指定就顯示上個月
+  // （通常是月初請上個月的款）。「這個月」以 UTC+8 的日期為準，跟上課日期的基準一致。
+  const params = new URLSearchParams(window.location.search);
+  let month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.get('month') || '') ? params.get('month') : shiftMonth(utc8DateISO().slice(0, 7), -1);
+
+  const cardsEl = document.getElementById('invoice-cards');
+  const summaryEl = document.getElementById('invoice-summary');
+
+  function showAlert(message) {
+    document.getElementById('invoiceAlertText').textContent = message;
+    document.getElementById('invoiceAlertModal').classList.add('open');
+  }
+
+  function renderInvoiceCard(inv) {
+    const inactive = inv.status === 'inactive';
+    const ribbon = inactive ? `<span class="ribbon-clip"><span class="course-ribbon">${t('admin.common.disabled')}</span></span>` : '';
+    const incomplete = inv.missing.length > 0;
+    const amount = inv.total === null
+      ? `<div class="invoice-card-total">${escapeHtml(t('admin.invoices.lessonCount', { count: inv.lessonCount }))}</div>`
+      : `<div class="invoice-card-total">¥${formatYen(inv.total)}</div>
+         <p class="invoice-card-breakdown">${escapeHtml(t('admin.invoices.breakdown', { price: formatYen(inv.unitPrice), count: inv.lessonCount, tax: inv.taxRate }))}</p>`;
+    const missing = incomplete
+      ? `<p class="invoice-card-missing"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> ${escapeHtml(t('admin.invoices.missing', {
+          fields: inv.missing.map((f) => t(MISSING_FIELD_KEYS[f])).join(t('admin.invoices.separator')),
+        }))}</p>`
+      : '';
+    // 資料沒填完整就不能開請求書／實績通知書（文件上會缺東西），明細還是可以看
+    const actions = `
+      <button type="button" class="btn sm blue" data-action="invoice"${incomplete ? ' disabled' : ''}><i class="fa-solid fa-fw fa-file-invoice-dollar"></i> ${t('admin.invoices.invoice')}</button>
+      <button type="button" class="btn sm outline" data-action="notice"${incomplete ? ' disabled' : ''}><i class="fa-solid fa-fw fa-file-lines"></i> ${t('admin.invoices.notice')}</button>
+      <button type="button" class="btn sm outline" data-action="detail"><i class="fa-solid fa-fw fa-list"></i> ${t('admin.invoices.detail')}</button>
+      ${incomplete ? `<button type="button" class="btn sm butter" data-action="fill"><i class="fa-solid fa-fw fa-pen"></i> ${t('admin.invoices.fillIn')}</button>` : ''}`;
+    return `<div class="invoice-card" data-teacher-id="${inv.teacherId}">
+      ${ribbon}
+      <div class="invoice-card-head">
+        <span class="invoice-card-avatar${inactive ? ' is-inactive' : ''}"><img src="${escapeHtml(avatarSrc(inv.avatar))}" alt=""></span>
+        <h4>${escapeHtml(inv.name)}</h4>
+      </div>
+      ${amount}
+      ${missing}
+      <div class="invoice-card-actions">${actions}</div>
+    </div>`;
+  }
+
+  let loadSeq = 0;
+  async function loadMonth() {
+    const seq = ++loadSeq;
+    document.getElementById('month-label').textContent = formatInvoiceMonth(month);
+    history.replaceState(null, '', `?month=${month}`);
+    const res = await fetch(`/api/invoices?month=${month}`).catch(() => null);
+    if (seq !== loadSeq) return; // 快速連點換月份時，只畫最後一次的結果
+    if (!res || !res.ok) {
+      cardsEl.innerHTML = '';
+      summaryEl.textContent = '';
+      showAlert(t('admin.invoices.loadFailed'));
+      return;
+    }
+    const invoices = await res.json();
+    if (seq !== loadSeq) return;
+
+    const complete = invoices.filter((inv) => inv.total !== null);
+    const incompleteCount = invoices.length - complete.length;
+    summaryEl.textContent = invoices.length
+      ? t('admin.invoices.summary', { count: invoices.length, total: formatYen(complete.reduce((sum, inv) => sum + inv.total, 0)) })
+        + (incompleteCount ? t('admin.invoices.summaryIncomplete', { count: incompleteCount }) : '')
+      : '';
+    cardsEl.innerHTML = invoices.length
+      ? invoices.map(renderInvoiceCard).join('')
+      : `<div class="invoice-card invoice-card-empty">${t('admin.invoices.empty')}</div>`;
+
+    cardsEl.querySelectorAll('.invoice-card').forEach((card) => applyTiltEffect(card));
+    cardsEl.querySelectorAll('.invoice-card [data-action]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const teacherId = btn.closest('.invoice-card').dataset.teacherId;
+        const action = btn.dataset.action;
+        if (action === 'invoice' || action === 'notice') {
+          // 文件在新分頁開，管理者在那邊列印／存成 PDF
+          window.open(`invoice-print.html?teacherId=${teacherId}&month=${month}&type=${action}`, '_blank', 'noopener');
+        } else if (action === 'detail') {
+          window.location.href = `invoice-detail.html?teacherId=${teacherId}&month=${month}`;
+        } else if (action === 'fill') {
+          window.location.href = `teacher-basic.html?id=${teacherId}`;
+        }
+      });
+    });
+  }
+
+  document.getElementById('prev-month-btn').addEventListener('click', () => { month = shiftMonth(month, -1); loadMonth(); });
+  document.getElementById('next-month-btn').addEventListener('click', () => { month = shiftMonth(month, 1); loadMonth(); });
+  document.getElementById('back-btn').addEventListener('click', () => { window.location.href = 'index.html'; });
+
+  loadMonth();
+})();
+</script>
+
+</body>
+</html>

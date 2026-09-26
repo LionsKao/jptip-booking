@@ -1665,6 +1665,107 @@ async function handleRecentlyViewedList(request: Request, env: Env): Promise<Res
 }
 
 // ==========================================================================
+// 管理端「請求書」：每位老師每個月的請求書／業務委託実績通知書。以「課堂數」計算：當月（上課
+// 日期，UTC+8）標記完成的課，每堂單價是老師領收書資料的 wage，消費稅率是 taxRate（'0%'／'5%'／'10%'）。
+// 單價、稅率用老師目前的設定，改了之後過去月份的金額也會跟著變。
+// ==========================================================================
+interface InvoiceReceipt {
+  wage?: unknown;
+  taxRate?: unknown;
+  address?: unknown;
+  companyName?: unknown;
+  companyAddress?: unknown;
+}
+
+function receiptText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+// 金額都在這裡算，列表、列印頁、明細頁都用同一套結果：
+// 小計 = 單價 × 堂數；消費稅 = 小計 × 稅率（捨去到日圓）；合計 = 小計 + 消費稅。
+// 1コマ単価＜消費税込＞ = 單價 × (1 + 稅率)，可能有小數（例：1,627.5）。
+function computeInvoice(lessonCount: number, receipt: InvoiceReceipt | null) {
+  const wageText = receiptText(receipt?.wage);
+  const unitPrice = /^\d+$/.test(wageText) && Number(wageText) > 0 ? Number(wageText) : null;
+  const taxMatch = /^(\d+)%$/.exec(receiptText(receipt?.taxRate));
+  const taxRate = taxMatch ? Number(taxMatch[1]) : 0;
+  const receiptInfo = {
+    address: receiptText(receipt?.address),
+    companyName: receiptText(receipt?.companyName),
+    companyAddress: receiptText(receipt?.companyAddress),
+  };
+  const missing: string[] = [];
+  if (unitPrice === null) missing.push('unitPrice');
+  if (!receiptInfo.address) missing.push('address');
+  if (!receiptInfo.companyName) missing.push('companyName');
+  if (!receiptInfo.companyAddress) missing.push('companyAddress');
+  if (unitPrice === null) {
+    return { lessonCount, unitPrice, taxRate, unitPriceWithTax: null, subtotal: null, tax: null, total: null, missing, receipt: receiptInfo };
+  }
+  const subtotal = unitPrice * lessonCount;
+  const tax = Math.floor((subtotal * taxRate) / 100);
+  return {
+    lessonCount,
+    unitPrice,
+    taxRate,
+    unitPriceWithTax: (unitPrice * (100 + taxRate)) / 100,
+    subtotal,
+    tax,
+    total: subtotal + tax,
+    missing,
+    receipt: receiptInfo,
+  };
+}
+
+// 'YYYY-MM' → 當月第一天跟下個月第一天（查詢用 date >= 起 AND date < 迄）
+function parseInvoiceMonth(month: string | null): { start: string; end: string } | null {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(month ?? '');
+  if (!m) return null;
+  const year = Number(m[1]);
+  const mon = Number(m[2]);
+  const next = mon === 12 ? `${year + 1}-01` : `${year}-${String(mon + 1).padStart(2, '0')}`;
+  return { start: `${month}-01`, end: `${next}-01` };
+}
+
+async function handleInvoicesList(env: Env, url: URL): Promise<Response> {
+  const range = parseInvoiceMonth(url.searchParams.get('month'));
+  if (!range) return Response.json({ error: '缺少或無效的月份（YYYY-MM）' }, { status: 400 });
+  const teacherIdParam = url.searchParams.get('teacherId');
+  const teacherId = teacherIdParam === null ? null : Number(teacherIdParam);
+  if (teacherId !== null && (!Number.isInteger(teacherId) || teacherId <= 0)) {
+    return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT t.id, t.name, t.photo_path, t.status,
+            CASE WHEN json_valid(t.receipt_json) THEN t.receipt_json END AS receipt_json,
+            COUNT(*) AS lesson_count
+     FROM bookings b JOIN teachers t ON t.id = b.teacher_id
+     WHERE b.status = 'attended' AND b.date >= ? AND b.date < ?${teacherId !== null ? ' AND b.teacher_id = ?' : ''}
+     GROUP BY t.id
+     ORDER BY t.name`
+  ).bind(...(teacherId !== null ? [range.start, range.end, teacherId] : [range.start, range.end]))
+    .all<{ id: number; name: string; photo_path: string | null; status: string; receipt_json: string | null; lesson_count: number }>();
+  return Response.json(results.map((row) => ({
+    teacherId: row.id,
+    name: row.name,
+    avatar: row.photo_path,
+    status: row.status,
+    ...computeInvoice(row.lesson_count, row.receipt_json ? (JSON.parse(row.receipt_json) as InvoiceReceipt) : null),
+  })));
+}
+
+async function handleInvoiceLessons(env: Env, url: URL): Promise<Response> {
+  const range = parseInvoiceMonth(url.searchParams.get('month'));
+  const teacherId = Number(url.searchParams.get('teacherId'));
+  if (!range) return Response.json({ error: '缺少或無效的月份（YYYY-MM）' }, { status: 400 });
+  if (!Number.isInteger(teacherId) || teacherId <= 0) return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
+  const { results } = await env.DB.prepare(
+    `${BOOKING_SELECT} WHERE b.teacher_id = ? AND b.status = 'attended' AND b.date >= ? AND b.date < ? ORDER BY b.date, b.time`
+  ).bind(teacherId, range.start, range.end).all<BookingRow>();
+  return Response.json(results.map((row) => bookingRowToJson(row, 'admin')));
+}
+
+// ==========================================================================
 // 管理端「系統信件」：列出所有系統信、讀取／修改某一封信五種語言的主旨與 HTML。只存改過的版本，
 // 存的內容跟預設範本一模一樣時就刪掉那一筆（回到「沿用預設」，之後預設範本更新也會跟著套用）。
 // ==========================================================================
@@ -1814,6 +1915,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     }
     return request.method === 'PUT' ? handleRecentlyViewedMark(request, env) : handleRecentlyViewedList(request, env);
   }
+  if ((url.pathname === '/api/invoices' || url.pathname === '/api/invoices/lessons') && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return url.pathname === '/api/invoices' ? handleInvoicesList(env, url) : handleInvoiceLessons(env, url);
+  }
+
   if (url.pathname === '/api/email-templates') {
     const session = await getSession(request, env);
     if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });

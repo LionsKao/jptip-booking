@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 課程明細</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+  .invoice-detail-head { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4); }
+  .invoice-detail-avatar { flex: none; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: var(--bg-card-alt); }
+  .invoice-detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .invoice-detail-head h3 { margin: 0 0 4px; font-size: 1.25rem; }
+  .invoice-detail-head p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
+  .invoice-detail-total { margin-left: auto; font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .invoice-detail-note { margin: 0 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-caption); }
+  table.bookings td { font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 1048px) {
+    body.admin-page .page {
+      max-width: 100%;
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+  }
+  @media (max-width: 640px) {
+    body.admin-page .page {
+      padding-top: calc(var(--space-3) + 40px + var(--space-3));
+    }
+    .invoice-detail-head { flex-wrap: wrap; }
+    .invoice-detail-total { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.invoices.detailTitle">課程明細</h2></div>
+    <div class="invoice-detail-head" id="detail-head" hidden>
+      <span class="invoice-detail-avatar"><img id="detail-avatar" alt=""></span>
+      <div>
+        <h3 id="detail-name"></h3>
+        <p id="detail-sub"></p>
+      </div>
+      <div class="invoice-detail-total" id="detail-total"></div>
+    </div>
+    <p class="invoice-detail-note" data-i18n="admin.invoices.utc8Note">日期時間皆為 UTC+08:00 台北時間</p>
+    <div class="table-wrap">
+      <table class="bookings">
+        <thead>
+          <tr>
+            <th data-i18n="admin.invoices.col.date">日期</th>
+            <th data-i18n="admin.invoices.col.time">時間</th>
+            <th data-i18n="history.detail.student">學生</th>
+            <th data-i18n="booking.confirm.course">課程</th>
+            <th data-i18n="history.detail.code">預約編號</th>
+          </tr>
+        </thead>
+        <tbody id="lesson-rows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script src="../script.js"></script>
+<script>
+function formatInvoiceMonth(month) {
+  const [y, m] = month.split('-').map(Number);
+  const lang = getCurrentLang();
+  if (lang === 'zh-Hant') return `${y} 年 ${String(m).padStart(2, '0')} 月`;
+  if (lang === 'my') return myMonthYearLabel(y, m - 1);
+  return new Intl.DateTimeFormat(DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'], { year: 'numeric', month: 'long' }).format(new Date(y, m - 1, 1));
+}
+function formatYen(value) {
+  return Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+(async () => {
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  const params = new URLSearchParams(window.location.search);
+  const teacherId = params.get('teacherId') || '';
+  const month = params.get('month') || '';
+  const backToList = () => { window.location.href = `invoices.html?month=${encodeURIComponent(month)}`; };
+  document.getElementById('back-btn').addEventListener('click', backToList);
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || !/^\d+$/.test(teacherId)) {
+    backToList();
+    return;
+  }
+
+  const query = `month=${month}&teacherId=${teacherId}`;
+  const [invoices, lessons] = await Promise.all([
+    fetch(`/api/invoices?${query}`).then((res) => (res.ok ? res.json() : [])).catch(() => []),
+    fetch(`/api/invoices/lessons?${query}`).then((res) => (res.ok ? res.json() : [])).catch(() => []),
+  ]);
+  const inv = invoices[0];
+  if (!inv) {
+    backToList();
+    return;
+  }
+
+  document.getElementById('detail-head').hidden = false;
+  document.getElementById('detail-avatar').src = avatarSrc(inv.avatar);
+  document.getElementById('detail-name').textContent = inv.name;
+  document.getElementById('detail-sub').textContent = inv.total === null
+    ? `${formatInvoiceMonth(month)}・${t('admin.invoices.lessonCount', { count: inv.lessonCount })}`
+    : `${formatInvoiceMonth(month)}・${t('admin.invoices.breakdown', { price: formatYen(inv.unitPrice), count: inv.lessonCount, tax: inv.taxRate })}`;
+  document.getElementById('detail-total').textContent = inv.total === null ? '' : `¥${formatYen(inv.total)}`;
+
+  // 手機上表格會變成一張張卡片，每格用 data-label 顯示欄位名稱（見 style.css 的 table.bookings）
+  const labels = [...document.querySelectorAll('table.bookings thead th')].map((th) => th.textContent);
+  document.getElementById('lesson-rows').innerHTML = lessons.map((l) => `<tr>
+      <td data-label="${escapeHtml(labels[0])}">${escapeHtml(formatDateShort(l.date))}</td>
+      <td data-label="${escapeHtml(labels[1])}">${escapeHtml(l.time)}</td>
+      <td data-label="${escapeHtml(labels[2])}">${escapeHtml(l.studentName)}</td>
+      <td data-label="${escapeHtml(labels[3])}">${escapeHtml(l.course)}</td>
+      <td data-label="${escapeHtml(labels[4])}">${escapeHtml(l.bookingCode)}</td>
+    </tr>`).join('');
+})();
+</script>
+
+</body>
+</html>
