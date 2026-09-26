@@ -8,7 +8,7 @@ JPTIP 一對一日文家教預約系統。以 Cloudflare Workers + D1 為後端�
 - **資料庫**：Cloudflare D1（`migrations/` 下的 SQL migration，`wrangler d1 migrations apply` 套用）。
 - **前端**：純靜態 HTML，每個頁面各自撰寫 JS（無共用前端框架、無 build 工具處理 JS），共用邏輯集中在 `public/script.js`（登入 OTP 流程、共用日期選擇器、toast、卡片傾斜效果、下拉選單綁定等）。
 - **樣式**：Tailwind v4，原始碼在 `src/tailwind/input.css`，需 build 成 `public/style.css` 才會生效；頁面各自的 `<style>` 區塊處理該頁專屬樣式。
-- **通知**：OTP 驗證碼透過 Microsoft Teams webhook（`TEAMS_WEBHOOK_URL`）發送。
+- **通知**：系統信件（登入驗證碼、預約成功／取消通知）透過 Microsoft Graph 從共用信箱 `one-on-one@jptip.co.jp` 寄出，副本留在該信箱的寄件備份當作寄信紀錄。信件內容可在管理端「系統信件」修改（預設範本在 `src/email-templates.ts`）。
 
 > 目前部分前端資料（如課程/老師/學生清單、預約紀錄）仍以 `localStorage` 作為 mock 資料來源，尚未完全改接 D1，程式碼中會標註 `// TODO: 之後改接真正的 D1/API`。
 
@@ -98,7 +98,8 @@ npx wrangler deploy
 
 | 名稱 | 說明 |
 |---|---|
-| `TEAMS_WEBHOOK_URL` | OTP 驗證碼要發送到的 Microsoft Teams webhook URL |
+| `MS_TENANT_ID`、`MS_CLIENT_ID`、`MS_SENDER_EMAIL` | 寄信用的 Azure 應用程式註冊與寄件信箱（寫在 `wrangler.jsonc` 的 vars） |
+| `MS_CLIENT_SECRET` | 寄信用的 Azure 用戶端密碼「值」（Worker secret；本機放 `.dev.vars`，本機寄出的信標題會加上「[測試]」）。沒設定就不寄信 |
 | `ALLOW_ANY_OTP` | 僅限測試站台使用，設為 `true` 時 `/api/otp/verify` 會接受任何 6 碼數字，**正式環境務必不可設定** |
 
 ## 慣例
