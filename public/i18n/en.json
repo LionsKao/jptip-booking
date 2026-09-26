@@ -13,7 +13,7 @@
   "login.otpDigitLabel": "Digit {{n}}",
   "login.submit": "Log In",
   "login.error.sendFailed": "Failed to send, please try again later",
-  "login.success.codeSent": "If this email is registered, a verification code has been sent — please check your inbox",
+  "login.success.codeSent": "A verification code has been sent — please check your inbox",
   "login.success.loginOk": "Login successful, welcome back!",
   "login.error.network": "Network error, please try again later",
   "login.warning.cooldown": "You can resend the code in {{seconds}}s",
@@ -414,5 +414,7 @@
   "leave.hasBookings.title": "This day already has {{count}} booking(s)",
   "leave.hasBookings.desc": "You can’t take a day off when students have booked it. Please contact an admin to handle these bookings first — you can add the day off once there are no bookings left.",
   "leave.hasBookings.adminDesc": "Handle the students’ bookings for this day in “Booking Records” first — you can add the day off once there are no bookings left.",
-  "apiError.leaveHasBookings": "This day already has {{count}} booking(s), so it can’t be added as a day off"
+  "apiError.leaveHasBookings": "This day already has {{count}} booking(s), so it can’t be added as a day off",
+  "apiError.accountNotFound": "No account found. Please check that your email is correct.",
+  "apiError.accountInactive": "This account isn’t active yet. Please contact an admin."
 }

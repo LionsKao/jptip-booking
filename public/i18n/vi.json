@@ -13,7 +13,7 @@
   "login.otpDigitLabel": "Số thứ {{n}}",
   "login.submit": "Đăng nhập",
   "login.error.sendFailed": "Gửi thất bại, vui lòng thử lại sau",
-  "login.success.codeSent": "Nếu Email này đã được đăng ký, mã xác thực đã được gửi, vui lòng kiểm tra hộp thư",
+  "login.success.codeSent": "Mã xác thực đã được gửi, vui lòng kiểm tra hộp thư",
   "login.success.loginOk": "Đăng nhập thành công, chào mừng bạn quay lại!",
   "login.error.network": "Lỗi mạng, vui lòng thử lại sau",
   "login.warning.cooldown": "Bạn có thể gửi lại mã sau {{seconds}} giây",
@@ -414,5 +414,7 @@
   "leave.hasBookings.title": "Ngày này đã có {{count}} lịch đặt",
   "leave.hasBookings.desc": "Không thể nghỉ vào ngày đã có học viên đặt lịch. Vui lòng liên hệ quản trị viên để xử lý các lịch đặt này trước, khi ngày này không còn lịch đặt thì mới thêm được ngày nghỉ.",
   "leave.hasBookings.adminDesc": "Vui lòng xử lý các lịch đặt của học viên trong ngày này tại “Lịch sử đặt lịch” trước, khi ngày này không còn lịch đặt thì mới thêm được ngày nghỉ.",
-  "apiError.leaveHasBookings": "Ngày này đã có {{count}} lịch đặt nên không thể thêm ngày nghỉ"
+  "apiError.leaveHasBookings": "Ngày này đã có {{count}} lịch đặt nên không thể thêm ngày nghỉ",
+  "apiError.accountNotFound": "Không tìm thấy tài khoản. Vui lòng kiểm tra lại email.",
+  "apiError.accountInactive": "Tài khoản này chưa được kích hoạt, vui lòng liên hệ quản trị viên."
 }

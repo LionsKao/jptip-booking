@@ -224,7 +224,7 @@ async function handleSessionInfo(request: Request, env: Env): Promise<Response> 
   return Response.json(session);
 }
 
-// 帳號被停用時，已經登入的裝置也要立刻登出（停用的帳號也不能再取得驗證碼，見 findActiveAccount）
+// 帳號被停用時，已經登入的裝置也要立刻登出（停用的帳號也不能再取得驗證碼，見 handleOtpRequest）
 async function revokeSessions(env: Env, role: string, userId: number): Promise<void> {
   await env.DB.prepare(`DELETE FROM sessions WHERE role = ? AND user_id = ?`).bind(role, userId).run();
 }
@@ -317,12 +317,18 @@ async function sendEmail(env: Env, origin: string, mail: OutgoingEmail): Promise
   if (!res.ok) throw new Error(`sendMail failed: ${res.status} ${await res.text()}`);
 }
 
-// 帳號存在而且沒有被停用才回傳（管理者沒有停用這回事）；name、language 用在驗證碼信件
-async function findActiveAccount(env: Env, role: string, email: string): Promise<{ id: number; name: string; language: string } | null> {
+// 這個身分底下用這個 Email 的帳號（管理者沒有停用這回事，一律當作啟用中）；name、language 用在驗證碼信件
+async function findAccount(env: Env, role: string, email: string): Promise<{ id: number; name: string; language: string; status: string } | null> {
   const row = role === 'admin'
-    ? await env.DB.prepare(`SELECT id, name, language FROM admins WHERE email = ?`).bind(email).first<{ id: number; name: string; language: string }>()
-    : await env.DB.prepare(`SELECT id, name, language FROM ${ROLE_TABLES[role]} WHERE email = ? AND status != 'inactive'`).bind(email).first<{ id: number; name: string; language: string }>();
+    ? await env.DB.prepare(`SELECT id, name, language, 'active' AS status FROM admins WHERE email = ?`).bind(email).first<{ id: number; name: string; language: string; status: string }>()
+    : await env.DB.prepare(`SELECT id, name, language, status FROM ${ROLE_TABLES[role]} WHERE email = ?`).bind(email).first<{ id: number; name: string; language: string; status: string }>();
   return row ?? null;
+}
+
+// 帳號存在而且沒有被停用才回傳
+async function findActiveAccount(env: Env, role: string, email: string): Promise<{ id: number; name: string; language: string } | null> {
+  const account = await findAccount(env, role, email);
+  return account && account.status !== 'inactive' ? account : null;
 }
 
 // 防暴力猜碼：每組驗證碼最多試 OTP_MAX_TRIES_PER_CODE 次；同一個帳號 1 小時內錯誤累計達
@@ -396,8 +402,18 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
     return Response.json({ error: '無效的角色' }, { status: 400 });
   }
 
-  // 申請頻率限制（防止有人一直按「取得驗證碼」塞爆別人的信箱）。沒註冊的 Email 也照樣記錄、
-  // 照樣限制，不然從「會不會被限制」就能試出哪些 Email 有註冊。
+  // 沒有這個帳號（打錯 Email，或選錯身分，例如老師點成學生）直接告訴使用者；停用中的帳號（例如
+  // 管理者還沒啟用的新老師）另外提示。知道帳號存在也登不進去：驗證碼只寄到本人信箱，每組碼最多猜
+  // OTP_MAX_TRIES_PER_CODE 次、1 小時內錯 OTP_MAX_FAILURES_PER_HOUR 次就暫停驗證。
+  const account = await findAccount(env, role, email);
+  if (!account) {
+    return apiError(404, 'accountNotFound', '沒有這個帳號，請確認 Email 是否正確');
+  }
+  if (account.status === 'inactive') {
+    return apiError(403, 'accountInactive', '這個帳號尚未啟用，請聯絡管理者');
+  }
+
+  // 申請頻率限制（防止有人一直按「取得驗證碼」塞爆別人的信箱）
   const limited = await checkOtpRequestRate(env, email, role);
   if (limited) return limited;
 
@@ -411,13 +427,6 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
   ).bind(email, role, code).run();
   // 順便清掉一天以前的紀錄（頻率限制跟錯誤次數最多只看 1 小時內）
   await env.DB.prepare(`DELETE FROM otp_codes WHERE created_at < datetime('now', '+8 hours', '-1 day')`).run();
-
-  // 查無帳號或帳號已停用時，回應跟成功完全一樣，只是不寄信（上面記下的那組碼永遠無法用來登入，
-  // 見 handleOtpVerify 的 findActiveAccount），不讓人藉此試出哪些 Email 有註冊。
-  const account = await findActiveAccount(env, role, email);
-  if (!account) {
-    return Response.json({ ok: true });
-  }
 
   if (!env.MS_CLIENT_SECRET) {
     // 本機開發／測試環境沒有設定寄信用的 secret：不寄信（本機用 ALLOW_ANY_OTP 任意驗證碼登入）。

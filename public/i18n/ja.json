@@ -13,7 +13,7 @@
   "login.otpDigitLabel": "{{n}}桁目",
   "login.submit": "ログイン",
   "login.error.sendFailed": "送信に失敗しました。しばらくしてから再度お試しください",
-  "login.success.codeSent": "このEmailが登録済みであれば、認証コードを送信しました。メールをご確認ください",
+  "login.success.codeSent": "認証コードを送信しました。メールをご確認ください",
   "login.success.loginOk": "ログインに成功しました。おかえりなさい！",
   "login.error.network": "ネットワークエラーです。しばらくしてから再度お試しください",
   "login.warning.cooldown": "あと{{seconds}}秒で認証コードを再送信できます",
@@ -414,5 +414,7 @@
   "leave.hasBookings.title": "この日はすでに{{count}}件の予約があります",
   "leave.hasBookings.desc": "生徒の予約がある日は休暇を追加できません。先に管理者に連絡してこれらの予約の対応を依頼し、この日の予約がなくなってから休暇を追加してください。",
   "leave.hasBookings.adminDesc": "先に「予約履歴」でこの日の生徒の予約を処理してください。この日の予約がなくなってから休暇を追加できます。",
-  "apiError.leaveHasBookings": "この日はすでに{{count}}件の予約があるため、休暇を追加できません"
+  "apiError.leaveHasBookings": "この日はすでに{{count}}件の予約があるため、休暇を追加できません",
+  "apiError.accountNotFound": "アカウントが見つかりません。メールアドレスが正しいかご確認ください",
+  "apiError.accountInactive": "このアカウントはまだ有効になっていません。管理者にお問い合わせください"
 }

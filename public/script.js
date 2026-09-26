@@ -887,8 +887,10 @@ document.querySelectorAll('.modal-overlay').forEach((overlay) => {
         return;
       }
       if (!res.ok) {
-        // 用翻譯好的訊息（後端的錯誤訊息是中文），例如信件寄送失敗
-        showLoginAlert(t('login.error.sendFailed'), 'error');
+        // 用翻譯好的訊息（後端的錯誤訊息是中文）：沒有這個帳號、帳號尚未啟用，其他（例如信件
+        // 寄送失敗）都顯示「寄送失敗」
+        const data = await res.json().catch(() => ({}));
+        showLoginAlert(apiErrorMessage(data, 'login.error.sendFailed'), 'error');
         return;
       }
       otpBoxes.forEach((b) => { b.disabled = false; b.value = ''; b.classList.remove('filled', 'error'); });

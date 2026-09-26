@@ -13,7 +13,7 @@
   "login.otpDigitLabel": "第 {{n}} 碼",
   "login.submit": "登入",
   "login.error.sendFailed": "發送失敗，請稍後再試",
-  "login.success.codeSent": "如果這個 Email 已經註冊，驗證碼已寄出，請查看信箱",
+  "login.success.codeSent": "驗證碼已寄出，請查看信箱",
   "login.success.loginOk": "登入成功，歡迎回來！",
   "login.error.network": "網路錯誤，請稍後再試",
   "login.warning.cooldown": "還可在 {{seconds}} 秒後重新取得驗證碼",
@@ -414,5 +414,7 @@
   "leave.hasBookings.title": "這天已經有 {{count}} 堂預約",
   "leave.hasBookings.desc": "有學生預約的日子不能請假。請先聯絡管理者處理這些預約，這天沒有預約之後才能新增休假。",
   "leave.hasBookings.adminDesc": "請先到「預約紀錄」處理這天學生的預約，這天沒有預約之後才能新增休假。",
-  "apiError.leaveHasBookings": "這天已經有 {{count}} 堂預約，無法新增休假"
+  "apiError.leaveHasBookings": "這天已經有 {{count}} 堂預約，無法新增休假",
+  "apiError.accountNotFound": "沒有這個帳號，請確認 Email 是否正確",
+  "apiError.accountInactive": "這個帳號尚未啟用，請聯絡管理者"
 }
