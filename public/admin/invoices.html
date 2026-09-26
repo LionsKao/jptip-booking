@@ -20,7 +20,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-4);
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-5);
   }
   .invoice-month-label {
     min-width: 170px;
@@ -28,12 +28,6 @@
     font-size: 1.375rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-  }
-  .invoice-summary {
-    margin: 0 0 var(--space-5);
-    text-align: center;
-    color: var(--text-muted);
-    font-size: var(--fs-small);
   }
 
   #invoice-cards {
@@ -58,15 +52,20 @@
   }
   .invoice-card:hover { border-color: var(--color-blue); }
   .invoice-card-empty { grid-column: 1 / -1; min-height: 88px; }
-  .invoice-card-head { display: flex; align-items: center; gap: var(--space-3); padding-right: 64px; }
+  /* 同一行：頭像＋姓名（下面一行小字是算法）在左，堂數／金額靠右對齊，往下看容易比較；
+     停用的老師右上角有緞帶，右邊多留一點空間 */
+  .invoice-card-head { display: flex; align-items: center; gap: var(--space-3); }
+  .invoice-card.has-ribbon .invoice-card-head { padding-right: 56px; }
+  .invoice-card-name { flex: 1; min-width: 0; }
   .invoice-card-avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--bg-card-alt); }
   .invoice-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .invoice-card-avatar.is-inactive img { filter: grayscale(1); }
-  .invoice-card h4 { margin: 0; font-size: 1.125rem; }
+  .invoice-card h4 { margin: 0; font-size: 1.125rem; overflow-wrap: anywhere; }
   /* 合計金額放大，單價 × 堂數、稅率縮成一行小字 */
-  .invoice-card-total { font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
-  .invoice-card-breakdown { margin: 0; color: var(--text-muted); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
-  .invoice-card-missing { margin: 0; color: var(--color-orange); font-size: var(--fs-small); font-weight: 700; }
+  .invoice-card-total { flex: none; margin-left: auto; font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; }
+  /* 當月沒有完成的課（0 堂）：金額用淡色 */
+  .invoice-card.is-idle .invoice-card-total { color: var(--text-muted); }
+  .invoice-card-breakdown { margin: 2px 0 0; color: var(--text-muted); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
   .invoice-card-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
 
   @media (max-width: 1048px) {
@@ -98,7 +97,6 @@
       <span class="invoice-month-label" id="month-label"></span>
       <button type="button" class="btn outline sm" id="next-month-btn" data-i18n-aria-label="admin.invoices.nextMonth" aria-label="下個月"><i class="fa-solid fa-fw fa-chevron-right"></i></button>
     </div>
-    <p class="invoice-summary" id="invoice-summary"></p>
     <div id="invoice-cards"></div>
   </section>
 </div>
@@ -155,7 +153,6 @@ const MISSING_FIELD_KEYS = {
   let month = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.get('month') || '') ? params.get('month') : shiftMonth(utc8DateISO().slice(0, 7), -1);
 
   const cardsEl = document.getElementById('invoice-cards');
-  const summaryEl = document.getElementById('invoice-summary');
 
   function showAlert(message) {
     document.getElementById('invoiceAlertText').textContent = message;
@@ -165,30 +162,29 @@ const MISSING_FIELD_KEYS = {
   function renderInvoiceCard(inv) {
     const inactive = inv.status === 'inactive';
     const ribbon = inactive ? `<span class="ribbon-clip"><span class="course-ribbon">${t('admin.common.disabled')}</span></span>` : '';
-    const incomplete = inv.missing.length > 0;
-    const amount = inv.total === null
-      ? `<div class="invoice-card-total">${escapeHtml(t('admin.invoices.lessonCount', { count: inv.lessonCount }))}</div>`
-      : `<div class="invoice-card-total">¥${formatYen(inv.total)}</div>
-         <p class="invoice-card-breakdown">${escapeHtml(t('admin.invoices.breakdown', { price: formatYen(inv.unitPrice), count: inv.lessonCount, tax: inv.taxRate }))}</p>`;
-    const missing = incomplete
-      ? `<p class="invoice-card-missing"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> ${escapeHtml(t('admin.invoices.missing', {
-          fields: inv.missing.map((f) => t(MISSING_FIELD_KEYS[f])).join(t('admin.invoices.separator')),
-        }))}</p>`
-      : '';
-    // 資料沒填完整就不能開請求書／實績通知書（文件上會缺東西），明細還是可以看
+    // 當月 0 堂：沒有可請款的內容，也沒有課程明細，三個按鈕都停用
+    const idle = inv.lessonCount === 0;
+    // 有每堂單價：右邊是金額，姓名下面一行小字是算法；沒有單價：右邊只顯示堂數
+    const total = inv.total === null
+      ? escapeHtml(t('admin.invoices.lessonCount', { count: inv.lessonCount }))
+      : `¥${formatYen(inv.total)}`;
+    const breakdown = inv.total === null
+      ? ''
+      : `<p class="invoice-card-breakdown">${escapeHtml(t('admin.invoices.breakdown', { price: formatYen(inv.unitPrice), count: inv.lessonCount }))}</p>`;
     const actions = `
-      <button type="button" class="btn sm blue" data-action="invoice"${incomplete ? ' disabled' : ''}><i class="fa-solid fa-fw fa-file-invoice-dollar"></i> ${t('admin.invoices.invoice')}</button>
-      <button type="button" class="btn sm outline" data-action="notice"${incomplete ? ' disabled' : ''}><i class="fa-solid fa-fw fa-file-lines"></i> ${t('admin.invoices.notice')}</button>
-      <button type="button" class="btn sm outline" data-action="detail"><i class="fa-solid fa-fw fa-list"></i> ${t('admin.invoices.detail')}</button>
-      ${incomplete ? `<button type="button" class="btn sm butter" data-action="fill"><i class="fa-solid fa-fw fa-pen"></i> ${t('admin.invoices.fillIn')}</button>` : ''}`;
-    return `<div class="invoice-card" data-teacher-id="${inv.teacherId}">
+      <button type="button" class="btn sm outline" data-action="invoice"${idle ? ' disabled' : ''}><i class="fa-solid fa-fw fa-file-invoice-dollar"></i> ${t('admin.invoices.invoice')}</button>
+      <button type="button" class="btn sm outline" data-action="notice"${idle ? ' disabled' : ''}><i class="fa-solid fa-fw fa-file-lines"></i> ${t('admin.invoices.notice')}</button>
+      <button type="button" class="btn sm outline" data-action="detail"${idle ? ' disabled' : ''}><i class="fa-solid fa-fw fa-list"></i> ${t('admin.invoices.detail')}</button>`;
+    return `<div class="invoice-card${idle ? ' is-idle' : ''}${inactive ? ' has-ribbon' : ''}" data-teacher-id="${inv.teacherId}">
       ${ribbon}
       <div class="invoice-card-head">
         <span class="invoice-card-avatar${inactive ? ' is-inactive' : ''}"><img src="${escapeHtml(avatarSrc(inv.avatar))}" alt=""></span>
-        <h4>${escapeHtml(inv.name)}</h4>
+        <div class="invoice-card-name">
+          <h4>${escapeHtml(inv.name)}</h4>
+          ${breakdown}
+        </div>
+        <div class="invoice-card-total">${total}</div>
       </div>
-      ${amount}
-      ${missing}
       <div class="invoice-card-actions">${actions}</div>
     </div>`;
   }
@@ -202,19 +198,12 @@ const MISSING_FIELD_KEYS = {
     if (seq !== loadSeq) return; // 快速連點換月份時，只畫最後一次的結果
     if (!res || !res.ok) {
       cardsEl.innerHTML = '';
-      summaryEl.textContent = '';
       showAlert(t('admin.invoices.loadFailed'));
       return;
     }
     const invoices = await res.json();
     if (seq !== loadSeq) return;
 
-    const complete = invoices.filter((inv) => inv.total !== null);
-    const incompleteCount = invoices.length - complete.length;
-    summaryEl.textContent = invoices.length
-      ? t('admin.invoices.summary', { count: invoices.length, total: formatYen(complete.reduce((sum, inv) => sum + inv.total, 0)) })
-        + (incompleteCount ? t('admin.invoices.summaryIncomplete', { count: incompleteCount }) : '')
-      : '';
     cardsEl.innerHTML = invoices.length
       ? invoices.map(renderInvoiceCard).join('')
       : `<div class="invoice-card invoice-card-empty">${t('admin.invoices.empty')}</div>`;
@@ -224,13 +213,17 @@ const MISSING_FIELD_KEYS = {
       btn.addEventListener('click', () => {
         const teacherId = btn.closest('.invoice-card').dataset.teacherId;
         const action = btn.dataset.action;
-        if (action === 'invoice' || action === 'notice') {
+        const inv = invoices.find((i) => String(i.teacherId) === teacherId);
+        if ((action === 'invoice' || action === 'notice') && inv.missing.length) {
+          // 老師的領收書資料沒填完整，文件上會缺東西：先告訴管理者缺哪些
+          showAlert(t('admin.invoices.missing', {
+            fields: inv.missing.map((f) => t(MISSING_FIELD_KEYS[f])).join(t('admin.invoices.separator')),
+          }));
+        } else if (action === 'invoice' || action === 'notice') {
           // 文件在新分頁開，管理者在那邊列印／存成 PDF
           window.open(`invoice-print.html?teacherId=${teacherId}&month=${month}&type=${action}`, '_blank', 'noopener');
         } else if (action === 'detail') {
           window.location.href = `invoice-detail.html?teacherId=${teacherId}&month=${month}`;
-        } else if (action === 'fill') {
-          window.location.href = `teacher-basic.html?id=${teacherId}`;
         }
       });
     });

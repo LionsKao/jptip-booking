@@ -19,7 +19,6 @@
   .invoice-detail-head h3 { margin: 0 0 4px; font-size: 1.25rem; }
   .invoice-detail-head p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
   .invoice-detail-total { margin-left: auto; font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .invoice-detail-note { margin: 0 0 var(--space-3); color: var(--text-muted); font-size: var(--fs-caption); }
   table.bookings td { font-variant-numeric: tabular-nums; }
 
   @media (max-width: 1048px) {
@@ -46,7 +45,7 @@
 
 <div class="page">
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.invoices.detailTitle">課程明細</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/invoice.png" alt=""><h2 data-i18n="admin.invoices.detailTitle">課程明細</h2><button type="button" class="info-btn" data-modal-open="invoiceTimezoneModal" aria-label="時區說明" data-i18n-aria-label="admin.bookings.tzInfo"><i class="fa-solid fa-fw fa-globe"></i></button></div>
     <div class="invoice-detail-head" id="detail-head" hidden>
       <span class="invoice-detail-avatar"><img id="detail-avatar" alt=""></span>
       <div>
@@ -55,13 +54,11 @@
       </div>
       <div class="invoice-detail-total" id="detail-total"></div>
     </div>
-    <p class="invoice-detail-note" data-i18n="admin.invoices.utc8Note">日期時間皆為 UTC+08:00 台北時間</p>
     <div class="table-wrap">
       <table class="bookings">
         <thead>
           <tr>
-            <th data-i18n="admin.invoices.col.date">日期</th>
-            <th data-i18n="admin.invoices.col.time">時間</th>
+            <th data-i18n="admin.invoices.col.dateTime">日期時間</th>
             <th data-i18n="history.detail.student">學生</th>
             <th data-i18n="booking.confirm.course">課程</th>
             <th data-i18n="history.detail.code">預約編號</th>
@@ -71,6 +68,18 @@
       </table>
     </div>
   </section>
+</div>
+
+<div class="modal-overlay" id="invoiceTimezoneModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon timezone"><i class="fa-solid fa-globe"></i></div>
+    <h3 data-i18n="admin.bookings.tzModal.title">課程時間顯示時區</h3>
+    <p class="text-small" data-i18n="admin.bookings.tzModal.desc">管理者一律以 UTC+08:00 台北時間顯示，不受老師/學生個人時區設定影響。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
 </div>
 
 <script src="../script.js"></script>
@@ -116,17 +125,16 @@ function formatYen(value) {
   document.getElementById('detail-name').textContent = inv.name;
   document.getElementById('detail-sub').textContent = inv.total === null
     ? `${formatInvoiceMonth(month)}・${t('admin.invoices.lessonCount', { count: inv.lessonCount })}`
-    : `${formatInvoiceMonth(month)}・${t('admin.invoices.breakdown', { price: formatYen(inv.unitPrice), count: inv.lessonCount, tax: inv.taxRate })}`;
+    : `${formatInvoiceMonth(month)}・${t('admin.invoices.breakdown', { price: formatYen(inv.unitPrice), count: inv.lessonCount })}`;
   document.getElementById('detail-total').textContent = inv.total === null ? '' : `¥${formatYen(inv.total)}`;
 
   // 手機上表格會變成一張張卡片，每格用 data-label 顯示欄位名稱（見 style.css 的 table.bookings）
   const labels = [...document.querySelectorAll('table.bookings thead th')].map((th) => th.textContent);
   document.getElementById('lesson-rows').innerHTML = lessons.map((l) => `<tr>
-      <td data-label="${escapeHtml(labels[0])}">${escapeHtml(formatDateShort(l.date))}</td>
-      <td data-label="${escapeHtml(labels[1])}">${escapeHtml(l.time)}</td>
-      <td data-label="${escapeHtml(labels[2])}">${escapeHtml(l.studentName)}</td>
-      <td data-label="${escapeHtml(labels[3])}">${escapeHtml(l.course)}</td>
-      <td data-label="${escapeHtml(labels[4])}">${escapeHtml(l.bookingCode)}</td>
+      <td data-label="${escapeHtml(labels[0])}">${escapeHtml(`${formatDateShort(l.date)} ${l.time}`)}</td>
+      <td data-label="${escapeHtml(labels[1])}">${escapeHtml(l.studentName)}</td>
+      <td data-label="${escapeHtml(labels[2])}">${escapeHtml(l.course)}</td>
+      <td data-label="${escapeHtml(labels[3])}">${escapeHtml(l.bookingCode)}</td>
     </tr>`).join('');
 })();
 </script>

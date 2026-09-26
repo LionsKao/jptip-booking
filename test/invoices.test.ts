@@ -114,6 +114,26 @@ describe('/api/invoices', () => {
     expect(b).toMatchObject({ unitPrice: 1600, taxRate: 0, total: 1_600, missing: ['address', 'companyAddress'] });
   });
 
+  it('lists every active teacher even with no completed lessons (0 lessons), but an inactive one only when they taught', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const idle = await createTeacher(cookie, { ...FULL_RECEIPT, wage: '1600', taxRate: '10%' });
+    const inactiveIdle = await createTeacher(cookie, { ...FULL_RECEIPT, wage: '1600', taxRate: '0%' });
+    const inactiveBusy = await createTeacher(cookie, { ...FULL_RECEIPT, wage: '1600', taxRate: '0%' });
+    // 新老師預設停用，這位改成啟用
+    await fetchWorker(`/api/teachers?id=${idle}`, withCookie(cookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'active' }),
+    }));
+    await insertBookings(inactiveBusy, [{ date: '2031-11-03', status: 'attended' }]);
+
+    const list = (await (await listInvoices(cookie, 'month=2031-11')).json()) as Invoice[];
+    expect(list.find((i) => i.teacherId === idle)).toMatchObject({ status: 'active', lessonCount: 0, subtotal: 0, tax: 0, total: 0 });
+    expect(list.some((i) => i.teacherId === inactiveIdle)).toBe(false);
+    expect(list.find((i) => i.teacherId === inactiveBusy)).toMatchObject({ status: 'inactive', lessonCount: 1 });
+    // 有上課的老師排在前面
+    const firstIdle = list.findIndex((i) => i.lessonCount === 0);
+    expect(list.slice(firstIdle).every((i) => i.lessonCount === 0)).toBe(true);
+  });
+
   it('lists the lessons behind an invoice, in date and time order', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const teacherId = await createTeacher(cookie, { ...FULL_RECEIPT, wage: '1600', taxRate: '0%' });

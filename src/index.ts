@@ -1735,14 +1735,20 @@ async function handleInvoicesList(env: Env, url: URL): Promise<Response> {
   if (teacherId !== null && (!Number.isInteger(teacherId) || teacherId <= 0)) {
     return Response.json({ error: '缺少或無效的 teacherId' }, { status: 400 });
   }
+  // 啟用中的老師每個月都列出來（沒有完成的課就是 0 堂）；停用的老師只有當月有課才列出。
+  // 有上課的老師排前面，其次依姓名。
   const { results } = await env.DB.prepare(
     `SELECT t.id, t.name, t.photo_path, t.status,
             CASE WHEN json_valid(t.receipt_json) THEN t.receipt_json END AS receipt_json,
-            COUNT(*) AS lesson_count
-     FROM bookings b JOIN teachers t ON t.id = b.teacher_id
-     WHERE b.status = 'attended' AND b.date >= ? AND b.date < ?${teacherId !== null ? ' AND b.teacher_id = ?' : ''}
-     GROUP BY t.id
-     ORDER BY t.name`
+            COALESCE(c.n, 0) AS lesson_count
+     FROM teachers t
+     LEFT JOIN (
+       SELECT teacher_id, COUNT(*) AS n FROM bookings
+       WHERE status = 'attended' AND date >= ? AND date < ?
+       GROUP BY teacher_id
+     ) c ON c.teacher_id = t.id
+     WHERE (t.status = 'active' OR c.n > 0)${teacherId !== null ? ' AND t.id = ?' : ''}
+     ORDER BY (COALESCE(c.n, 0) = 0), t.name`
   ).bind(...(teacherId !== null ? [range.start, range.end, teacherId] : [range.start, range.end]))
     .all<{ id: number; name: string; photo_path: string | null; status: string; receipt_json: string | null; lesson_count: number }>();
   return Response.json(results.map((row) => ({
