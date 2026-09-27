@@ -221,7 +221,7 @@
   let teacherSearchDebounce = null;
   searchInput.addEventListener('input', () => {
     searchClearBtn.hidden = searchInput.value === '';
-    localStorage.setItem(SEARCH_KEY, searchInput.value); // TODO: 之後改接真正的 D1/API（此欄位僅為前端搜尋狀態）
+    localStorage.setItem(SEARCH_KEY, searchInput.value); // 只記住這台瀏覽器上次搜尋的字，不需要存到後端
     clearTimeout(teacherSearchDebounce);
     teacherSearchDebounce = setTimeout(() => {
       teacherPageState.page = 1;

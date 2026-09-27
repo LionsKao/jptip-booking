@@ -10,8 +10,6 @@ JPTIP 一對一日文家教預約系統。以 Cloudflare Workers + D1 為後端�
 - **樣式**：Tailwind v4，原始碼在 `src/tailwind/input.css`，需 build 成 `public/style.css` 才會生效；頁面各自的 `<style>` 區塊處理該頁專屬樣式。
 - **通知**：系統信件（登入驗證碼、預約成功／取消通知）透過 Microsoft Graph 從共用信箱 `one-on-one@jptip.co.jp` 寄出，副本留在該信箱的寄件備份當作寄信紀錄。信件內容可在管理端「系統信件」修改（預設範本在 `src/email-templates.ts`）。
 
-> 目前部分前端資料（如課程/老師/學生清單、預約紀錄）仍以 `localStorage` 作為 mock 資料來源，尚未完全改接 D1，程式碼中會標註 `// TODO: 之後改接真正的 D1/API`。
-
 ## 目錄結構
 
 ```
