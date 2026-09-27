@@ -134,7 +134,7 @@ describe('verification email via Microsoft Graph', () => {
     expect(send.auth).toBe('Bearer test-token');
     const mail = JSON.parse(send.body) as { message: { subject: string; body: { content: string }; toRecipients: { emailAddress: { address: string } }[] } };
     expect(mail.message.toRecipients).toEqual([{ emailAddress: { address: student.email } }]);
-    expect(mail.message.subject).toBe('【JPTIP】ログイン認証コード');
+    expect(mail.message.subject).toBe('🔑 ログイン認証コード');
     expect(mail.message.body.content).toContain(code);
     // 寄件備份要留著：共用信箱的寄件備份就是寄信紀錄
     expect((JSON.parse(send.body) as { saveToSentItems: boolean }).saveToSentItems).toBe(true);
@@ -155,7 +155,7 @@ describe('verification email via Microsoft Graph', () => {
       const send = calls.filter((c) => c.url.startsWith('https://graph.microsoft.com/')).at(-1)!;
       subjects.push((JSON.parse(send.body) as { message: { subject: string } }).message.subject);
     }
-    expect(subjects).toEqual(['[測試] 【JPTIP】您的登入驗證碼', '【JPTIP】您的登入驗證碼']);
+    expect(subjects).toEqual(['[測試] 🔑 您的登入驗證碼', '🔑 您的登入驗證碼']);
   });
 
   it('reports a send failure and voids the code that never reached the user', async ({ expect }) => {

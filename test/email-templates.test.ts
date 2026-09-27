@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { afterEach, describe, it, vi } from 'vitest';
+import { formatEmailDateLong } from '../src/email-templates';
 import { fetchWorker, latestOtpCode, login, makeTeacherBookable, mockGraph, requestOtp, SEEDED, sentMails, withCookie } from './helpers';
 
 afterEach(() => {
@@ -54,7 +55,7 @@ describe('/api/email-templates', () => {
       expect(lang.html).toBe(lang.defaultHtml);
       expect(lang.html).toContain('{{studentName}}');
     }
-    expect(tpl.languages['zh-Hant'].subject).toBe('【JPTIP】新預約：{{studentName}} {{date}} {{time}}');
+    expect(tpl.languages['zh-Hant'].subject).toBe('✅ 新預約：{{studentName}} {{date}} {{time}}');
     expect((await fetchWorker('/api/email-templates?key=nope', withCookie(cookie))).status).toBe(404);
   });
 
@@ -128,6 +129,8 @@ describe('booking notification emails', () => {
     const calls = mockGraph();
     const date = new Date(Date.now() + 8 * 3_600_000 + 10 * 86_400_000).toISOString().slice(0, 10);
     const ymd = date.replace(/-/g, '/');
+    const longDateJa = formatEmailDateLong(ymd, 'ja');
+    const longDateEn = formatEmailDateLong(ymd, 'en');
     const res = await fetchWorker('/api/bookings', withCookie(studentCookie, jsonInit('POST', { courseId: course.id, teacherId: teacher.id, date, time: '10:00' })));
     expect(res.status).toBe(201);
     const booking = (await res.json()) as { id: number; bookingCode: string };
@@ -136,20 +139,30 @@ describe('booking notification emails', () => {
     const created = sentMails(calls);
     const toStudent = created.find((m) => m.to === SEEDED.student.email)!;
     const toTeacher = created.find((m) => m.to === SEEDED.teacher.email)!;
-    expect(toStudent.subject).toBe(`【JPTIP】予約完了：通知信測試 ${ymd} 11:00`);
-    expect(toStudent.html).toContain(`${ymd} 11:00（UTC+09:00）`);
+    expect(toStudent.subject).toBe(`✅ 予約完了：${student.name} 通知信測試 ${longDateJa} 11:00`);
+    expect(toStudent.html).toContain(`${longDateJa}<br>11:00 - 12:40<br>1時間40分<br>UTC+09:00`);
     expect(toStudent.html).toContain(booking.bookingCode);
     expect(toStudent.html).toContain(teacher.name);
-    expect(toTeacher.subject).toBe(`[JPTIP] New booking: ${student.name} ${ymd} 08:30`);
-    expect(toTeacher.html).toContain(`${ymd} 08:30 (UTC+06:30)`);
+    // 這門課是第一次幫這位學生開，所以是第 1 次預約、之前 0 堂已上課、總共買了預設的 16 堂
+    expect(toStudent.html).toContain('1 / 16 回');
+    expect(toStudent.html).toContain('0 / 16 回');
+    expect(toTeacher.subject).toBe(`✅ New booking: ${student.name} ${longDateEn} 08:30`);
+    expect(toTeacher.html).toContain(`${longDateEn}<br>08:30 - 10:10<br>1h 40m<br>UTC+06:30`);
+    expect(toTeacher.html).toContain('1 / 16');
+    expect(toTeacher.html).toContain('0 / 16');
     expect(toTeacher.html).toContain('https://example.com/assets/icons/');
 
     const cancelled = await fetchWorker(`/api/bookings?id=${booking.id}`, withCookie(studentCookie, jsonInit('PATCH', { status: 'cancelled' })));
     expect(cancelled.status).toBe(200);
     await vi.waitFor(() => expect(sentMails(calls)).toHaveLength(4));
     const cancelMails = sentMails(calls).slice(2);
-    expect(cancelMails.find((m) => m.to === SEEDED.student.email)!.subject).toBe(`【JPTIP】予約キャンセル：通知信測試 ${ymd} 11:00`);
-    expect(cancelMails.find((m) => m.to === SEEDED.teacher.email)!.subject).toBe(`[JPTIP] Booking cancelled: ${student.name} ${ymd} 08:30`);
+    const cancelToStudent = cancelMails.find((m) => m.to === SEEDED.student.email)!;
+    const cancelToTeacher = cancelMails.find((m) => m.to === SEEDED.teacher.email)!;
+    expect(cancelToStudent.subject).toBe(`❌ 予約キャンセル：${student.name} 通知信測試 ${longDateJa} 11:00`);
+    expect(cancelToTeacher.subject).toBe(`❌ Booking cancelled: ${student.name} ${longDateEn} 08:30`);
+    // 課程進度只在預約成功信才有意義，取消信不顯示
+    expect(cancelToStudent.html).not.toContain('予約回数');
+    expect(cancelToTeacher.html).not.toContain('Booking number');
   });
 
   it('sends nothing when the mail secret is not set', async ({ expect }) => {

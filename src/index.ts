@@ -1,4 +1,4 @@
-import { defaultEmailTemplate, EMAIL_TEMPLATES, fillEmailTemplate, isEmailTemplateKey, type EmailTemplateKey } from './email-templates';
+import { defaultEmailTemplate, EMAIL_TEMPLATES, fillEmailTemplate, formatEmailDateLong, formatEmailDuration, isEmailTemplateKey, type EmailTemplateKey } from './email-templates';
 
 export interface Env {
   ASSETS: Fetcher;
@@ -291,10 +291,21 @@ async function renderEmail(env: Env, key: EmailTemplateKey, lang: SupportedLangu
   };
 }
 
+const PRODUCTION_URL = 'https://lionbooking.lions2100.workers.dev';
+
+function isLocalOrigin(origin: string): boolean {
+  return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(origin).hostname);
+}
+
 // 本機（localhost）寄出的信標題前面加上「[測試]」，在共用信箱的寄件備份裡跟正式寄出的信分得出來
 function mailSubjectPrefix(origin: string): string {
-  const host = new URL(origin).hostname;
-  return ['localhost', '127.0.0.1', '[::1]'].includes(host) ? '[測試] ' : '';
+  return isLocalOrigin(origin) ? '[測試] ' : '';
+}
+
+// 信件內容裡的連結／圖片一律指到正式網址：本機測試寄出的信如果還連回 localhost，
+// 收件人的信箱根本連不到，圖片會破圖、連結也點不進去
+function emailSiteUrl(origin: string): string {
+  return isLocalOrigin(origin) ? PRODUCTION_URL : origin;
 }
 
 // 寄出一封信；寄不出去就丟出錯誤（錯誤訊息不含信件內容，驗證碼不會進 log）。
@@ -440,7 +451,7 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
   try {
     const lang = isSupportedLanguage(account.language) ? account.language : 'zh-Hant';
     const origin = new URL(request.url).origin;
-    const mail = await renderEmail(env, `login_${role}` as EmailTemplateKey, lang, email, { name: account.name, code, siteUrl: origin });
+    const mail = await renderEmail(env, `login_${role}` as EmailTemplateKey, lang, email, { name: account.name, code, siteUrl: emailSiteUrl(origin) });
     await sendEmail(env, origin, mail);
   } catch (err) {
     // 寄不出去的碼直接作廢；log 只記錯誤原因，不記驗證碼
@@ -1320,19 +1331,22 @@ function shiftUtc8DateTime(date: string, time: string, offsetMinutes: number): {
 // students.timezone，老師是領收書資料裡的時區），信件語言也依收件人的設定。
 async function bookingNotificationEmails(env: Env, origin: string, bookingId: number, event: 'created' | 'cancelled'): Promise<OutgoingEmail[]> {
   const row = await env.DB.prepare(
-    `SELECT b.booking_code, b.date, b.time, c.name AS course_name,
+    `SELECT b.booking_code, b.date, b.time, c.name AS course_name, c.duration_minutes,
             s.name AS student_name, s.email AS student_email, s.language AS student_language, s.timezone AS student_timezone,
             t.name AS teacher_name, t.email AS teacher_email, t.language AS teacher_language,
-            CASE WHEN json_valid(t.receipt_json) THEN json_extract(t.receipt_json, '$.timezone') END AS teacher_timezone
+            CASE WHEN json_valid(t.receipt_json) THEN json_extract(t.receipt_json, '$.timezone') END AS teacher_timezone,
+            sc.booked_count, sc.attended_count, sc.total_sessions
      FROM bookings b
      JOIN students s ON s.id = b.student_id
      JOIN teachers t ON t.id = b.teacher_id
      JOIN courses c ON c.id = b.course_id
+     JOIN student_courses sc ON sc.id = b.student_course_id
      WHERE b.id = ?`
   ).bind(bookingId).first<{
-    booking_code: string; date: string; time: string; course_name: string;
+    booking_code: string; date: string; time: string; course_name: string; duration_minutes: number;
     student_name: string; student_email: string; student_language: string; student_timezone: string | null;
     teacher_name: string; teacher_email: string; teacher_language: string; teacher_timezone: string | null;
+    booked_count: number; attended_count: number; total_sessions: number;
   }>();
   if (!row) return [];
   const recipients = [
@@ -1342,16 +1356,25 @@ async function bookingNotificationEmails(env: Env, origin: string, bookingId: nu
   return Promise.all(recipients.map((recipient) => {
     const offset = parseUtcOffsetMinutes(recipient.timezone);
     const local = shiftUtc8DateTime(row.date, row.time, offset);
+    // 結束時間＝開始時間再往後移「時差＋課程長度」，等於先換到收件人時區、再加上這堂課的長度
+    const localEnd = shiftUtc8DateTime(row.date, row.time, offset + row.duration_minutes);
     const lang = isSupportedLanguage(recipient.language) ? recipient.language : 'zh-Hant';
     return renderEmail(env, `booking_${event}_${recipient.role}`, lang, recipient.email, {
       studentName: row.student_name,
       teacherName: row.teacher_name,
       courseName: row.course_name,
-      date: local.date,
+      date: formatEmailDateLong(local.date, lang),
       time: local.time,
+      endTime: localEnd.time,
+      duration: formatEmailDuration(row.duration_minutes, lang),
       timezone: formatUtcOffset(offset),
       bookingCode: row.booking_code,
-      siteUrl: origin,
+      // 課程進度只有「預約成功」的範本會用到（見 email-templates.ts 的 bookingEmail），
+      // 這裡不分事件一律算好，取消信的範本沒有引用這幾個變數，傳了也不會顯示
+      bookingNumber: String(row.booked_count),
+      attendedCount: String(row.attended_count),
+      totalSessions: String(row.total_sessions),
+      siteUrl: emailSiteUrl(origin),
     });
   }));
 }
