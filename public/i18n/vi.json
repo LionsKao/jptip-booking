@@ -422,6 +422,8 @@
   "admin.dash.invoices.desc": "Hóa đơn và thông báo kết quả hằng tháng của giáo viên",
   "admin.invoices.prevMonth": "Tháng trước",
   "admin.invoices.nextMonth": "Tháng sau",
+  "admin.invoices.filterLessons": "Có buổi học",
+  "admin.invoices.filterAll": "Tất cả",
   "admin.invoices.breakdown": "¥{{price}} × {{count}} buổi",
   "admin.invoices.lessonCount": "{{count}} buổi",
   "admin.invoices.missing": "Thông tin biên nhận của giáo viên này còn thiếu: {{fields}}. Vui lòng điền trước.",
@@ -434,6 +436,5 @@
   "admin.invoices.detailTitle": "Chi tiết buổi học",
   "admin.invoices.col.dateTime": "Ngày giờ",
   "admin.invoices.printButton": "In / Lưu PDF",
-  "admin.invoices.printHint": "Trong hộp thoại in, chọn đích là “Lưu dưới dạng PDF” để lưu thành tệp PDF",
   "admin.invoices.printIncomplete": "Thông tin biên nhận của giáo viên này chưa đầy đủ, vui lòng điền trước"
 }

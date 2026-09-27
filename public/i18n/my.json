@@ -422,6 +422,8 @@
   "admin.dash.invoices.desc": "ဆရာများ၏ လစဉ် ငွေတောင်းခံလွှာနှင့် လုပ်ငန်းမှတ်တမ်း",
   "admin.invoices.prevMonth": "ယခင်လ",
   "admin.invoices.nextMonth": "နောက်လ",
+  "admin.invoices.filterLessons": "သင်ခန်းစာရှိသူ",
+  "admin.invoices.filterAll": "အားလုံး",
   "admin.invoices.breakdown": "တစ်ကြိမ် ¥{{price}} × {{count}} ကြိမ်",
   "admin.invoices.lessonCount": "{{count}} ကြိမ်",
   "admin.invoices.missing": "ဤဆရာ၏ ပြေစာ ဒေတာ မဖြည့်ရသေးပါ: {{fields}}။ ဦးစွာ ဖြည့်ပါ။",
@@ -434,6 +436,5 @@
   "admin.invoices.detailTitle": "သင်ခန်းစာ အသေးစိတ်",
   "admin.invoices.col.dateTime": "ရက်စွဲနှင့် အချိန်",
   "admin.invoices.printButton": "ပုံနှိပ် / PDF သိမ်းရန်",
-  "admin.invoices.printHint": "ပုံနှိပ်ရန် ဝင်းဒိုးတွင် “Save as PDF” ကို ရွေးလျှင် PDF ဖိုင်အဖြစ် သိမ်းနိုင်သည်",
   "admin.invoices.printIncomplete": "ဤဆရာ၏ ပြေစာ ဒေတာ မပြည့်စုံသေးပါ၊ ဦးစွာ ဖြည့်ပါ"
 }

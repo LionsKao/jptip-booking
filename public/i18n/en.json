@@ -422,6 +422,8 @@
   "admin.dash.invoices.desc": "Monthly invoices and work reports for teachers",
   "admin.invoices.prevMonth": "Previous month",
   "admin.invoices.nextMonth": "Next month",
+  "admin.invoices.filterLessons": "Has lessons",
+  "admin.invoices.filterAll": "All",
   "admin.invoices.breakdown": "¥{{price}} × {{count}} lessons",
   "admin.invoices.lessonCount": "{{count}} lessons",
   "admin.invoices.missing": "This teacher’s receipt details are missing: {{fields}}. Please fill them in first.",
@@ -434,6 +436,5 @@
   "admin.invoices.detailTitle": "Lesson Details",
   "admin.invoices.col.dateTime": "Date & Time",
   "admin.invoices.printButton": "Print / Save as PDF",
-  "admin.invoices.printHint": "In the print dialog, choose “Save as PDF” as the destination to get a PDF file",
   "admin.invoices.printIncomplete": "This teacher’s receipt details are incomplete. Please fill them in first."
 }

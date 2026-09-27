@@ -422,6 +422,8 @@
   "admin.dash.invoices.desc": "講師の月次請求書と実績通知書",
   "admin.invoices.prevMonth": "前月",
   "admin.invoices.nextMonth": "翌月",
+  "admin.invoices.filterLessons": "実績あり",
+  "admin.invoices.filterAll": "すべて",
   "admin.invoices.breakdown": "1コマ ¥{{price}} × {{count}} コマ",
   "admin.invoices.lessonCount": "{{count}} コマ",
   "admin.invoices.missing": "この講師の領収書データが未入力です：{{fields}}。先に講師データを入力してください",
@@ -434,6 +436,5 @@
   "admin.invoices.detailTitle": "授業明細",
   "admin.invoices.col.dateTime": "日時",
   "admin.invoices.printButton": "印刷・PDF保存",
-  "admin.invoices.printHint": "印刷画面で送信先を「PDFに保存」にすると、PDFとして保存できます",
   "admin.invoices.printIncomplete": "この講師の領収書データが未入力です。先に講師データを入力してください"
 }

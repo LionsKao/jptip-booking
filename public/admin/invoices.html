@@ -30,10 +30,62 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* 分段切換：預設只顯示有堂數的老師，避免每個月一堆 0 堂的卡片（例如老師剛離職、還沒排課）；
+     切到「全部」才會看到 0 堂的老師，方便檢查是不是漏排課。純前端篩選，不重打 API。 */
+  .invoice-filter {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-4);
+  }
+  .invoice-filter-group {
+    position: relative;
+    display: inline-flex;
+    gap: 4px;
+    background: var(--bg-card-alt);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+  }
+  /* 選中的那顆底色其實是這個會滑動的方塊，不是按鈕自己的背景——
+     這樣切換的時候才會像開關一樣左右滑過去，而不是兩顆按鈕各自瞬間變色 */
+  .invoice-filter-thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    width: calc(50% - 4px);
+    background: var(--bg-card);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-sm);
+    transition: left .22s ease, width .22s ease;
+  }
+  .invoice-filter-btn {
+    position: relative;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: var(--fs-small);
+    font-weight: 700;
+    padding: 7px 18px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: color .2s ease;
+  }
+  .invoice-filter-btn.active {
+    color: var(--text-main);
+  }
+
   #invoice-cards {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3);
+  }
+  /* 切換「有堂數／全部」或換月份，卡片重新整批畫出來時淡入滑入一下，
+     不要整批瞬間跳出來 */
+  @keyframes invoiceCardIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .invoice-card {
     position: relative;
@@ -49,9 +101,11 @@
     will-change: transform;
     transform-style: preserve-3d;
     transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
+    animation: invoiceCardIn .22s ease both;
   }
   .invoice-card:hover { border-color: var(--color-blue); }
-  .invoice-card-empty { grid-column: 1 / -1; min-height: 88px; }
+  /* 跟學生/老師/課程等列表的空狀態卡片同一種樣式：置中、粗體 */
+  .invoice-card-empty { grid-column: 1 / -1; min-height: 88px; align-items: center; justify-content: center; font-weight: 700; font-size: 1.0625rem; }
   /* 同一行：頭像＋姓名（下面一行小字是算法）在左，堂數／金額靠右對齊，往下看容易比較；
      停用的老師右上角有緞帶，右邊多留一點空間 */
   .invoice-card-head { display: flex; align-items: center; gap: var(--space-3); }
@@ -96,6 +150,13 @@
       <button type="button" class="btn outline sm" id="prev-month-btn" data-i18n-aria-label="admin.invoices.prevMonth" aria-label="上個月"><i class="fa-solid fa-fw fa-chevron-left"></i></button>
       <span class="invoice-month-label" id="month-label"></span>
       <button type="button" class="btn outline sm" id="next-month-btn" data-i18n-aria-label="admin.invoices.nextMonth" aria-label="下個月"><i class="fa-solid fa-fw fa-chevron-right"></i></button>
+    </div>
+    <div class="invoice-filter">
+      <div class="invoice-filter-group">
+        <span class="invoice-filter-thumb" aria-hidden="true"></span>
+        <button type="button" class="invoice-filter-btn" data-filter="lessons" data-i18n="admin.invoices.filterLessons">有堂數</button>
+        <button type="button" class="invoice-filter-btn" data-filter="all" data-i18n="admin.invoices.filterAll">全部</button>
+      </div>
     </div>
     <div id="invoice-cards"></div>
   </section>
@@ -189,21 +250,14 @@ const MISSING_FIELD_KEYS = {
     </div>`;
   }
 
-  let loadSeq = 0;
-  async function loadMonth() {
-    const seq = ++loadSeq;
-    document.getElementById('month-label').textContent = formatInvoiceMonth(month);
-    history.replaceState(null, '', `?month=${month}`);
-    const res = await fetch(`/api/invoices?month=${month}`).catch(() => null);
-    if (seq !== loadSeq) return; // 快速連點換月份時，只畫最後一次的結果
-    if (!res || !res.ok) {
-      cardsEl.innerHTML = '';
-      showAlert(t('admin.invoices.loadFailed'));
-      return;
-    }
-    const invoices = await res.json();
-    if (seq !== loadSeq) return;
+  // 篩選只影響畫面上顯示哪幾張卡片，資料本來就已經抓回來了，不用重打 API；
+  // 記在 localStorage 是這台瀏覽器的個人習慣，換月份、重新整理都會記得。
+  const FILTER_KEY = 'admin-invoice-filter';
+  let filterMode = localStorage.getItem(FILTER_KEY) === 'all' ? 'all' : 'lessons';
+  let currentInvoices = [];
 
+  function renderCards() {
+    const invoices = filterMode === 'all' ? currentInvoices : currentInvoices.filter((inv) => inv.lessonCount > 0);
     cardsEl.innerHTML = invoices.length
       ? invoices.map(renderInvoiceCard).join('')
       : `<div class="invoice-card invoice-card-empty">${t('admin.invoices.empty')}</div>`;
@@ -228,6 +282,46 @@ const MISSING_FIELD_KEYS = {
       });
     });
   }
+
+  let loadSeq = 0;
+  async function loadMonth() {
+    const seq = ++loadSeq;
+    document.getElementById('month-label').textContent = formatInvoiceMonth(month);
+    history.replaceState(null, '', `?month=${month}`);
+    const res = await fetch(`/api/invoices?month=${month}`).catch(() => null);
+    if (seq !== loadSeq) return; // 快速連點換月份時，只畫最後一次的結果
+    if (!res || !res.ok) {
+      cardsEl.innerHTML = '';
+      showAlert(t('admin.invoices.loadFailed'));
+      return;
+    }
+    currentInvoices = await res.json();
+    if (seq !== loadSeq) return;
+    renderCards();
+  }
+
+  // 滑動的方塊要跟著目前選中的按鈕的實際寬度和位置走（兩個字的「全部」比「有堂數」窄，
+  // 換語言時文字長度也不一樣），量按鈕在 .invoice-filter-group 裡的位置來對齊。
+  function moveFilterThumb() {
+    const activeBtn = document.querySelector('.invoice-filter-btn.active');
+    const thumb = document.querySelector('.invoice-filter-thumb');
+    if (!activeBtn || !thumb) return;
+    thumb.style.left = `${activeBtn.offsetLeft}px`;
+    thumb.style.width = `${activeBtn.offsetWidth}px`;
+  }
+
+  document.querySelectorAll('.invoice-filter-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.filter === filterMode);
+    btn.addEventListener('click', () => {
+      if (btn.dataset.filter === filterMode) return;
+      filterMode = btn.dataset.filter;
+      localStorage.setItem(FILTER_KEY, filterMode);
+      document.querySelectorAll('.invoice-filter-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      moveFilterThumb();
+      renderCards();
+    });
+  });
+  moveFilterThumb();
 
   document.getElementById('prev-month-btn').addEventListener('click', () => { month = shiftMonth(month, -1); loadMonth(); });
   document.getElementById('next-month-btn').addEventListener('click', () => { month = shiftMonth(month, 1); loadMonth(); });

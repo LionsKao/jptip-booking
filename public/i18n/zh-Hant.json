@@ -422,6 +422,8 @@
   "admin.dash.invoices.desc": "每月老師的請求書與實績通知書",
   "admin.invoices.prevMonth": "上個月",
   "admin.invoices.nextMonth": "下個月",
+  "admin.invoices.filterLessons": "有堂數",
+  "admin.invoices.filterAll": "全部",
   "admin.invoices.breakdown": "每堂 ¥{{price}} × {{count}} 堂",
   "admin.invoices.lessonCount": "{{count}} 堂",
   "admin.invoices.missing": "這位老師的領收書資料還沒填：{{fields}}。請先到老師資料填寫",
@@ -434,6 +436,5 @@
   "admin.invoices.detailTitle": "課程明細",
   "admin.invoices.col.dateTime": "日期時間",
   "admin.invoices.printButton": "列印／存成 PDF",
-  "admin.invoices.printHint": "在列印視窗把「目的地」選成「另存為 PDF」，就能存成 PDF 檔",
   "admin.invoices.printIncomplete": "這位老師的領收書資料還沒填完整，請先到老師資料填寫"
 }
