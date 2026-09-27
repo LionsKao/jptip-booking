@@ -40,6 +40,7 @@ describe('/api/email-templates', () => {
     expect(list.map((t) => t.key)).toEqual([
       'login_admin', 'login_teacher', 'login_student',
       'booking_created_student', 'booking_created_teacher', 'booking_cancelled_student', 'booking_cancelled_teacher',
+      'booking_reminder_student', 'booking_reminder_teacher',
     ]);
     expect(list.every((t) => t.customizedLanguages.length === 0)).toBe(true);
     expect(list[0].variables).toEqual(['name', 'code', 'siteUrl']);

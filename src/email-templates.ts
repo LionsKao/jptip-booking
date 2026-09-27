@@ -19,6 +19,8 @@ export const EMAIL_TEMPLATES = [
   { key: 'booking_created_teacher', variables: ['bookingCode', 'courseName', 'studentName', 'teacherName', 'date', 'time', 'endTime', 'duration', 'timezone', 'bookingNumber', 'attendedCount', 'totalSessions', 'siteUrl'] },
   { key: 'booking_cancelled_student', variables: ['bookingCode', 'courseName', 'studentName', 'teacherName', 'date', 'time', 'endTime', 'duration', 'timezone', 'siteUrl'] },
   { key: 'booking_cancelled_teacher', variables: ['bookingCode', 'courseName', 'studentName', 'teacherName', 'date', 'time', 'endTime', 'duration', 'timezone', 'siteUrl'] },
+  { key: 'booking_reminder_student', variables: ['bookingCode', 'courseName', 'studentName', 'teacherName', 'date', 'time', 'endTime', 'duration', 'timezone', 'siteUrl'] },
+  { key: 'booking_reminder_teacher', variables: ['bookingCode', 'courseName', 'studentName', 'teacherName', 'date', 'time', 'endTime', 'duration', 'timezone', 'siteUrl'] },
 ] as const;
 export type EmailTemplateKey = (typeof EMAIL_TEMPLATES)[number]['key'];
 
@@ -172,7 +174,7 @@ const LOGIN_TEXT: Record<EmailLanguage, { subject: string; greeting: string; int
   },
 };
 
-type BookingEmailKind = 'created_student' | 'created_teacher' | 'cancelled_student' | 'cancelled_teacher';
+type BookingEmailKind = 'created_student' | 'created_teacher' | 'cancelled_student' | 'cancelled_teacher' | 'reminder_student' | 'reminder_teacher';
 type BookingText = { subject: string; greeting: string; intro: string; note: string };
 
 const BOOKING_TEXT: Record<BookingEmailKind, Record<EmailLanguage, BookingText>> = {
@@ -304,6 +306,70 @@ const BOOKING_TEXT: Record<BookingEmailKind, Record<EmailLanguage, BookingText>>
       note: 'နောက်ဆုံး သင်ခန်းစာအစီအစဉ်ကို ဘွတ်ကင်စနစ်သို့ ဝင်ရောက်၍ ကြည့်ရှုနိုင်ပါသည်။',
     },
   },
+  reminder_student: {
+    'zh-Hant': {
+      subject: '🔔 上課提醒：{{studentName}} {{courseName}} {{date}} {{time}}',
+      greeting: '{{studentName}} 您好，',
+      intro: '提醒您，以下課程即將開始：',
+      note: '上課時間到了，請從預約系統首頁的「會議室」進入線上課程。如需取消，請在課程規定的時限前到「我的課程」操作。',
+    },
+    ja: {
+      subject: '🔔 授業リマインダー：{{studentName}} {{courseName}} {{date}} {{time}}',
+      greeting: '{{studentName}} 様',
+      intro: 'まもなく授業が始まります。詳細は以下のとおりです：',
+      note: '授業の時間になりましたら、予約システムのホームの「会議室」からオンライン授業にご参加ください。キャンセルする場合は、コースで定められた期限までに「私の授業」から操作してください。',
+    },
+    en: {
+      subject: '🔔 Class reminder: {{studentName}} {{courseName}} {{date}} {{time}}',
+      greeting: 'Hi {{studentName}},',
+      intro: 'This is a reminder that your class is coming up soon:',
+      note: 'When it’s time for class, join the online lesson from “Meeting Room” on the booking system’s home page. To cancel, go to “My Courses” before the course’s cancellation deadline.',
+    },
+    vi: {
+      subject: '🔔 Nhắc lịch học: {{studentName}} {{courseName}} {{date}} {{time}}',
+      greeting: 'Xin chào {{studentName}},',
+      intro: 'Nhắc bạn, buổi học sau sắp bắt đầu:',
+      note: 'Khi đến giờ học, vui lòng vào lớp học trực tuyến từ mục “Phòng họp” trên trang chủ hệ thống đặt lịch. Nếu muốn hủy, vui lòng thao tác tại “Khóa học của tôi” trước thời hạn quy định của khóa học.',
+    },
+    my: {
+      subject: '🔔 သင်ခန်းစာ သတိပေးချက်: {{studentName}} {{courseName}} {{date}} {{time}}',
+      greeting: 'မင်္ဂလာပါ {{studentName}}၊',
+      intro: 'မကြာမီ စတင်မည့် အောက်ပါ သင်ခန်းစာကို သတိပေးလိုက်ပါသည်-',
+      note: 'သင်ခန်းစာချိန်ရောက်လျှင် ဘွတ်ကင်စနစ် ပင်မစာမျက်နှာရှိ “အစည်းအဝေးခန်း” မှ အွန်လိုင်းသင်ခန်းစာသို့ ဝင်ပါ။ ပယ်ဖျက်လိုပါက သင်တန်းသတ်မှတ်ထားသော အချိန်မတိုင်မီ “ကျွန်ုပ်၏ သင်တန်းများ” တွင် ပယ်ဖျက်ပါ။',
+    },
+  },
+  reminder_teacher: {
+    'zh-Hant': {
+      subject: '🔔 上課提醒：{{studentName}} {{date}} {{time}}',
+      greeting: '{{teacherName}} 老師您好，',
+      intro: '提醒您，以下課程即將開始：',
+      note: '可以登入預約系統查看這堂課的詳細資訊。',
+    },
+    ja: {
+      subject: '🔔 授業リマインダー：{{studentName}} {{date}} {{time}}',
+      greeting: '{{teacherName}} 先生',
+      intro: 'まもなく授業が始まります。詳細は以下のとおりです：',
+      note: '詳細は予約システムにログインしてご確認ください。',
+    },
+    en: {
+      subject: '🔔 Class reminder: {{studentName}} {{date}} {{time}}',
+      greeting: 'Hi {{teacherName}},',
+      intro: 'This is a reminder that the following class is coming up soon:',
+      note: 'Log in to the booking system for more details about this class.',
+    },
+    vi: {
+      subject: '🔔 Nhắc lịch dạy: {{studentName}} {{date}} {{time}}',
+      greeting: 'Xin chào thầy/cô {{teacherName}},',
+      intro: 'Nhắc thầy/cô, buổi học sau sắp bắt đầu:',
+      note: 'Vui lòng đăng nhập hệ thống đặt lịch để xem chi tiết buổi học.',
+    },
+    my: {
+      subject: '🔔 သင်ခန်းစာ သတိပေးချက်: {{studentName}} {{date}} {{time}}',
+      greeting: 'မင်္ဂလာပါ ဆရာ {{teacherName}}၊',
+      intro: 'မကြာမီ စတင်မည့် အောက်ပါ သင်ခန်းစာကို သတိပေးလိုက်ပါသည်-',
+      note: 'အသေးစိတ်ကို ဘွတ်ကင်စနစ်သို့ ဝင်ရောက်၍ ကြည့်ရှုနိုင်ပါသည်။',
+    },
+  },
 };
 
 // 所有系統信共用的外框：標題列（圖示＋品牌名稱，顏色依信件類型而定）、白色內容區、米色頁尾
@@ -374,8 +440,8 @@ ${rowHtml}
           <div style="text-align:center;">
             <a href="{{siteUrl}}" style="display:inline-block;background:#3AA0C9;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;border-radius:999px;padding:12px 28px;">${common.button}</a>
           </div>`;
-  const icon = kind.startsWith('created') ? 'check.png' : 'close.png';
-  const color = kind.startsWith('created') ? '#78b154' : '#f73b5d';
+  const icon = kind.startsWith('created') ? 'check.png' : kind.startsWith('reminder') ? 'bell.png' : 'close.png';
+  const color = kind.startsWith('created') ? '#78b154' : kind.startsWith('reminder') ? '#8B5CF6' : '#f73b5d';
   return { subject: text.subject, html: emailLayout(lang, icon, color, body) };
 }
 

@@ -148,6 +148,35 @@ describe('/api/students/courses', () => {
     }
   });
 
+  it('accepts an attendedCount for enrollments carried over from another system, marking it completed once it reaches the total', async ({ expect }) => {
+    const cookie = await login(SEEDED.admin.email, 'admin');
+    const course = (await (await fetchWorker('/api/courses', withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: '轉移進度測試' }),
+    }))).json()) as { name: string };
+    const enroll = (studentId: number, body: Record<string, unknown>) => fetchWorker(`/api/students/courses?studentId=${studentId}`, withCookie(cookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseName: course.name, ...body }),
+    }));
+
+    // 已上課 10 堂、總共 16 堂：還在進行中，已預約堂數也一起算進去（沒有真的預約紀錄）
+    const midway = (await (await enroll(1, { totalSessions: 16, attendedCount: 10 })).json()) as Record<string, unknown>;
+    expect(midway.attended).toBe('10/16');
+    expect(midway.booked).toBe('10/16');
+    expect(midway.status).toBe('ongoing');
+
+    // 已上課堂數等於總堂數：補登記一門轉過來前就已經上完的課程，直接是已完成
+    const finished = (await (await enroll(2, { totalSessions: 12, attendedCount: 12 })).json()) as Record<string, unknown>;
+    expect(finished.attended).toBe('12/12');
+    expect(finished.status).toBe('completed');
+
+    // 沒填就跟原本一樣從 0 堂開始
+    const fresh = (await (await enroll(3, { totalSessions: 16 })).json()) as Record<string, unknown>;
+    expect(fresh.attended).toBe('0/16');
+
+    for (const bad of [-1, 17, 1.5, '10']) {
+      expect((await enroll(4, { totalSessions: 16, attendedCount: bad })).status).toBe(400);
+    }
+  });
+
   it('DELETE is blocked once the enrollment has any booked or attended sessions', async ({ expect }) => {
     const cookie = await login(SEEDED.admin.email, 'admin');
     const course = (await (await fetchWorker('/api/courses', withCookie(cookie, {

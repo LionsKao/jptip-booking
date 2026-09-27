@@ -597,6 +597,7 @@ interface CourseRow {
   min_lead_hours: number;
   max_lead_days: number;
   default_sessions: number;
+  reminder_hours_before: number;
 }
 
 function courseRowToJson(row: CourseRow) {
@@ -613,6 +614,7 @@ function courseRowToJson(row: CourseRow) {
     minLeadHours: row.min_lead_hours,
     maxLeadDays: row.max_lead_days,
     defaultSessions: row.default_sessions,
+    reminderHoursBefore: row.reminder_hours_before,
   };
 }
 
@@ -633,6 +635,7 @@ interface CourseBody {
   minLeadHours?: number;
   maxLeadDays?: number;
   defaultSessions?: number;
+  reminderHoursBefore?: number;
 }
 
 // 堂數（課程的預設堂數、學生每筆已購買課程的總堂數）共用的檢查
@@ -676,6 +679,7 @@ const COURSE_FIELD_COLUMNS: Record<keyof CourseBody, string> = {
   minLeadHours: 'min_lead_hours',
   maxLeadDays: 'max_lead_days',
   defaultSessions: 'default_sessions',
+  reminderHoursBefore: 'reminder_hours_before',
 };
 
 async function handleCourseUpdate(request: Request, env: Env): Promise<Response> {
@@ -1137,7 +1141,7 @@ async function handleStudentCoursesList(env: Env, studentId: number): Promise<Re
 }
 
 async function handleStudentCourseCreate(request: Request, env: Env, studentId: number): Promise<Response> {
-  const { courseName, totalSessions } = await request.json<{ courseName?: string; totalSessions?: number | null }>();
+  const { courseName, totalSessions, attendedCount } = await request.json<{ courseName?: string; totalSessions?: number | null; attendedCount?: number | null }>();
   if (!courseName) {
     return Response.json({ error: '缺少課程名稱' }, { status: 400 });
   }
@@ -1148,14 +1152,25 @@ async function handleStudentCourseCreate(request: Request, env: Env, studentId: 
   if (!course) {
     return Response.json({ error: '找不到課程' }, { status: 404 });
   }
+  const resolvedTotal = totalSessions ?? course.default_sessions;
+
+  // 已上課堂數：從別的系統（例如 M365 Bookings）轉過來的學生，新增課程時可以直接帶入已經上過
+  // 的堂數，不用從 0 堂開始算；等於總堂數就直接是已完成的課程（例如補登記一門轉過來前就已經
+  // 上完的舊課程）。沒有填就是全新的學生，從 0 堂開始，跟原本的行為一樣。
+  if (attendedCount != null && (!Number.isInteger(attendedCount) || attendedCount < 0 || attendedCount > resolvedTotal)) {
+    return Response.json({ error: `已上課堂數需為 0 到 ${resolvedTotal} 的整數` }, { status: 400 });
+  }
+  const startCount = attendedCount ?? 0;
 
   // 同一個學生的同一門課只會有一筆：加購、補課、堂數打錯都用 PATCH 改總堂數。有兩筆的話，
-  // 預約時不知道該扣哪一筆，畫面上也只看得到其中一筆的堂數。
+  // 預約時不知道該扣哪一筆，畫面上也只看得到其中一筆的堂數。已上課堂數沒有對應到真的預約紀錄
+  // （這套系統裡沒有這幾堂課的 bookings），所以已預約堂數也一併算進去，不然堂數配額會對不起來。
   const row = await env.DB.prepare(
-    `INSERT INTO student_courses (student_id, course_id, total_sessions)
-     SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM student_courses WHERE student_id = ? AND course_id = ?)
+    `INSERT INTO student_courses (student_id, course_id, total_sessions, attended_count, booked_count, status)
+     SELECT ?, ?, ?, ?, ?, CASE WHEN ? >= ? THEN 'completed' ELSE 'ongoing' END
+     WHERE NOT EXISTS (SELECT 1 FROM student_courses WHERE student_id = ? AND course_id = ?)
      RETURNING *`
-  ).bind(studentId, course.id, totalSessions ?? course.default_sessions, studentId, course.id).first<Omit<StudentCourseRow, 'course_name'>>();
+  ).bind(studentId, course.id, resolvedTotal, startCount, startCount, startCount, resolvedTotal, studentId, course.id).first<Omit<StudentCourseRow, 'course_name'>>();
   if (!row) {
     return apiError(409, 'courseAlreadyOwned', '這位學生已經有這門課程，請直接修改總堂數');
   }
@@ -1188,6 +1203,49 @@ async function handleStudentCourseUpdate(request: Request, env: Env, studentId: 
   }
   const course = await env.DB.prepare(`SELECT name FROM courses WHERE id = ?`).bind(row.course_id).first<{ name: string }>();
   return Response.json(studentCourseRowToJson({ ...row, course_name: course?.name ?? '' }));
+}
+
+// 補償一堂：課堂不是學生的問題而中斷（老師方停電、臨時身體不適等）時，管理者幫這門課的
+// 總堂數 +1，並且一定要填原因存進 student_course_adjustments，之後才查得到當初為什麼多一堂。
+async function handleStudentCourseCompensate(request: Request, env: Env, session: Session, studentId: number, studentCourseId: number): Promise<Response> {
+  const { reason } = await request.json<{ reason?: string }>();
+  const trimmedReason = (reason ?? '').trim();
+  if (!trimmedReason) {
+    return apiError(400, 'reasonRequired', '請填寫補償原因');
+  }
+  const row = await env.DB.prepare(
+    `UPDATE student_courses
+     SET total_sessions = total_sessions + 1,
+         status = CASE WHEN attended_count >= total_sessions + 1 THEN 'completed' ELSE 'ongoing' END
+     WHERE id = ?1 AND student_id = ?2
+     RETURNING *`
+  ).bind(studentCourseId, studentId).first<Omit<StudentCourseRow, 'course_name'>>();
+  if (!row) {
+    return Response.json({ error: '找不到課程' }, { status: 404 });
+  }
+  await env.DB.prepare(
+    `INSERT INTO student_course_adjustments (student_course_id, sessions_delta, reason, created_by) VALUES (?, 1, ?, ?)`
+  ).bind(studentCourseId, trimmedReason, session.email).run();
+  const course = await env.DB.prepare(`SELECT name FROM courses WHERE id = ?`).bind(row.course_id).first<{ name: string }>();
+  return Response.json(studentCourseRowToJson({ ...row, course_name: course?.name ?? '' }));
+}
+
+interface StudentCourseAdjustmentRow {
+  id: number;
+  student_course_id: number;
+  sessions_delta: number;
+  reason: string;
+  created_by: string;
+  created_at: string;
+}
+
+async function handleStudentCourseAdjustmentsList(env: Env, studentId: number, studentCourseId: number): Promise<Response> {
+  const owner = await env.DB.prepare(`SELECT id FROM student_courses WHERE id = ? AND student_id = ?`).bind(studentCourseId, studentId).first();
+  if (!owner) return Response.json({ error: '找不到課程' }, { status: 404 });
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM student_course_adjustments WHERE student_course_id = ? ORDER BY id DESC`
+  ).bind(studentCourseId).all<StudentCourseAdjustmentRow>();
+  return Response.json(results);
 }
 
 async function handleStudentCourseDelete(env: Env, studentId: number, studentCourseId: number): Promise<Response> {
@@ -1327,9 +1385,9 @@ function shiftUtc8DateTime(date: string, time: string, offsetMinutes: number): {
   return { date: shifted.slice(0, 10).replace(/-/g, '/'), time: shifted.slice(11, 16) };
 }
 
-// 預約成功／取消時寄給學生和老師的通知信。上課時間換算成收件人自己設定的時區（學生是
+// 預約成功／取消／上課提醒時寄給學生和老師的通知信。上課時間換算成收件人自己設定的時區（學生是
 // students.timezone，老師是領收書資料裡的時區），信件語言也依收件人的設定。
-async function bookingNotificationEmails(env: Env, origin: string, bookingId: number, event: 'created' | 'cancelled'): Promise<OutgoingEmail[]> {
+async function bookingNotificationEmails(env: Env, origin: string, bookingId: number, event: 'created' | 'cancelled' | 'reminder'): Promise<OutgoingEmail[]> {
   const row = await env.DB.prepare(
     `SELECT b.booking_code, b.date, b.time, c.name AS course_name, c.duration_minutes,
             s.name AS student_name, s.email AS student_email, s.language AS student_language, s.timezone AS student_timezone,
@@ -1391,6 +1449,38 @@ async function notifyBooking(env: Env, ctx: ExecutionContext, request: Request, 
     }))));
   } catch (err) {
     console.error(`[mail] failed to prepare booking ${event} notification`, err);
+  }
+}
+
+// 上課前提醒信：由 wrangler.jsonc 設定的 Cron Trigger 定期呼叫（見檔案最後的 scheduled），找出
+// 還沒寄過提醒、現在距離上課時間已經進入該課程設定範圍內（courses.reminder_hours_before）的預約。
+// 已經上課、被取消的預約不會被選到（status 不是 'upcoming'）；錯過提醒時間點（例如排程曾經中斷）
+// 也不會補寄，避免收到「已經上完課」的提醒信。排程沒有 HTTP request，內容一律當作正式環境寄出
+// （連結指到 PRODUCTION_URL、標題不會加「[測試]」），跟本機開發環境無關。
+export async function sendDueBookingReminders(env: Env): Promise<void> {
+  if (!env.MS_CLIENT_SECRET) return;
+  const { results } = await env.DB.prepare(
+    `SELECT b.id AS booking_id, b.date, b.time, c.reminder_hours_before
+     FROM bookings b JOIN courses c ON c.id = b.course_id
+     WHERE b.status = 'upcoming' AND b.reminder_sent_at IS NULL`
+  ).all<{ booking_id: number; date: string; time: string; reminder_hours_before: number }>();
+
+  const due = results.filter((row) => {
+    const hoursUntil = hoursUntilUtc8(row.date, row.time);
+    return hoursUntil > 0 && hoursUntil <= row.reminder_hours_before;
+  });
+
+  for (const row of due) {
+    try {
+      const emails = await bookingNotificationEmails(env, PRODUCTION_URL, row.booking_id, 'reminder');
+      await Promise.all(emails.map((mail) => sendEmail(env, PRODUCTION_URL, mail).catch((err) => {
+        console.error('[mail] failed to send booking reminder', err);
+      })));
+    } catch (err) {
+      console.error('[mail] failed to prepare booking reminder', err);
+      continue;
+    }
+    await env.DB.prepare(`UPDATE bookings SET reminder_sent_at = datetime('now', '+8 hours') WHERE id = ?`).bind(row.booking_id).run();
   }
 }
 
@@ -1871,6 +1961,11 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     return withSecurityHeaders(await route(request, env, ctx));
   },
+  // wrangler.jsonc 的 triggers.crons 設定多久跑一次；本機 `wrangler dev` 不會自動觸發，
+  // 要測試用 `wrangler dev --test-scheduled` 再打 /__scheduled。
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(sendDueBookingReminders(env));
+  },
 };
 
 // 所有經過 Worker 的回應都加上基本的安全標頭（直接由靜態資源回應的檔案，例如登入頁，
@@ -2104,6 +2199,26 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
         ? handleStudentCourseUpdate(request, env, studentId, scId)
         : handleStudentCourseDelete(env, studentId, scId);
     }
+  }
+
+  // 補償一堂（原因存進 student_course_adjustments）跟查詢補償紀錄，只有管理者能用
+  if (url.pathname === '/api/students/courses/compensate' && request.method === 'POST') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    const qsStudentId = Number(url.searchParams.get('studentId'));
+    const scId = Number(url.searchParams.get('id'));
+    if (!Number.isInteger(qsStudentId) || qsStudentId <= 0) return Response.json({ error: '缺少或無效的 studentId' }, { status: 400 });
+    if (!Number.isInteger(scId) || scId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
+    return handleStudentCourseCompensate(request, env, session, qsStudentId, scId);
+  }
+  if (url.pathname === '/api/students/courses/adjustments' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    const qsStudentId = Number(url.searchParams.get('studentId'));
+    const scId = Number(url.searchParams.get('id'));
+    if (!Number.isInteger(qsStudentId) || qsStudentId <= 0) return Response.json({ error: '缺少或無效的 studentId' }, { status: 400 });
+    if (!Number.isInteger(scId) || scId <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
+    return handleStudentCourseAdjustmentsList(env, qsStudentId, scId);
   }
 
   if (url.pathname === '/api/bookings' && request.method === 'GET') {

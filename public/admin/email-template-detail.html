@@ -213,7 +213,9 @@
 <script>
 function emailTemplateIcon(key) {
   if (key.startsWith('login_')) return 'key.png';
-  return key.startsWith('booking_created_') ? 'check.png' : 'close.png';
+  if (key.startsWith('booking_created_')) return 'check.png';
+  if (key.startsWith('booking_reminder_')) return 'bell.png';
+  return 'close.png';
 }
 
 // 預覽用的範例資料（真正寄信時換成收件人、課程的實際資料，見 src/index.ts）

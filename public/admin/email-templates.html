@@ -52,7 +52,8 @@
   .email-list-card-icon { flex: none; width: 48px; height: 48px; object-fit: contain; }
   .email-list-card-body { flex: 1; min-width: 0; padding-right: 48px; }
   .email-list-card h4 { margin: 0 0 4px; font-size: 1.0625rem; line-height: 1.4; }
-  .email-list-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); line-height: 1.5; }
+  /* 說明只顯示一行，太長（例如其他語言、畫面變窄時）就截斷成「…」，跟其他主頁卡片同一種效果 */
+  .email-list-card p { margin: 0; color: var(--text-muted); font-size: var(--fs-small); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   @media (max-width: 1048px) {
     body.admin-page .page {
@@ -96,7 +97,9 @@
 // 每一種系統信卡片上的圖示（跟信件標題列的圖示一致）
 function emailTemplateIcon(key) {
   if (key.startsWith('login_')) return 'key.png';
-  return key.startsWith('booking_created_') ? 'check.png' : 'close.png';
+  if (key.startsWith('booking_created_')) return 'check.png';
+  if (key.startsWith('booking_reminder_')) return 'bell.png';
+  return 'close.png';
 }
 
 (async () => {

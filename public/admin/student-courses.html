@@ -23,7 +23,6 @@
 
   .course-row {
     position: relative;
-    overflow: hidden;
     border: 3px solid var(--line);
     border-radius: var(--radius-lg);
     background: var(--bg-card);
@@ -34,7 +33,8 @@
     transition: transform .35s ease, box-shadow .35s ease, border-color .2s ease;
   }
   .course-row:hover { border-color: var(--color-blue); }
-  .course-row h4 { margin: 0 0 8px; padding-right: 200px; line-height: 1.4; }
+  .course-row h4 { margin: 0 0 8px; line-height: 1.4; }
+  .course-row.has-ribbon h4 { padding-right: 56px; }
   .course-count { margin: 0; color: var(--text-muted); font-size: var(--fs-small); line-height: 1.4; }
   .course-count-value { font-variant-numeric: tabular-nums; }
 
@@ -54,14 +54,21 @@
   #add-course-dropdown .select-badge {
     display: none;
   }
+  /* 選課程／堂數／新增按鈕直向排列成三行，欄位一多擠在同一行會太窄 */
   .course-add-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .course-add-sessions-row {
     display: flex;
     align-items: center;
     gap: var(--space-3);
   }
   /* 堂數：選了課程後帶入該課程的預設堂數，可以針對這位學生調整 */
   .course-sessions-input { display: flex; align-items: center; gap: var(--space-2); flex: none; }
-  .course-sessions-input .text-input { width: 80px; text-align: center; font-variant-numeric: tabular-nums; }
+  .course-sessions-input .text-input { width: 120px; text-align: center; font-variant-numeric: tabular-nums; }
   .course-sessions-input span { color: var(--text-muted); font-size: var(--fs-small); }
   @media (min-width: 641px) {
     #add-course-dropdown .dropdown-menu {
@@ -79,19 +86,19 @@
 
   .booking-card-empty { min-height: 138px; }
 
-  /* 修改堂數／刪除按鈕：靠右置中，有「進行中／已上課」緞帶時往左移，不壓到緞帶 */
-  .course-row-actions {
-    position: absolute;
-    top: 50%;
-    right: var(--space-3);
-    transform: translateY(-50%);
-    display: flex;
-    gap: var(--space-2);
-  }
-  .course-row.has-ribbon .course-row-actions { right: 72px; }
+  /* 動作按鈕：跟請求書頁的卡片一樣，排在課程資訊下面自己一整排，按鈕多也不會擠 */
+  .course-row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
 
   /* 修改總堂數視窗的輸入框置中 */
   .edit-sessions-input { justify-content: center; margin: var(--space-4) 0 var(--space-3); }
+
+  /* 補償一堂的原因輸入框：跟其他 modal 的 text-input 同寬，但要能多打幾行字 */
+  #compensate-session-reason { width: 100%; resize: vertical; margin: var(--space-3) 0; font-family: inherit; }
+
+  /* 補償紀錄清單：一筆一筆列出來，跟其他資訊區塊隔開 */
+  #adjustment-history-list { margin-top: var(--space-3); max-height: 320px; overflow-y: auto; }
+  .adjustment-row { padding: var(--space-3) 0; border-bottom: 1px solid var(--border-color, #eee); }
+  .adjustment-row:last-child { border-bottom: none; }
 
   @media (max-width: 1048px) {
     body.admin-page .page {
@@ -107,16 +114,7 @@
     #course-list {
       grid-template-columns: 1fr;
     }
-    /* 手機寬度放不下名稱＋按鈕，按鈕改排在堂數下面 */
-    .course-row h4 { padding-right: 70px; }
-    .course-row-actions,
-    .course-row.has-ribbon .course-row-actions {
-      position: static;
-      transform: none;
-      margin-top: var(--space-3);
-    }
     .course-add-row {
-      flex-direction: column;
       align-items: stretch;
     }
     .course-add-row .dropdown {
@@ -141,9 +139,11 @@
         <button type="button" class="dropdown-trigger"><span class="label" data-i18n="admin.teachers.courses.selectPlaceholder">選擇課程</span><span class="arrow"></span></button>
         <ul class="dropdown-menu" id="add-course-menu"></ul>
       </div>
-      <div class="course-sessions-input">
-        <input type="text" id="add-course-sessions" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="3" data-i18n-aria-label="admin.students.courses.sessions" aria-label="堂數">
-        <span data-i18n="admin.common.sessionUnit">堂</span>
+      <div class="course-add-sessions-row">
+        <div class="course-sessions-input">
+          <input type="text" id="add-course-attended" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="3" data-i18n-placeholder="admin.students.courses.attendedPlaceholder" placeholder="已上課" data-i18n-aria-label="admin.students.courses.attendedSessions" aria-label="已上課堂數">
+          <span data-i18n="admin.common.sessionUnit">堂</span>
+        </div>
       </div>
       <button type="button" class="btn butter" id="add-course-btn" disabled><i class="fa-solid fa-fw fa-plus"></i> <span data-i18n="admin.courses.addNew">新增課程</span></button>
     </div>
@@ -211,6 +211,31 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="compensateSessionModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-gift"></i></div>
+    <h3 data-i18n="admin.students.courses.compensateModal.title">補償一堂</h3>
+    <p class="text-small" id="compensateSessionCourseName"></p>
+    <p class="text-small" data-i18n="admin.students.courses.compensateModal.desc">請填寫原因（例如：上課中途停電、老師臨時身體不適），方便日後查詢</p>
+    <textarea id="compensate-session-reason" class="text-input" rows="3" data-i18n-placeholder="admin.students.courses.compensateModal.placeholder" placeholder="補償原因"></textarea>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="compensate-session-confirm-btn" style="flex:1;" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.students.courses.compensateModal.confirm">確認補償</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="adjustmentHistoryModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-clock-rotate-left"></i></div>
+    <h3 data-i18n="admin.students.courses.adjustmentHistory.title">補償紀錄</h3>
+    <p class="text-small" id="adjustmentHistoryCourseName"></p>
+    <div id="adjustment-history-list" style="text-align:left;"></div>
+  </div>
+</div>
+
 <script src="../script.js"></script>
 <script>
 (async () => {
@@ -245,33 +270,41 @@
       item.classList.add('selected');
       document.querySelector('#add-course-dropdown .dropdown-trigger .label').textContent = item.dataset.value;
       document.getElementById('add-course-dropdown').classList.remove('open');
-      // 堂數帶入這門課的預設堂數（課程詳細資料裡設定），管理者可以再針對這位學生調整
-      const course = courses.find((c) => c.name === item.dataset.value);
-      sessionsInput.value = (course && course.defaultSessions) || 16;
       refreshAddCourseBtn();
     });
   });
 
-  const sessionsInput = document.getElementById('add-course-sessions');
-  function getSessionsValue() {
-    const n = Number(sessionsInput.value);
-    return Number.isInteger(n) && n >= 1 && n <= 999 ? n : null;
+  // 總堂數不在這裡填，直接用課程詳細資料裡設定的堂數（目前都是 16 堂）
+  function getSelectedCourseTotal() {
+    const name = getDropdownValue('add-course-dropdown');
+    const course = courses.find((c) => c.name === name);
+    return (course && course.defaultSessions) || 16;
   }
-  sessionsInput.addEventListener('input', () => {
-    sessionsInput.value = sessionsInput.value.replace(/[^0-9]/g, '');
+
+  // 已上課堂數：從別的系統（例如 M365 Bookings）轉過來、已經上過幾堂課的學生，新增課程時可以
+  // 直接帶入已上過的堂數；留空就是全新的學生，從 0 堂開始。跟總堂數一樣的堂數就是已完成的課程。
+  const attendedInput = document.getElementById('add-course-attended');
+  function getAttendedValue() {
+    if (attendedInput.value === '') return 0;
+    const n = Number(attendedInput.value);
+    const total = getSelectedCourseTotal();
+    return Number.isInteger(n) && n >= 0 && n <= total ? n : null;
+  }
+  attendedInput.addEventListener('input', () => {
+    attendedInput.value = attendedInput.value.replace(/[^0-9]/g, '');
     refreshAddCourseBtn();
   });
 
-  // 選了課程、堂數也有效，「新增課程」才能按（從停用變成可按時跳一下）
+  // 選了課程、已上課堂數也有效，「新增課程」才能按（從停用變成可按時跳一下）
   function refreshAddCourseBtn() {
-    setButtonEnabled(document.getElementById('add-course-btn'), !!getDropdownValue('add-course-dropdown') && getSessionsValue() !== null);
+    setButtonEnabled(document.getElementById('add-course-btn'), !!getDropdownValue('add-course-dropdown') && getAttendedValue() !== null);
   }
 
   function resetCourseDropdown() {
     const dropdown = document.getElementById('add-course-dropdown');
     dropdown.querySelectorAll('.dropdown-menu li.selected').forEach((li) => li.classList.remove('selected'));
     dropdown.querySelector('.dropdown-trigger .label').textContent = t('admin.teachers.courses.selectPlaceholder');
-    sessionsInput.value = '';
+    attendedInput.value = '';
     refreshAddCourseBtn();
   }
 
@@ -304,23 +337,30 @@
           const ribbon = isComplete
             ? `<span class="ribbon-clip"><span class="course-ribbon tone-green">${t('status.attended')}</span></span>`
             : (!isEmpty ? `<span class="ribbon-clip"><span class="course-ribbon tone-blue">${t('admin.students.courses.inProgress')}</span></span>` : '');
-          // 加購、補課、當初堂數打錯都用「修改堂數」；還沒有任何預約的才能刪除
-          const editBtn = `<button type="button" class="btn sm blue course-edit-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-pen-to-square"></i> ${t('admin.students.courses.edit')}</button>`;
-          const deleteBtn = isEmpty
-            ? `<button type="button" class="btn sm red course-delete-btn" data-id="${c.id}"><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>`
-            : '';
+          // 還沒有任何預約／上課紀錄時，這門課等於還沒開始用，只能刪除；
+          // 開始預約／上課之後才有東西可以改／補償／查看，這時候就不能再刪除了
+          const editBtn = `<button type="button" class="btn sm blue course-edit-btn" data-id="${c.id}"${isEmpty ? ' disabled' : ''}><i class="fa-solid fa-fw fa-pen-to-square"></i> ${t('admin.students.courses.edit')}</button>`;
+          const compensateBtn = `<button type="button" class="btn sm outline course-compensate-btn" data-id="${c.id}"${isEmpty ? ' disabled' : ''}><i class="fa-solid fa-fw fa-gift"></i> ${t('admin.students.courses.compensate')}</button>`;
+          const historyBtn = `<button type="button" class="btn sm outline course-history-btn" data-id="${c.id}"${isEmpty ? ' disabled' : ''}><i class="fa-solid fa-fw fa-clock-rotate-left"></i> ${t('admin.students.courses.viewHistory')}</button>`;
+          const deleteBtn = `<button type="button" class="btn sm red course-delete-btn" data-id="${c.id}"${isEmpty ? '' : ' disabled'}><i class="fa-solid fa-fw fa-trash"></i> ${t('hours.delete')}</button>`;
           const counts = `<p class="course-count">${t('booking.quota.booked')}<b class="course-count-value">${c.booked}</b></p><p class="course-count">${t('booking.quota.attended')}<b class="course-count-value">${c.attended}</b></p>`;
           return `<div class="course-row${ribbon ? ' has-ribbon' : ''}">
             ${ribbon}
             <h4>${escapeHtml(c.name)}</h4>
             ${counts}
-            <div class="course-row-actions">${editBtn}${deleteBtn}</div>
+            <div class="course-row-actions">${editBtn}${compensateBtn}${historyBtn}${deleteBtn}</div>
           </div>`;
         }).join('')
       : `<div class="booking-card-empty">${t('admin.students.courses.empty')}</div>`;
     listEl.querySelectorAll('.course-row, .booking-card-empty').forEach((card) => applyTiltEffect(card));
     listEl.querySelectorAll('.course-edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => openEditSessions(Number(btn.dataset.id)));
+    });
+    listEl.querySelectorAll('.course-compensate-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openCompensateSession(Number(btn.dataset.id)));
+    });
+    listEl.querySelectorAll('.course-history-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openAdjustmentHistory(Number(btn.dataset.id)));
     });
     listEl.querySelectorAll('.course-delete-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -415,8 +455,75 @@
     renderCourses();
   });
 
+  // 補償一堂：不是學生的問題中斷課堂時，總堂數 +1，原因一定要填，後端會存進
+  // student_course_adjustments，之後在「查看紀錄」找得到
+  const compensateReasonInput = document.getElementById('compensate-session-reason');
+  const compensateConfirmBtn = document.getElementById('compensate-session-confirm-btn');
+  let pendingCompensateCourseId = null;
+
+  function openCompensateSession(id) {
+    const course = student.courses.find((c) => c.id === id);
+    if (!course) return;
+    pendingCompensateCourseId = id;
+    document.getElementById('compensateSessionCourseName').textContent = course.name;
+    compensateReasonInput.value = '';
+    setButtonEnabled(compensateConfirmBtn, false);
+    document.getElementById('compensateSessionModal').classList.add('open');
+    setTimeout(() => compensateReasonInput.focus(), 50);
+  }
+
+  compensateReasonInput.addEventListener('input', () => {
+    setButtonEnabled(compensateConfirmBtn, compensateReasonInput.value.trim() !== '');
+  });
+
+  compensateConfirmBtn.addEventListener('click', async () => {
+    const reason = compensateReasonInput.value.trim();
+    if (pendingCompensateCourseId == null || !reason) return;
+    const id = pendingCompensateCourseId;
+    setButtonEnabled(compensateConfirmBtn, false);
+    const res = await fetch(`/api/students/courses/compensate?studentId=${studentId}&id=${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    document.getElementById('compensateSessionModal').classList.remove('open');
+    pendingCompensateCourseId = null;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showAlert(apiErrorMessage(data, 'admin.common.saveFailed'));
+      return;
+    }
+    const updated = await res.json();
+    student.courses = student.courses.map((c) => (c.id === id ? updated : c));
+    renderCourses();
+  });
+
+  // 查看紀錄：這門課過去所有補償堂數的原因、時間、操作的管理者
+  function formatAdjustmentTime(iso) {
+    const d = new Date(iso.replace(' ', 'T') + '+08:00');
+    return new Intl.DateTimeFormat(DATE_LOCALE_MAP[i18nLang] || 'zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(d);
+  }
+
+  async function openAdjustmentHistory(id) {
+    const course = student.courses.find((c) => c.id === id);
+    if (!course) return;
+    document.getElementById('adjustmentHistoryCourseName').textContent = course.name;
+    const listEl = document.getElementById('adjustment-history-list');
+    listEl.innerHTML = `<p class="text-small">…</p>`;
+    document.getElementById('adjustmentHistoryModal').classList.add('open');
+    const res = await fetch(`/api/students/courses/adjustments?studentId=${studentId}&id=${id}`);
+    const rows = res.ok ? await res.json() : [];
+    listEl.innerHTML = rows.length
+      ? rows.map((r) => `<div class="adjustment-row">
+          <p class="text-small"><b>+${r.sessions_delta}</b> ${t('admin.common.sessionUnit')} · ${escapeHtml(formatAdjustmentTime(r.created_at))} · ${escapeHtml(r.created_by)}</p>
+          <p class="text-small">${escapeHtml(r.reason)}</p>
+        </div>`).join('')
+      : `<p class="text-small">${t('admin.students.courses.adjustmentHistory.empty')}</p>`;
+  }
+
   let pendingCourseName = null;
   let pendingSessions = null;
+  let pendingAttended = null;
 
   document.getElementById('add-course-btn').addEventListener('click', () => {
     const value = getDropdownValue('add-course-dropdown');
@@ -424,14 +531,18 @@
       showAlert(t('admin.teachers.courses.selectFirst'));
       return;
     }
-    const sessions = getSessionsValue();
-    if (sessions === null) {
-      showAlert(t('admin.common.invalidSessions'));
+    const sessions = getSelectedCourseTotal();
+    const attended = getAttendedValue();
+    if (attended === null) {
+      showAlert(t('admin.students.courses.invalidAttended', { n: sessions }));
       return;
     }
     pendingCourseName = value;
     pendingSessions = sessions;
-    document.getElementById('addCourseConfirmName').textContent = t('admin.students.courses.withSessions', { name: value, n: sessions });
+    pendingAttended = attended;
+    document.getElementById('addCourseConfirmName').textContent = attended > 0
+      ? t('admin.students.courses.withSessionsAttended', { name: value, n: sessions, attended })
+      : t('admin.students.courses.withSessions', { name: value, n: sessions });
     document.getElementById('addCourseConfirmModal').classList.add('open');
   });
 
@@ -440,7 +551,7 @@
     const res = await fetch(`/api/students/courses?studentId=${studentId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseName: pendingCourseName, totalSessions: pendingSessions }),
+      body: JSON.stringify({ courseName: pendingCourseName, totalSessions: pendingSessions, attendedCount: pendingAttended }),
     });
     document.getElementById('addCourseConfirmModal').classList.remove('open');
     if (!res.ok) {

@@ -62,6 +62,7 @@ describe('POST /api/courses', () => {
       minLeadHours: 48,
       maxLeadDays: 30,
       defaultSessions: 16,
+      reminderHoursBefore: 24,
     });
     expect(course.id).toEqual(expect.any(Number));
   });
@@ -129,11 +130,12 @@ describe('PATCH /api/courses', () => {
     const scheduleRes = await fetchWorker(`/api/courses?id=${created.id}`, withCookie(cookie, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ durationMinutes: 60, minLeadHours: 24 }),
+      body: JSON.stringify({ durationMinutes: 60, minLeadHours: 24, reminderHoursBefore: 12 }),
     }));
     const afterSchedule = (await scheduleRes.json()) as Record<string, unknown>;
     expect(afterSchedule.durationMinutes).toBe(60);
     expect(afterSchedule.minLeadHours).toBe(24);
+    expect(afterSchedule.reminderHoursBefore).toBe(12);
     // Untouched by either PATCH — proves this really is a partial update.
     expect(afterSchedule.name).toBe('N5 綜合日本語 J1（改）');
   });

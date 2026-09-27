@@ -217,6 +217,15 @@
         </div>
       </div>
     </div>
+    <div class="field-row">
+      <div class="form-field">
+        <label><i class="fa-solid fa-fw fa-bell"></i> <span data-i18n="admin.courses.schedule.reminderHoursBefore">上課提醒信</span></label>
+        <div class="duration-unit">
+          <input type="text" id="reminder-hours-before" class="text-input" inputmode="numeric" pattern="[0-9]*" maxlength="3">
+          <span data-i18n="admin.courses.schedule.beforeClass">小時前寄出</span>
+        </div>
+      </div>
+    </div>
 
     <div class="wizard-nav">
       <button type="button" class="btn blue" id="schedule-submit-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.common.confirmEdit">確認編輯</span></button>
@@ -460,9 +469,10 @@
     document.getElementById('buffer-after-minutes').value = bufferAfterMinutes % 60;
     document.getElementById('min-lead-hours').value = course.minLeadHours ?? 48;
     document.getElementById('max-lead-days').value = course.maxLeadDays ?? 30;
+    document.getElementById('reminder-hours-before').value = course.reminderHoursBefore ?? 24;
     setDropdownValue('schedule-increment-dropdown', course.scheduleIncrement || '1 小時');
 
-    ['edit-default-sessions', 'duration-hours', 'buffer-before-hours', 'buffer-after-hours', 'min-lead-hours', 'max-lead-days'].forEach((id) => {
+    ['edit-default-sessions', 'duration-hours', 'buffer-before-hours', 'buffer-after-hours', 'min-lead-hours', 'max-lead-days', 'reminder-hours-before'].forEach((id) => {
       document.getElementById(id).addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/[^0-9]/g, '');
       });
@@ -524,6 +534,7 @@
         scheduleIncrement: getDropdownValue('schedule-increment-dropdown'),
         minLeadHours: Number(document.getElementById('min-lead-hours').value || 0),
         maxLeadDays: Number(document.getElementById('max-lead-days').value || 0),
+        reminderHoursBefore: Number(document.getElementById('reminder-hours-before').value || 0),
       });
       if (!ok) { showBasicAlert(t('admin.common.saveFailed')); return; }
 
@@ -558,6 +569,7 @@
         scheduleIncrement: getDropdownValue('schedule-increment-dropdown'),
         minLeadHours: document.getElementById('min-lead-hours').value,
         maxLeadDays: document.getElementById('max-lead-days').value,
+        reminderHoursBefore: document.getElementById('reminder-hours-before').value,
       });
     }
 
