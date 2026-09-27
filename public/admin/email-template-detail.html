@@ -213,7 +213,7 @@
 <script>
 function emailTemplateIcon(key) {
   if (key.startsWith('login_')) return 'key.png';
-  return key.startsWith('booking_created_') ? 'icon-check.png' : 'close.png';
+  return key.startsWith('booking_created_') ? 'check.png' : 'close.png';
 }
 
 // 預覽用的範例資料（真正寄信時換成收件人、課程的實際資料，見 src/index.ts）
@@ -223,12 +223,23 @@ const SAMPLE_VALUES = {
   studentName: '王小明',
   teacherName: '田中花子',
   courseName: '日語會話',
-  date: '2026/10/05',
   time: '19:00',
+  endTime: '20:00',
   timezone: 'UTC+08:00',
   bookingCode: '20261005-1900-01',
+  bookingNumber: '3',
+  attendedCount: '2',
+  totalSessions: '16',
   siteUrl: window.location.origin,
 };
+
+// 「上課日期」「時長」的措辭跟語言有關（分別跟 src/email-templates.ts 的 formatEmailDateLong、
+// formatEmailDuration 同一套文字），日期範例固定是 2026/10/05（星期一）；其他範例值語言中立就沒特別處理
+const DATE_SAMPLE = {
+  'zh-Hant': '2026 年 10 月 05 日 星期一', ja: '2026年10月5日月曜日',
+  en: 'Monday, 5 October 2026', vi: 'Thứ Hai, 5 tháng 10, 2026', my: '2026 အောက်တိုဘာ 5 တနင်္လာ',
+};
+const DURATION_SAMPLE = { 'zh-Hant': '60 分', ja: '60分', en: '60m', vi: '60 phút', my: '60 မိနစ်' };
 
 // 跟後端 src/email-templates.ts 的 fillEmailTemplate 同一套規則：HTML 裡代入的值會跳脫，
 // 不存在的變數原樣留著
@@ -321,6 +332,8 @@ function fillSample(template, mode) {
   function refreshPreview() {
     clearTimeout(previewTimer);
     previewTimer = setTimeout(() => {
+      SAMPLE_VALUES.duration = DURATION_SAMPLE[currentLang] || DURATION_SAMPLE['zh-Hant'];
+      SAMPLE_VALUES.date = DATE_SAMPLE[currentLang] || DATE_SAMPLE['zh-Hant'];
       previewSubject.textContent = fillSample(state[currentLang].subject, 'text');
       previewFrame.srcdoc = fillSample(state[currentLang].html, 'html');
     }, 200);
