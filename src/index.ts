@@ -278,16 +278,20 @@ async function loadEmailTemplate(env: Env, key: EmailTemplateKey, lang: Supporte
 
 interface OutgoingEmail {
   to: string;
+  recipientName: string;
   subject: string;
   html: string;
+  templateKey: EmailTemplateKey;
 }
 
-async function renderEmail(env: Env, key: EmailTemplateKey, lang: SupportedLanguage, to: string, vars: Record<string, string>): Promise<OutgoingEmail> {
+async function renderEmail(env: Env, key: EmailTemplateKey, lang: SupportedLanguage, to: string, recipientName: string, vars: Record<string, string>): Promise<OutgoingEmail> {
   const template = await loadEmailTemplate(env, key, lang);
   return {
     to,
+    recipientName,
     subject: fillEmailTemplate(template.subject, vars, 'text'),
     html: fillEmailTemplate(template.html, vars, 'html'),
+    templateKey: key,
   };
 }
 
@@ -311,21 +315,40 @@ function emailSiteUrl(origin: string): string {
 // 寄出一封信；寄不出去就丟出錯誤（錯誤訊息不含信件內容，驗證碼不會進 log）。
 // 寄出的信會留在寄件信箱（共用信箱）的寄件備份，當作寄信紀錄：要查某個人有沒有收到信，
 // 直接去共用信箱找。備份裡看得到驗證碼（5 分鐘內有效），共用信箱的存取權限只開給信任的人。
-async function sendEmail(env: Env, origin: string, mail: OutgoingEmail): Promise<void> {
-  const token = await getGraphToken(env);
-  const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(env.MS_SENDER_EMAIL ?? '')}/sendMail`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: {
-        subject: `${mailSubjectPrefix(origin)}${mail.subject}`,
-        body: { contentType: 'HTML', content: mail.html },
-        toRecipients: [{ emailAddress: { address: mail.to } }],
-      },
-      saveToSentItems: true,
-    }),
-  });
-  if (!res.ok) throw new Error(`sendMail failed: ${res.status} ${await res.text()}`);
+//
+// 不管寄成功還是失敗，都寫一筆進 email_log（見 migrations/0027），這樣站內「寄信紀錄」頁
+// 才查得到寄送狀態，不用每次都跑去翻共用信箱。寫 log 本身失敗不能蓋掉原本的寄信結果，
+// 所以另外包一層 try/catch，只印在 log 裡。
+async function sendEmail(env: Env, origin: string, mail: OutgoingEmail, meta: { bookingId?: number } = {}): Promise<void> {
+  let sendError: string | null = null;
+  try {
+    const token = await getGraphToken(env);
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(env.MS_SENDER_EMAIL ?? '')}/sendMail`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: {
+          subject: `${mailSubjectPrefix(origin)}${mail.subject}`,
+          body: { contentType: 'HTML', content: mail.html },
+          toRecipients: [{ emailAddress: { address: mail.to } }],
+        },
+        saveToSentItems: true,
+      }),
+    });
+    if (!res.ok) sendError = `sendMail failed: ${res.status} ${await res.text()}`;
+  } catch (err) {
+    sendError = err instanceof Error ? err.message : String(err);
+  }
+
+  try {
+    await env.DB.prepare(
+      `INSERT INTO email_log (template_key, recipient, recipient_name, subject, status, error, booking_id) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(mail.templateKey, mail.to, mail.recipientName, mail.subject, sendError ? 'failed' : 'sent', sendError, meta.bookingId ?? null).run();
+  } catch (logErr) {
+    console.error('[mail] failed to write email_log', logErr);
+  }
+
+  if (sendError) throw new Error(sendError);
 }
 
 // 這個身分底下用這個 Email 的帳號（管理者沒有停用這回事，一律當作啟用中）；name、language 用在驗證碼信件
@@ -451,7 +474,7 @@ async function handleOtpRequest(request: Request, env: Env): Promise<Response> {
   try {
     const lang = isSupportedLanguage(account.language) ? account.language : 'zh-Hant';
     const origin = new URL(request.url).origin;
-    const mail = await renderEmail(env, `login_${role}` as EmailTemplateKey, lang, email, { name: account.name, code, siteUrl: emailSiteUrl(origin) });
+    const mail = await renderEmail(env, `login_${role}` as EmailTemplateKey, lang, email, account.name, { name: account.name, code, siteUrl: emailSiteUrl(origin) });
     await sendEmail(env, origin, mail);
   } catch (err) {
     // 寄不出去的碼直接作廢；log 只記錯誤原因，不記驗證碼
@@ -1281,6 +1304,8 @@ interface BookingRow {
   student_comment: string | null;
   teacher_rating: number | null;
   teacher_note: string | null;
+  cancel_reason: string | null;
+  cancelled_by: string | null;
   student_name: string;
   student_teams_link: string | null;
   teacher_name: string;
@@ -1311,6 +1336,8 @@ function bookingRowToJson(row: BookingRow, viewerRole: string) {
     studentComment: viewerRole === 'teacher' ? undefined : row.student_comment,
     teacherRating: viewerRole === 'student' ? undefined : row.teacher_rating,
     teacherNote: viewerRole === 'student' ? undefined : row.teacher_note,
+    cancelReason: row.cancel_reason,
+    cancelledBy: row.cancelled_by,
   };
 }
 
@@ -1386,8 +1413,11 @@ function shiftUtc8DateTime(date: string, time: string, offsetMinutes: number): {
 }
 
 // 預約成功／取消／上課提醒時寄給學生和老師的通知信。上課時間換算成收件人自己設定的時區（學生是
-// students.timezone，老師是領收書資料裡的時區），信件語言也依收件人的設定。
-async function bookingNotificationEmails(env: Env, origin: string, bookingId: number, event: 'created' | 'cancelled' | 'reminder'): Promise<OutgoingEmail[]> {
+// students.timezone，老師是領收書資料裡的時區），信件語言也依收件人的設定。onlyRole 給
+// handleEmailLogResend 用：只重新產生「這一筆紀錄」對應的那個收件人，不會連另一邊也一起寄。
+async function bookingNotificationEmails(
+  env: Env, origin: string, bookingId: number, event: 'created' | 'cancelled' | 'reminder', onlyRole?: 'student' | 'teacher'
+): Promise<OutgoingEmail[]> {
   const row = await env.DB.prepare(
     `SELECT b.booking_code, b.date, b.time, c.name AS course_name, c.duration_minutes,
             s.name AS student_name, s.email AS student_email, s.language AS student_language, s.timezone AS student_timezone,
@@ -1407,17 +1437,18 @@ async function bookingNotificationEmails(env: Env, origin: string, bookingId: nu
     booked_count: number; attended_count: number; total_sessions: number;
   }>();
   if (!row) return [];
-  const recipients = [
-    { role: 'student', email: row.student_email, language: row.student_language, timezone: row.student_timezone },
-    { role: 'teacher', email: row.teacher_email, language: row.teacher_language, timezone: row.teacher_timezone },
-  ] as const;
+  const allRecipients: { role: 'student' | 'teacher'; email: string; name: string; language: string; timezone: string | null }[] = [
+    { role: 'student', email: row.student_email, name: row.student_name, language: row.student_language, timezone: row.student_timezone },
+    { role: 'teacher', email: row.teacher_email, name: row.teacher_name, language: row.teacher_language, timezone: row.teacher_timezone },
+  ];
+  const recipients = allRecipients.filter((r) => !onlyRole || r.role === onlyRole);
   return Promise.all(recipients.map((recipient) => {
     const offset = parseUtcOffsetMinutes(recipient.timezone);
     const local = shiftUtc8DateTime(row.date, row.time, offset);
     // 結束時間＝開始時間再往後移「時差＋課程長度」，等於先換到收件人時區、再加上這堂課的長度
     const localEnd = shiftUtc8DateTime(row.date, row.time, offset + row.duration_minutes);
     const lang = isSupportedLanguage(recipient.language) ? recipient.language : 'zh-Hant';
-    return renderEmail(env, `booking_${event}_${recipient.role}`, lang, recipient.email, {
+    return renderEmail(env, `booking_${event}_${recipient.role}`, lang, recipient.email, recipient.name, {
       studentName: row.student_name,
       teacherName: row.teacher_name,
       courseName: row.course_name,
@@ -1444,11 +1475,32 @@ async function notifyBooking(env: Env, ctx: ExecutionContext, request: Request, 
   const origin = new URL(request.url).origin;
   try {
     const emails = await bookingNotificationEmails(env, origin, bookingId, event);
-    ctx.waitUntil(Promise.all(emails.map((mail) => sendEmail(env, origin, mail).catch((err) => {
+    ctx.waitUntil(Promise.all(emails.map((mail) => sendEmail(env, origin, mail, { bookingId }).catch((err) => {
       console.error(`[mail] failed to send booking ${event} notification`, err);
     }))));
   } catch (err) {
     console.error(`[mail] failed to prepare booking ${event} notification`, err);
+  }
+}
+
+type ActivityEventType = 'booking_created' | 'booking_cancelled' | 'booking_attended' | 'booking_absent' | 'booking_pending' | 'teacher_rated' | 'student_rated';
+
+// 記一筆事件到 activity_log，讓管理者「所有事件紀錄」頁看得到完整時間軸。寫入失敗只印 log，
+// 不能讓記錄本身的問題擋掉真正的預約/評分動作。
+async function logBookingActivity(
+  env: Env, eventType: ActivityEventType, booking: BookingRow, actorRole: string,
+  extra: { ratingValue?: number | null; reason?: string | null } = {}
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO activity_log (event_type, booking_id, booking_code, student_name, teacher_name, course_name, lesson_date, lesson_time, actor_role, rating_value, reason)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      eventType, booking.id, booking.booking_code, booking.student_name, booking.teacher_name, booking.course_name,
+      booking.date, booking.time, actorRole, extra.ratingValue ?? null, extra.reason ?? null
+    ).run();
+  } catch (err) {
+    console.error('[activity] failed to write activity_log', err);
   }
 }
 
@@ -1471,13 +1523,19 @@ export async function sendDueBookingReminders(env: Env): Promise<void> {
   });
 
   for (const row of due) {
+    let emails: OutgoingEmail[];
     try {
-      const emails = await bookingNotificationEmails(env, PRODUCTION_URL, row.booking_id, 'reminder');
-      await Promise.all(emails.map((mail) => sendEmail(env, PRODUCTION_URL, mail).catch((err) => {
-        console.error('[mail] failed to send booking reminder', err);
-      })));
+      emails = await bookingNotificationEmails(env, PRODUCTION_URL, row.booking_id, 'reminder');
     } catch (err) {
       console.error('[mail] failed to prepare booking reminder', err);
+      continue;
+    }
+    // 全部收件人都寄成功才標記已寄出；有任何一封失敗就不標記，下次排程會再試一次
+    // （寄失敗的原因已經寫進 email_log，站內查得到）。
+    const results = await Promise.allSettled(emails.map((mail) => sendEmail(env, PRODUCTION_URL, mail, { bookingId: row.booking_id })));
+    const allSent = results.every((r) => r.status === 'fulfilled');
+    if (!allSent) {
+      console.error('[mail] failed to send booking reminder', row.booking_id);
       continue;
     }
     await env.DB.prepare(`UPDATE bookings SET reminder_sent_at = datetime('now', '+8 hours') WHERE id = ?`).bind(row.booking_id).run();
@@ -1596,6 +1654,7 @@ async function handleBookingCreate(request: Request, env: Env, session: Session,
   await notifyBooking(env, ctx, request, row.id, 'created');
 
   const created = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(row!.id).first<BookingRow>();
+  await logBookingActivity(env, 'booking_created', created!, session.role);
   return Response.json(bookingRowToJson(created!, session.role), { status: 201 });
 }
 
@@ -1607,12 +1666,13 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
     return Response.json({ error: '找不到預約' }, { status: 404 });
   }
 
-  const { status, rating, studentComment, teacherRating, teacherNote } = await request.json<{
+  const { status, rating, studentComment, teacherRating, teacherNote, reason } = await request.json<{
     status?: string;
     rating?: number | null;
     studentComment?: string | null;
     teacherRating?: number | null;
     teacherNote?: string | null;
+    reason?: string;
   }>();
 
   const hasStatus = status !== undefined;
@@ -1699,17 +1759,25 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
     }
   }
 
-  const newStatus = hasStatus ? status! : existing.status;
+  const oldStatus = existing.status;
+  const newStatus = hasStatus ? status! : oldStatus;
+  const enteringCancelled = oldStatus !== 'cancelled' && newStatus === 'cancelled';
+  // 管理者取消要求填原因（例如系統/老師方問題），才查得到「這堂課是因為誰的問題被取消」；
+  // 學生自己取消是日常操作，維持原樣不用填，避免增加不必要的阻力。
+  const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+  if (enteringCancelled && session.role === 'admin' && !trimmedReason) {
+    return apiError(400, 'cancelReasonRequired', '請填寫取消原因');
+  }
+  const newCancelReason = enteringCancelled ? (trimmedReason || null) : (newStatus === 'cancelled' ? existing.cancel_reason : null);
+  const newCancelledBy = enteringCancelled ? session.role : (newStatus === 'cancelled' ? existing.cancelled_by : null);
   const newRating = rating !== undefined ? rating : existing.rating;
   const newComment = studentComment !== undefined ? studentComment : existing.student_comment;
   const newTeacherRating = teacherRating !== undefined ? teacherRating : existing.teacher_rating;
   const newNote = teacherNote !== undefined ? teacherNote : existing.teacher_note;
 
   await env.DB.prepare(
-    `UPDATE bookings SET status = ?, rating = ?, student_comment = ?, teacher_rating = ?, teacher_note = ? WHERE id = ?`
-  ).bind(newStatus, newRating, newComment, newTeacherRating, newNote, id).run();
-
-  const oldStatus = existing.status;
+    `UPDATE bookings SET status = ?, rating = ?, student_comment = ?, teacher_rating = ?, teacher_note = ?, cancel_reason = ?, cancelled_by = ? WHERE id = ?`
+  ).bind(newStatus, newRating, newComment, newTeacherRating, newNote, newCancelReason, newCancelledBy, id).run();
   let bookedDelta = 0;
   let attendedDelta = 0;
   if (oldStatus !== 'cancelled' && newStatus === 'cancelled') bookedDelta = -1;
@@ -1734,6 +1802,28 @@ async function handleBookingUpdate(request: Request, env: Env, session: Session,
   }
 
   const updated = await env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<BookingRow>();
+
+  // 「所有事件紀錄」時間軸：狀態每次轉進某個狀態都記一筆（同一堂課取消後又復原、再取消，
+  // 算兩次事件）；評分只在第一次填的時候記（existing 是更新前的快照，之後改評分不會再記一次）。
+  if (oldStatus !== 'cancelled' && newStatus === 'cancelled') {
+    await logBookingActivity(env, 'booking_cancelled', updated!, session.role, { reason: newCancelReason });
+  }
+  if (oldStatus !== 'attended' && newStatus === 'attended') {
+    await logBookingActivity(env, 'booking_attended', updated!, session.role);
+  }
+  if (oldStatus !== 'absent' && newStatus === 'absent') {
+    await logBookingActivity(env, 'booking_absent', updated!, session.role);
+  }
+  if (oldStatus !== 'pending' && newStatus === 'pending') {
+    await logBookingActivity(env, 'booking_pending', updated!, session.role);
+  }
+  if (existing.teacher_rating == null && newTeacherRating != null) {
+    await logBookingActivity(env, 'teacher_rated', updated!, session.role, { ratingValue: newTeacherRating });
+  }
+  if (existing.rating == null && newRating != null) {
+    await logBookingActivity(env, 'student_rated', updated!, session.role, { ratingValue: newRating });
+  }
+
   return Response.json(bookingRowToJson(updated!, session.role));
 }
 
@@ -1882,6 +1972,109 @@ async function handleInvoiceLessons(env: Env, url: URL): Promise<Response> {
     `${BOOKING_SELECT} WHERE b.teacher_id = ? AND b.status = 'attended' AND b.date >= ? AND b.date < ? ORDER BY b.date, b.time`
   ).bind(teacherId, range.start, range.end).all<BookingRow>();
   return Response.json(results.map((row) => bookingRowToJson(row, 'admin')));
+}
+
+// ==========================================================================
+// 管理端「寄信紀錄」：每次寄信（不管成功失敗）的記錄，見 sendEmail 跟 migrations/0027。
+// 最多回傳最近 500 筆，跟站內其他清單頁一樣交給前端做篩選／分頁。
+// ==========================================================================
+interface EmailLogRow {
+  id: number;
+  template_key: string;
+  recipient: string;
+  recipient_name: string | null;
+  subject: string;
+  status: string;
+  error: string | null;
+  booking_id: number | null;
+  created_at: string;
+}
+
+async function handleEmailLogList(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM email_log ORDER BY id DESC LIMIT 500`
+  ).all<EmailLogRow>();
+  return Response.json(results.map((row) => ({
+    id: row.id,
+    templateKey: row.template_key,
+    recipient: row.recipient,
+    recipientName: row.recipient_name,
+    subject: row.subject,
+    status: row.status,
+    error: row.error,
+    bookingId: row.booking_id,
+    createdAt: row.created_at,
+  })));
+}
+
+// 管理者在「寄信紀錄」頁手動重寄一筆信——只重寄「這一筆」對應的收件人（不會連另一邊也一起
+// 寄），用目前的預約資料重新產生內容，不是把當初的內容原封不動存起來重寄。登入驗證碼
+// （沒有 booking_id）沒辦法重寄：驗證碼本身會過期，且沒有存舊的碼可以再寄一次。
+async function handleEmailLogResend(request: Request, env: Env, id: number): Promise<Response> {
+  const row = await env.DB.prepare(`SELECT * FROM email_log WHERE id = ?`).bind(id).first<EmailLogRow>();
+  if (!row) return Response.json({ error: '找不到這筆寄信紀錄' }, { status: 404 });
+
+  const match = /^booking_(created|cancelled|reminder)_(student|teacher)$/.exec(row.template_key);
+  if (!row.booking_id || !match) {
+    return Response.json({ error: '這種信件沒辦法重寄' }, { status: 400 });
+  }
+  if (!env.MS_CLIENT_SECRET) {
+    return Response.json({ error: '尚未設定寄信功能，無法重寄' }, { status: 400 });
+  }
+
+  const [, event, role] = match as unknown as [string, 'created' | 'cancelled' | 'reminder', 'student' | 'teacher'];
+  const origin = new URL(request.url).origin;
+  const emails = await bookingNotificationEmails(env, origin, row.booking_id, event, role);
+  const mail = emails[0];
+  if (!mail) return Response.json({ error: '找不到對應的預約資料，無法重寄' }, { status: 404 });
+
+  try {
+    await sendEmail(env, origin, mail, { bookingId: row.booking_id });
+    return Response.json({ ok: true });
+  } catch (err) {
+    return Response.json({ error: err instanceof Error ? err.message : '重寄失敗' }, { status: 502 });
+  }
+}
+
+// ==========================================================================
+// 管理端「所有事件紀錄」：預約／取消／完成／缺席／需處理／老師評分／學生評分，全部事件照時間
+// 排序的完整時間軸，見 logBookingActivity 跟 migrations/0029。最多回傳最近 1000 筆。
+// ==========================================================================
+interface ActivityLogRow {
+  id: number;
+  event_type: string;
+  booking_id: number;
+  booking_code: string;
+  student_name: string;
+  teacher_name: string;
+  course_name: string;
+  lesson_date: string;
+  lesson_time: string;
+  actor_role: string;
+  rating_value: number | null;
+  reason: string | null;
+  created_at: string;
+}
+
+async function handleActivityLogList(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM activity_log ORDER BY id DESC LIMIT 1000`
+  ).all<ActivityLogRow>();
+  return Response.json(results.map((row) => ({
+    id: row.id,
+    eventType: row.event_type,
+    bookingId: row.booking_id,
+    bookingCode: row.booking_code,
+    studentName: row.student_name,
+    teacherName: row.teacher_name,
+    courseName: row.course_name,
+    lessonDate: row.lesson_date,
+    lessonTime: row.lesson_time,
+    actorRole: row.actor_role,
+    ratingValue: row.rating_value,
+    reason: row.reason,
+    createdAt: row.created_at,
+  })));
 }
 
 // ==========================================================================
@@ -2053,6 +2246,26 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     if (!isEmailTemplateKey(key)) return Response.json({ error: '找不到這封系統信' }, { status: 404 });
     if (request.method === 'GET') return handleEmailTemplateGet(env, key);
     if (request.method === 'PUT') return handleEmailTemplateUpdate(request, env, key);
+  }
+
+  if (url.pathname === '/api/email-log' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return handleEmailLogList(env);
+  }
+
+  if (url.pathname === '/api/email-log/resend' && request.method === 'POST') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    const id = Number(url.searchParams.get('id'));
+    if (!Number.isInteger(id) || id <= 0) return Response.json({ error: '缺少或無效的 id' }, { status: 400 });
+    return handleEmailLogResend(request, env, id);
+  }
+
+  if (url.pathname === '/api/activity-log' && request.method === 'GET') {
+    const session = await getSession(request, env);
+    if (!session || session.role !== 'admin') return Response.json({ error: '未授權' }, { status: 401 });
+    return handleActivityLogList(env);
   }
 
   if (url.pathname === '/api/courses' && request.method === 'GET') {

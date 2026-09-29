@@ -464,6 +464,17 @@ function formatDateLong(dateInput, lang = getCurrentLang()) {
   return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(d);
 }
 
+// 給「原始資料庫時間字串」（例：email-log／activity-log 的 created_at）用的星期縮寫。
+// 不透過 parseYmd／Date 字串解析（那條路"YYYY-MM-DD" 會被當成 UTC 午夜，換算回瀏覽器
+// 本地時區可能跨到前一天），直接用年月日數字建立本地 Date，只取跟時區無關的 getDay()。
+function weekdayNarrowForDbDate(dateStr, lang = getCurrentLang()) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const day = new Date(y, m - 1, d).getDay();
+  if (lang === 'my') return MY_WEEKDAY_SHORT_NAMES[day];
+  const locale = DATE_LOCALE_MAP[lang] || DATE_LOCALE_MAP['zh-Hant'];
+  return new Intl.DateTimeFormat(locale, { weekday: WEEKDAY_SHORT_STYLE_MAP[lang] || 'narrow' }).format(new Date(y, m - 1, d));
+}
+
 function formatDateShort(dateInput, lang = getCurrentLang()) {
   const d = parseYmd(dateInput);
   if (lang === 'my') return myFormatShort(d);

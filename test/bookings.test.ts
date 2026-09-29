@@ -1,6 +1,11 @@
 import { env } from 'cloudflare:workers';
-import { describe, it } from 'vitest';
-import { fetchWorker, login, makeTeacherBookable, SEEDED, withCookie } from './helpers';
+import { afterEach, describe, it, vi } from 'vitest';
+import { fetchWorker, login, makeTeacherBookable, mockGraph, SEEDED, sentMails, withCookie } from './helpers';
+
+afterEach(() => {
+  env.MS_CLIENT_SECRET = '';
+  vi.restoreAllMocks();
+});
 
 // 上課日期時間以 UTC+8 儲存；回傳 UTC+8 的「今天 + days 天」上午 10 點——離現在 days×24−14 到
 // days×24+10 小時，固定 10 點是為了不管現在幾點，整堂課都排得進老師當天的時段。
@@ -385,12 +390,38 @@ describe('PATCH /api/bookings', () => {
     expect(await studentRes.json()).toMatchObject({ code: 'cancelTooLate', params: { hours: 48 } });
 
     const adminRes = await fetchWorker(`/api/bookings?id=${booking.id}`, withCookie(adminCookie, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled', reason: '老師方停電' }),
     }));
     expect(adminRes.status).toBe(200);
     const enrollment = ((await (await fetchWorker('/api/students/courses', withCookie(studentCookie))).json()) as Record<string, unknown>[])
       .find((e) => e.name === course.name)!;
     expect(enrollment.booked).toBe('0/2');
+  });
+
+  it("requires a reason when an admin cancels, but not when a student cancels their own booking; records who cancelled", async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const course = await makeBookableCourse(adminCookie, '會話課 L5');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+
+    const booking1 = await createBooking(studentCookie, course.id, '2099-11-28');
+    const noReasonRes = await fetchWorker(`/api/bookings?id=${booking1.id}`, withCookie(adminCookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }),
+    }));
+    expect(noReasonRes.status).toBe(400);
+    expect(await noReasonRes.json()).toMatchObject({ code: 'cancelReasonRequired' });
+
+    const withReasonRes = await fetchWorker(`/api/bookings?id=${booking1.id}`, withCookie(adminCookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled', reason: '  老師身體不適  ' }),
+    }));
+    expect(withReasonRes.status).toBe(200);
+    expect(await withReasonRes.json()).toMatchObject({ cancelledBy: 'admin', cancelReason: '老師身體不適' });
+
+    const booking2 = await createBooking(studentCookie, course.id, '2099-11-29');
+    const studentCancelRes = await fetchWorker(`/api/bookings?id=${booking2.id}`, withCookie(studentCookie, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }),
+    }));
+    expect(studentCancelRes.status).toBe(200);
+    expect(await studentCancelRes.json()).toMatchObject({ cancelledBy: 'student', cancelReason: null });
   });
 
   it('a teacher may only mark their OWN booking attended, and only to attended', async ({ expect }) => {
@@ -557,5 +588,184 @@ describe('PATCH /api/bookings', () => {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'attended' }),
     }));
     expect(res.status).toBe(404);
+  });
+});
+
+describe('activity log', () => {
+  async function createBooking(studentCookie: string, courseId: number, date: string, time = '09:00') {
+    const res = await fetchWorker('/api/bookings', withCookie(studentCookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseId, teacherId: 1, date, time }),
+    }));
+    return (await res.json()) as { id: number };
+  }
+  const patch = (cookie: string, id: number, body: unknown) => fetchWorker(`/api/bookings?id=${id}`, withCookie(cookie, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  }));
+  async function activityFor(bookingId: number) {
+    const { results } = await env.DB.prepare(`SELECT * FROM activity_log WHERE booking_id = ? ORDER BY id`).bind(bookingId)
+      .all<{ event_type: string; actor_role: string; rating_value: number | null; reason: string | null; student_name: string; teacher_name: string; course_name: string }>();
+    return results;
+  }
+
+  it('logs booking_created when a student books, and booking_cancelled (with actor/reason) when it is cancelled', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const course = await makeBookableCourse(adminCookie, '事件紀錄測試 A');
+    const booking = await createBooking(studentCookie, course.id, '2099-12-01');
+
+    let events = await activityFor(booking.id);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ event_type: 'booking_created', actor_role: 'student', course_name: course.name });
+
+    const cancelRes = await patch(adminCookie, booking.id, { status: 'cancelled', reason: '老師方停電' });
+    expect(cancelRes.status).toBe(200);
+    events = await activityFor(booking.id);
+    expect(events).toHaveLength(2);
+    expect(events[1]).toMatchObject({ event_type: 'booking_cancelled', actor_role: 'admin', reason: '老師方停電' });
+  });
+
+  it('logs booking_attended/absent/pending once per transition into that status', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const teacherCookie = await login(SEEDED.teacher.email, 'teacher');
+    const course = await makeBookableCourse(adminCookie, '事件紀錄測試 B');
+    const booking = await createBooking(studentCookie, course.id, '2099-12-02');
+    await finishLesson(booking.id);
+
+    await patch(teacherCookie, booking.id, { status: 'attended' });
+    await patch(adminCookie, booking.id, { status: 'absent' }); // 從 attended 轉 absent
+    await patch(adminCookie, booking.id, { status: 'pending' });
+
+    const events = await activityFor(booking.id);
+    const types = events.map((e) => e.event_type);
+    expect(types).toEqual(['booking_created', 'booking_attended', 'booking_absent', 'booking_pending']);
+    expect(events[1].actor_role).toBe('teacher');
+    expect(events[2].actor_role).toBe('admin');
+  });
+
+  it('logs teacher_rated/student_rated only the first time a rating is given, with the rating value', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const teacherCookie = await login(SEEDED.teacher.email, 'teacher');
+    const course = await makeBookableCourse(adminCookie, '事件紀錄測試 C');
+    const booking = await createBooking(studentCookie, course.id, '2099-12-03');
+    await finishLesson(booking.id);
+    await patch(teacherCookie, booking.id, { status: 'attended', teacherRating: 5 });
+    await patch(studentCookie, booking.id, { rating: 4 });
+    // 改分數不會再記一次（活動紀錄只記第一次填的時候）
+    await patch(adminCookie, booking.id, { teacherRating: 3 });
+
+    const events = await activityFor(booking.id);
+    const rated = events.filter((e) => e.event_type === 'teacher_rated' || e.event_type === 'student_rated');
+    expect(rated).toHaveLength(2);
+    expect(rated.find((e) => e.event_type === 'teacher_rated')).toMatchObject({ actor_role: 'teacher', rating_value: 5 });
+    expect(rated.find((e) => e.event_type === 'student_rated')).toMatchObject({ actor_role: 'student', rating_value: 4 });
+  });
+});
+
+describe('GET /api/activity-log', () => {
+  it('is admin-only and returns the logged fields', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+
+    expect((await fetchWorker('/api/activity-log', withCookie(studentCookie))).status).toBe(401);
+    expect((await fetchWorker('/api/activity-log')).status).toBe(401);
+
+    const course = await makeBookableCourse(adminCookie, '事件紀錄 API 測試');
+    const booking = await (await fetchWorker('/api/bookings', withCookie(studentCookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseId: course.id, teacherId: 1, date: '2099-12-04', time: '09:00' }),
+    }))).json() as { id: number; bookingCode: string };
+
+    const res = await fetchWorker('/api/activity-log', withCookie(adminCookie));
+    expect(res.status).toBe(200);
+    const rows = await res.json() as Record<string, unknown>[];
+    const row = rows.find((r) => r.bookingId === booking.id);
+    expect(row).toMatchObject({ eventType: 'booking_created', bookingCode: booking.bookingCode, courseName: course.name, actorRole: 'student' });
+    expect(row!.createdAt).toEqual(expect.any(String));
+  });
+});
+
+describe('POST /api/email-log/resend', () => {
+  async function insertEmailLog(templateKey: string, recipient: string, bookingId: number | null): Promise<number> {
+    const res = await env.DB.prepare(
+      `INSERT INTO email_log (template_key, recipient, recipient_name, subject, status, booking_id) VALUES (?, ?, '', '測試主旨', 'failed', ?)`
+    ).bind(templateKey, recipient, bookingId).run();
+    return res.meta.last_row_id as number;
+  }
+  const resend = (cookie: string, id: number) => fetchWorker(`/api/email-log/resend?id=${id}`, withCookie(cookie, { method: 'POST' }));
+
+  it('is admin-only', async ({ expect }) => {
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    expect((await resend(studentCookie, 1)).status).toBe(401);
+    expect((await fetchWorker('/api/email-log/resend?id=1', { method: 'POST' })).status).toBe(401);
+  });
+
+  it('404s for a log entry that does not exist', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    expect((await resend(adminCookie, 999_999)).status).toBe(404);
+  });
+
+  it('rejects login emails — there is no booking to regenerate them from and the code itself already expired', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const id = await insertEmailLog('login_student', SEEDED.student.email, null);
+    const res = await resend(adminCookie, id);
+    expect(res.status).toBe(400);
+  });
+
+  it('resends only to the recipient of that log row, using the booking’s current data, and logs a new sent row', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const course = await makeBookableCourse(adminCookie, '重寄測試 A');
+    const booking = await (await fetchWorker('/api/bookings', withCookie(studentCookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseId: course.id, teacherId: 1, date: '2099-12-05', time: '09:00' }),
+    }))).json() as { id: number };
+    const id = await insertEmailLog('booking_created_student', SEEDED.student.email, booking.id);
+
+    env.MS_CLIENT_SECRET = 'test-secret';
+    const calls = mockGraph();
+    const res = await resend(adminCookie, id);
+    expect(res.status).toBe(200);
+
+    const mails = sentMails(calls);
+    expect(mails).toHaveLength(1); // 只寄給這筆紀錄的收件人（學生），不會連老師也一起寄
+    expect(mails[0].to).toBe(SEEDED.student.email);
+
+    const { results: logs } = await env.DB.prepare(`SELECT * FROM email_log WHERE booking_id = ? AND template_key = 'booking_created_student'`)
+      .bind(booking.id).all<{ status: string }>();
+    expect(logs).toHaveLength(2); // 原本那筆（failed，手動塞的）+ 這次重寄新增的一筆
+    expect(logs.some((l) => l.status === 'sent')).toBe(true);
+  });
+
+  it('reports the Graph failure and still logs the failed resend attempt', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const course = await makeBookableCourse(adminCookie, '重寄測試 B');
+    const booking = await (await fetchWorker('/api/bookings', withCookie(studentCookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseId: course.id, teacherId: 1, date: '2099-12-06', time: '09:00' }),
+    }))).json() as { id: number };
+    const id = await insertEmailLog('booking_created_teacher', SEEDED.teacher.email, booking.id);
+
+    env.MS_CLIENT_SECRET = 'test-secret';
+    mockGraph(401);
+    const res = await resend(adminCookie, id);
+    expect(res.status).toBe(502);
+
+    const { results: logs } = await env.DB.prepare(`SELECT * FROM email_log WHERE booking_id = ? AND template_key = 'booking_created_teacher'`)
+      .bind(booking.id).all<{ status: string; error: string | null }>();
+    expect(logs).toHaveLength(2);
+    expect(logs.find((l) => l.status === 'failed' && (l.error || '').includes('401'))).toBeTruthy();
+  });
+
+  it('refuses to resend when the mail secret is not configured', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const course = await makeBookableCourse(adminCookie, '重寄測試 C');
+    const booking = await (await fetchWorker('/api/bookings', withCookie(studentCookie, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseId: course.id, teacherId: 1, date: '2099-12-07', time: '09:00' }),
+    }))).json() as { id: number };
+    const id = await insertEmailLog('booking_created_student', SEEDED.student.email, booking.id);
+
+    const res = await resend(adminCookie, id);
+    expect(res.status).toBe(400);
   });
 });

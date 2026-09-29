@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 事件紀錄</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  /* 一筆一行，扁扁的像 log */
+  #activity-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .log-row {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    padding: var(--space-2) var(--space-4);
+    cursor: pointer;
+  }
+  /* 沒點開時，這行要跟原本一模一樣：實際內容都在 .log-row-main，
+     .log-row-detail 收合時完全零高度、零間距 */
+  .log-row-main {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  /* 展開／收合用 grid-template-rows 做高度動畫，不用寫死高度 */
+  .log-row-detail {
+    display: grid;
+    grid-template-rows: 0fr;
+    margin-top: 0;
+    transition: grid-template-rows .22s ease, margin-top .22s ease;
+  }
+  .log-row.log-row-open .log-row-detail {
+    grid-template-rows: 1fr;
+    margin-top: var(--space-2);
+  }
+  .log-row-detail-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .log-row-detail-inner > div {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    word-break: break-word;
+  }
+  .log-row-detail-inner > div + div {
+    margin-top: 2px;
+  }
+  .log-row-detail-inner .star-rating {
+    font-size: 12px;
+    vertical-align: -1px;
+  }
+  .log-row-time {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+    margin-left: auto;
+  }
+  .log-row-template {
+    font-weight: 700;
+    flex: none;
+  }
+  .log-row-recipient {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 事件圖示只要小圓徽章，不用文字 */
+  .log-status-icon {
+    padding: 6px;
+    flex: none;
+  }
+  /* 搜尋時清單整批重繪，每一列都是新節點，animation 會自動重播 */
+  @keyframes logRowIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .log-row {
+      animation: logRowIn .22s ease both;
+    }
+  }
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-house"></i></button>
+</div>
+
+<div class="page">
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/details.png" alt=""><h2 data-i18n="admin.activityLog.title">事件紀錄</h2></div>
+    <div class="search-box">
+      <i class="fa-solid fa-fw fa-magnifying-glass"></i>
+      <input type="text" id="activity-log-search" data-i18n-placeholder="admin.activityLog.searchPlaceholder" placeholder="搜尋學生、老師或課程名稱">
+      <button type="button" class="search-clear-btn" id="activity-log-search-clear" hidden data-i18n-aria-label="admin.common.clearSearch" aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+    </div>
+    <div id="activity-log-list"></div>
+  </section>
+  <div class="page-nav">
+    <div class="pagination" id="activity-log-pagination"></div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+(async () => {
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  const logs = await fetch('/api/activity-log').then((res) => (res.ok ? res.json() : [])).catch(() => []);
+
+  // 每種事件的圖示／顏色，跟其他頁面的預約狀態圖示一致（check=完成、close=取消、question=缺席、
+  // icon-alert=需處理）；評分兩種顏色跟課程回饋卡片的評分徽章一致（student=金色 rating-star、
+  // teacher=粉紅 tone-rose）。
+  const EVENT_META = {
+    booking_created: { icon: 'add-event.png', tone: 'tone-blue' },
+    booking_cancelled: { icon: 'close.png', tone: 'tone-red' },
+    booking_attended: { icon: 'check.png', tone: 'tone-green' },
+    booking_absent: { icon: 'question.png', tone: 'tone-navy' },
+    booking_pending: { icon: 'icon-alert.png', tone: 'pending' },
+    teacher_rated: { icon: 'star.png', tone: 'tone-rose' },
+    student_rated: { icon: 'star.png', tone: 'rating-star' },
+  };
+
+  function eventLabel(type) {
+    return t(`admin.activityLog.event.${type}`);
+  }
+
+  // 事件本身誰做的看得出來（老師標記完成 vs 管理者代標），但取消／完成／缺席／需處理／老師評分
+  // 老師本人跟管理者代管都做得到，所以額外標一下是誰操作的，取消時原因也一起放進來
+  function actorSuffix(row) {
+    if (row.eventType === 'booking_created' || row.eventType === 'student_rated') return '';
+    if (row.actorRole !== 'admin') return '';
+    return ` · ${t('admin.activityLog.actorAdmin')}`;
+  }
+
+  // created_at 存的已經是 UTC+8 的 "YYYY-MM-DD HH:MM:SS"，不用另外轉時區；中間插入星期縮寫
+  function formatLogTime(raw) {
+    const datePart = raw.slice(0, 10);
+    const timePart = raw.slice(11, 16);
+    return `${datePart} ${weekdayNarrowForDbDate(datePart)} ${timePart}`;
+  }
+
+  // 點一下展開看預約編號／上課時間／評分星數／取消原因，再點一下收合（見下面的 click 委派監聽）
+  function renderLogRow(row) {
+    const meta = EVENT_META[row.eventType] || {};
+    const pill = `<span class="pill ${meta.tone} has-icon log-status-icon"><img class="pill-icon" src="../assets/icons/${meta.icon}" alt=""></span>`;
+    const isRating = row.eventType === 'teacher_rated' || row.eventType === 'student_rated';
+    const detailLines = [
+      `${t('history.detail.code')}：${escapeHtml(row.bookingCode)}`,
+      `${t('admin.activityLog.lessonTime')}：${escapeHtml(row.lessonDate)} ${escapeHtml(weekdayNarrowForDbDate(row.lessonDate))} ${escapeHtml(row.lessonTime)}`,
+    ];
+    if (isRating) detailLines.push(`${t('admin.activityLog.ratingValue')}：${starsHtml(row.ratingValue)}`);
+    if (row.eventType === 'booking_cancelled' && row.reason) detailLines.push(`${t('admin.activityLog.reason')}：${escapeHtml(row.reason)}`);
+    return `<div class="log-row">
+      <div class="log-row-main">
+        ${pill}
+        <span class="log-row-template">${escapeHtml(eventLabel(row.eventType))}${escapeHtml(actorSuffix(row))}</span>
+        <span class="log-row-recipient">${escapeHtml(row.courseName)} · ${escapeHtml(row.studentName)} / ${escapeHtml(row.teacherName)}</span>
+        <span class="log-row-time">${escapeHtml(formatLogTime(row.createdAt))}</span>
+      </div>
+      <div class="log-row-detail"><div class="log-row-detail-inner">${detailLines.map((l) => `<div>${l}</div>`).join('')}</div></div>
+    </div>`;
+  }
+
+  const searchInput = document.getElementById('activity-log-search');
+  const pageState = { page: 1 };
+  function renderList() {
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = query
+      ? logs.filter((r) => [r.studentName, r.teacherName, r.courseName, r.bookingCode].some((f) => (f || '').toLowerCase().includes(query)))
+      : logs;
+    paginate(filtered, 20, renderLogRow,
+      document.getElementById('activity-log-list'),
+      document.getElementById('activity-log-pagination'),
+      pageState,
+      `<div class="booking-card-empty">${t(query ? 'admin.activityLog.noMatch' : 'admin.activityLog.empty')}</div>`,
+      () => {});
+  }
+
+  // 清單整批重繪但容器本身不變，用事件委派在容器上綁一次就好
+  document.getElementById('activity-log-list').addEventListener('click', (e) => {
+    e.target.closest('.log-row')?.classList.toggle('log-row-open');
+  });
+
+  const SEARCH_KEY = 'admin-activity-log-search';
+  const searchClearBtn = document.getElementById('activity-log-search-clear');
+  try { searchInput.value = localStorage.getItem(SEARCH_KEY) || ''; } catch { /* 無痕模式等讀不到就當沒有 */ }
+  searchClearBtn.hidden = searchInput.value === '';
+  let searchDebounce = null;
+  searchInput.addEventListener('input', () => {
+    searchClearBtn.hidden = searchInput.value === '';
+    try { localStorage.setItem(SEARCH_KEY, searchInput.value); } catch { /* 存不了就算了 */ }
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => { pageState.page = 1; renderList(); }, 300);
+  });
+  searchClearBtn.addEventListener('click', () => {
+    clearTimeout(searchDebounce);
+    searchInput.value = '';
+    searchClearBtn.hidden = true;
+    try { localStorage.setItem(SEARCH_KEY, ''); } catch { /* 存不了就算了 */ }
+    searchInput.focus();
+    pageState.page = 1;
+    renderList();
+  });
+
+  renderList();
+
+  document.getElementById('back-btn').addEventListener('click', () => { window.location.href = 'index.html'; });
+})();
+</script>
+
+</body>
+</html>

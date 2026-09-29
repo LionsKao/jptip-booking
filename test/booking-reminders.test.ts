@@ -57,8 +57,37 @@ describe('booking reminder emails', () => {
     const row = await env.DB.prepare(`SELECT reminder_sent_at FROM bookings WHERE id = ?`).bind(booking.id).first<{ reminder_sent_at: string | null }>();
     expect(row?.reminder_sent_at).not.toBeNull();
 
+    // 兩封都寄成功，各自留一筆 email_log，status 是 sent
+    const { results: logs } = await env.DB.prepare(`SELECT * FROM email_log WHERE booking_id = ?`).bind(booking.id).all<{ status: string; template_key: string; recipient: string }>();
+    expect(logs).toHaveLength(2);
+    expect(logs.every((l) => l.status === 'sent')).toBe(true);
+    expect(logs.map((l) => l.template_key).sort()).toEqual(['booking_reminder_student', 'booking_reminder_teacher']);
+
     await sendDueBookingReminders(env); // 再跑一次排程，已經寄過的不會重複寄
     expect(sentMails(calls)).toHaveLength(2);
+  });
+
+  it('does not mark the reminder sent when Graph fails, so the next run retries it, and logs the failure', async ({ expect }) => {
+    const adminCookie = await login(SEEDED.admin.email, 'admin');
+    const studentCookie = await login(SEEDED.student.email, 'student');
+    const booking = await setupBooking(adminCookie, studentCookie, '寄信失敗測試');
+    await moveBookingTo(booking.id, 5);
+
+    env.MS_CLIENT_SECRET = 'test-secret';
+    mockGraph(401); // Graph 端回錯誤，模擬寄信失敗（sendMail 這個 call 還是會發出去，只是回應是錯的）
+    await sendDueBookingReminders(env);
+
+    const row = await env.DB.prepare(`SELECT reminder_sent_at FROM bookings WHERE id = ?`).bind(booking.id).first<{ reminder_sent_at: string | null }>();
+    expect(row?.reminder_sent_at).toBeNull(); // 沒標記，下次排程會再試一次
+
+    const { results: logs } = await env.DB.prepare(`SELECT * FROM email_log WHERE booking_id = ?`).bind(booking.id).all<{ status: string; error: string | null }>();
+    expect(logs).toHaveLength(2);
+    expect(logs.every((l) => l.status === 'failed')).toBe(true);
+    expect(logs.every((l) => (l.error || '').includes('401'))).toBe(true);
+
+    // 這筆一直沒有 reminder_sent_at，還在「該提醒」的範圍內：清掉，不然會被其他測試的
+    // sendDueBookingReminders() 呼叫又抓到，干擾到那些測試自己的計數
+    await env.DB.prepare(`UPDATE bookings SET status = 'cancelled' WHERE id = ?`).bind(booking.id).run();
   });
 
   it('skips bookings outside the reminder window, already cancelled, or already reminded', async ({ expect }) => {

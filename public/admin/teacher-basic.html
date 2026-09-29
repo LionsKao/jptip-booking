@@ -271,7 +271,21 @@
       document.querySelector('.avatar-picker-preview').classList.toggle('is-inactive', !isActive);
     }
     setStatusToggle(teacher.status !== 'inactive');
+
+    // 領收書資料（地址、公司名稱、公司地址、單價、銀行資訊）沒填齊就不能啟用這位老師，
+    // 不然月底請款時才發現漏填，已經來不及了。稅率／時區有下拉選單的預設值，不算「沒填」。
+    const RECEIPT_REQUIRED_FIELDS = ['address', 'companyName', 'companyAddress', 'wage', 'bank', 'bankBranch', 'bankBranchNo', 'bankAccountNo'];
+    function isReceiptComplete(r) {
+      return RECEIPT_REQUIRED_FIELDS.every((k) => ((r && r[k]) || '').toString().trim() !== '');
+    }
+    let receiptComplete = isReceiptComplete(teacher.receipt || {});
+
     document.getElementById('edit-status-toggle').addEventListener('change', (e) => {
+      if (e.target.checked && !receiptComplete) {
+        e.target.checked = false;
+        showBasicAlert(t('admin.teachers.receipt.incompleteForActive'));
+        return;
+      }
       setStatusToggle(e.target.checked);
     });
 
@@ -430,25 +444,30 @@
       e.target.value = e.target.value.replace(/[^0-9]/g, '');
     });
 
+    // 領收書表單目前輸入的值，儲存跟「有沒有改過／填完了沒」的判斷都用同一份，不用各刻一次
+    function getReceiptFormValues() {
+      return {
+        address: document.getElementById('receipt-address').value.trim(),
+        companyName: document.getElementById('receipt-company-name').value.trim(),
+        companyAddress: document.getElementById('receipt-company-address').value.trim(),
+        wage: document.getElementById('receipt-wage').value.trim(),
+        taxRate: getDropdownValue('receipt-tax-dropdown'),
+        timezone: getDropdownValue('receipt-timezone-dropdown'),
+        bank: document.getElementById('receipt-bank').value.trim(),
+        bankBranch: document.getElementById('receipt-bank-branch').value.trim(),
+        bankBranchNo: document.getElementById('receipt-bank-branch-no').value.trim(),
+        bankAccountNo: document.getElementById('receipt-bank-account-no').value.trim(),
+      };
+    }
+
     document.getElementById('receipt-submit-btn').addEventListener('click', async () => {
-      const result = await patchTeacher({
-        receipt: {
-          address: document.getElementById('receipt-address').value.trim(),
-          companyName: document.getElementById('receipt-company-name').value.trim(),
-          companyAddress: document.getElementById('receipt-company-address').value.trim(),
-          wage: document.getElementById('receipt-wage').value.trim(),
-          taxRate: getDropdownValue('receipt-tax-dropdown'),
-          timezone: getDropdownValue('receipt-timezone-dropdown'),
-          bank: document.getElementById('receipt-bank').value.trim(),
-          bankBranch: document.getElementById('receipt-bank-branch').value.trim(),
-          bankBranchNo: document.getElementById('receipt-bank-branch-no').value.trim(),
-          bankAccountNo: document.getElementById('receipt-bank-account-no').value.trim(),
-        },
-      });
+      const receiptFields = getReceiptFormValues();
+      const result = await patchTeacher({ receipt: receiptFields });
       if (!result.ok) {
         showBasicAlert(result.error);
         return;
       }
+      receiptComplete = isReceiptComplete(receiptFields);
       document.getElementById('editSuccessModal').classList.add('open');
       savedReceiptSnapshot = getReceiptSnapshot();
       refreshReceiptSubmit();
@@ -468,28 +487,17 @@
         timezone: getDropdownValue('receipt-timezone-dropdown'),
       });
     }
-    function getReceiptSnapshot() {
-      return JSON.stringify({
-        address: document.getElementById('receipt-address').value,
-        companyName: document.getElementById('receipt-company-name').value,
-        companyAddress: document.getElementById('receipt-company-address').value,
-        wage: document.getElementById('receipt-wage').value,
-        taxRate: getDropdownValue('receipt-tax-dropdown'),
-        bank: document.getElementById('receipt-bank').value,
-        bankBranch: document.getElementById('receipt-bank-branch').value,
-        bankBranchNo: document.getElementById('receipt-bank-branch-no').value,
-        bankAccountNo: document.getElementById('receipt-bank-account-no').value,
-      });
-    }
+    const getReceiptSnapshot = () => JSON.stringify(getReceiptFormValues());
 
     let savedBasicSnapshot = getBasicSnapshot();
     let savedReceiptSnapshot = getReceiptSnapshot();
     const isBasicDirty = () => getBasicSnapshot() !== savedBasicSnapshot;
     const isReceiptDirty = () => getReceiptSnapshot() !== savedReceiptSnapshot;
 
-    // 各區塊資料跟上次儲存的不一樣，那一塊的「確認編輯」才能按（改回原樣會再變回停用；從停用變成可按時跳一下）
+    // 各區塊資料跟上次儲存的不一樣，那一塊的「確認編輯」才能按（改回原樣會再變回停用；從停用變成可按時跳一下）；
+    // 領收書資料還要全部欄位都填了才能按，不能存半套進去
     refreshBasicSubmit = watchForm(document.getElementById('card-basic'), document.getElementById('edit-submit-btn'), isBasicDirty);
-    const refreshReceiptSubmit = watchForm(document.getElementById('card-receipt'), document.getElementById('receipt-submit-btn'), isReceiptDirty);
+    const refreshReceiptSubmit = watchForm(document.getElementById('card-receipt'), document.getElementById('receipt-submit-btn'), () => isReceiptDirty() && isReceiptComplete(getReceiptFormValues()));
 
     document.getElementById('back-btn').addEventListener('click', () => {
       if (isBasicDirty() || isReceiptDirty()) {

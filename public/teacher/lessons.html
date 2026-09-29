@@ -157,9 +157,22 @@
         </div>
       </div>
     </section>
-    <section class="section" id="lesson-feedback" hidden>
+    <section class="section" id="lesson-feedback-result" hidden>
       <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
       <div id="lesson-feedback-entries"></div>
+    </section>
+    <section class="section" id="lesson-feedback-input" hidden>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
+      <div class="star-rating-input" id="feedback-teacher-stars"></div>
+      <div class="field" style="max-width:none;">
+        <div class="field-float">
+          <textarea id="feedback-teacher-note" placeholder=" " maxlength="500"></textarea>
+          <label for="feedback-teacher-note"><i class="fa-solid fa-fw fa-pen"></i> <span data-i18n="history.feedback.commentLabel">課程狀況或問題反映</span></label>
+        </div>
+      </div>
+      <div class="wizard-nav">
+        <button type="button" class="btn green" id="submit-teacher-feedback-btn" disabled><i class="fa-solid fa-fw fa-star"></i> <span data-i18n="booking.rating.submit">送出回饋</span></button>
+      </div>
     </section>
     <section class="section" id="meeting-room-section">
       <div class="section-title"><img class="title-icon" src="../assets/icons/online-training.png" alt=""><h2 data-i18n="lessons.openMeeting">開啟會議室</h2></div>
@@ -168,16 +181,9 @@
       </div>
     </section>
     <section class="section" id="complete-lesson-section">
-      <div class="section-title"><img class="title-icon" src="../assets/icons/chat.png" alt=""><h2 data-i18n="history.feedback.title">課程回饋</h2></div>
-      <div class="star-rating-input" id="complete-teacher-stars"></div>
-      <div class="field" style="max-width:none;">
-        <div class="field-float">
-          <textarea id="complete-teacher-note" placeholder=" " maxlength="500"></textarea>
-          <label for="complete-teacher-note"><i class="fa-solid fa-fw fa-pen"></i> <span data-i18n="history.feedback.commentLabel">課程狀況或問題反映</span></label>
-        </div>
-      </div>
+      <div class="section-title"><img class="title-icon" src="../assets/icons/check.png" alt=""><h2 data-i18n="lessons.completeLesson">完成課程</h2></div>
       <div class="wizard-nav">
-        <button type="button" class="btn green" id="complete-lesson-btn" disabled><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="lessons.completeLesson">完成課程</span></button>
+        <button type="button" class="btn green" id="complete-lesson-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="lessons.completeLesson">完成課程</span></button>
       </div>
     </section>
   </div>
@@ -209,17 +215,29 @@
 </div>
 
 <div class="modal-overlay" id="completeConfirmModal" data-modal-persistent>
-  <div class="modal modal-wide" style="text-align:center;">
+  <div class="modal" style="text-align:center;">
     <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
-    <div class="modal-icon star"><i class="fa-solid fa-star"></i></div>
+    <div class="modal-icon success"><i class="fa-solid fa-fw fa-check"></i></div>
     <h3 data-i18n="lessons.completeConfirm.title">確定要完成課程嗎？</h3>
-    <div class="modal-preview" id="complete-confirm-preview" hidden>
-      <div id="complete-confirm-stars" hidden></div>
-      <p class="text-small" id="complete-confirm-note" hidden></p>
-    </div>
     <div class="modal-actions">
       <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
       <button class="btn green" id="confirm-complete-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="leave.addConfirm.confirm">確定</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="teacherFeedbackConfirmModal" data-modal-persistent>
+  <div class="modal modal-wide" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon star"><i class="fa-solid fa-star"></i></div>
+    <h3 data-i18n="booking.rating.confirmTitle">確定要送出回饋嗎？</h3>
+    <div class="modal-preview">
+      <div id="teacher-feedback-confirm-stars"></div>
+      <p class="text-small" id="teacher-feedback-confirm-note" hidden></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn green" id="confirm-submit-teacher-feedback-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="leave.addConfirm.confirm">確定</span></button>
     </div>
   </div>
 </div>
@@ -491,17 +509,23 @@
     const isUpcoming = lesson.status === 'upcoming';
     document.getElementById('meeting-room-section').hidden = !isUpcoming;
     document.getElementById('complete-lesson-section').hidden = !isUpcoming;
-    document.getElementById('complete-teacher-note').value = '';
-    if (isUpcoming) resetTeacherStarInput();
 
-    // 按了完成課程之後才有「課程回饋」，而且老師只看得到自己那段；學生評分／留言只有學生本人
-    // 跟管理者看得到（後端也不會回傳給老師）。
+    // 完成課程（狀態）跟課程回饋（評分／課堂記錄）是兩件獨立的事：不管這堂課是老師自己標記
+    // 完成，還是管理者直接標記完成，只要狀態已經是「已上課」，老師就看得到「課程回饋」——
+    // 還沒填就是可以填的表單，填過了就是唯讀顯示。老師只看得到自己那段；學生評分／留言只有
+    // 學生本人跟管理者看得到（後端也不會回傳給老師）。
     const isAttended = lesson.status === 'attended';
-    document.getElementById('lesson-feedback').hidden = !isAttended;
-    if (isAttended) {
+    const hasTeacherFeedback = lesson.teacherRating != null || !!lesson.teacherNote;
+    document.getElementById('lesson-feedback-result').hidden = !isAttended || !hasTeacherFeedback;
+    document.getElementById('lesson-feedback-input').hidden = !isAttended || hasTeacherFeedback;
+    if (isAttended && hasTeacherFeedback) {
       renderFeedbackEntries(document.getElementById('lesson-feedback-entries'), [
         { avatar: currentTeacher && currentTeacher.avatar, name: currentTeacher && currentTeacher.name, rating: lesson.teacherRating, text: lesson.teacherNote },
       ]);
+    }
+    if (isAttended && !hasTeacherFeedback) {
+      document.getElementById('feedback-teacher-note').value = '';
+      resetTeacherFeedbackStarInput();
     }
 
     window.scrollTo(0, 0);
@@ -534,18 +558,7 @@
     }
   });
 
-  // 老師評分（必填，跟學生一致）：選了星星「完成課程」才能按，按鈕從停用變成可按時跳一下
-  // （改選別的星星不會再跳）。點星星只是選取，跟課程狀況一起在按「完成課程」→ 確認 modal 後才送出。
-  let pendingTeacherRating = null;
-  function resetTeacherStarInput() {
-    pendingTeacherRating = null;
-    document.getElementById('complete-lesson-btn').disabled = true;
-    initStarRatingInput(document.getElementById('complete-teacher-stars'), (n) => {
-      pendingTeacherRating = n;
-      setButtonEnabled(document.getElementById('complete-lesson-btn'), true);
-    });
-  }
-
+  // 完成課程：純粹把狀態改成「已上課」，不用先評分——評分是另一件事（見下面的課程回饋）。
   document.getElementById('complete-lesson-btn').addEventListener('click', () => {
     const lesson = lessons.find((l) => l.id === activeLessonId);
     if (!lesson) return;
@@ -553,14 +566,6 @@
       document.getElementById('notEndedModal').classList.add('open');
       return;
     }
-    const starsEl = document.getElementById('complete-confirm-stars');
-    starsEl.hidden = !pendingTeacherRating;
-    if (pendingTeacherRating) starsEl.innerHTML = starsHtml(pendingTeacherRating);
-    const note = document.getElementById('complete-teacher-note').value.trim();
-    const noteEl = document.getElementById('complete-confirm-note');
-    noteEl.textContent = note;
-    noteEl.hidden = !note;
-    document.getElementById('complete-confirm-preview').hidden = !pendingTeacherRating && !note;
     document.getElementById('completeConfirmModal').classList.add('open');
   });
 
@@ -569,12 +574,10 @@
     document.getElementById('completeConfirmModal').classList.remove('open');
     if (!lesson) return;
 
-    const noteInput = document.getElementById('complete-teacher-note');
-    const note = noteInput.value.trim();
     const res = await fetch(`/api/bookings?id=${lesson.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'attended', teacherRating: pendingTeacherRating, teacherNote: note || null }),
+      body: JSON.stringify({ status: 'attended' }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -589,9 +592,56 @@
     lesson.status = updated.status;
     lesson.teacherRating = updated.teacherRating;
     lesson.teacherNote = updated.teacherNote;
-    noteInput.value = '';
-    hideLessonDetail();
     renderLessonsCards();
+    // 完成後留在課程詳情頁，馬上顯示「課程回饋」的填寫表單，不用再點進來一次
+    showLessonDetail(lesson.id);
+  });
+
+  // 課程回饋（評分必填，跟學生一致）：選了星星「送出回饋」才能按，按鈕從停用變成可按時跳一下
+  // （改選別的星星不會再跳）。不管這堂課是老師自己標記完成、還是管理者標記完成，只要已經是
+  // 「已上課」狀態、老師還沒填過回饋，這裡都填得到——後端也沒有要求一定要在標記完成的同一次
+  // 請求裡帶評分。
+  let pendingTeacherFeedbackRating = null;
+  function resetTeacherFeedbackStarInput() {
+    pendingTeacherFeedbackRating = null;
+    document.getElementById('submit-teacher-feedback-btn').disabled = true;
+    initStarRatingInput(document.getElementById('feedback-teacher-stars'), (n) => {
+      pendingTeacherFeedbackRating = n;
+      setButtonEnabled(document.getElementById('submit-teacher-feedback-btn'), true);
+    });
+  }
+
+  document.getElementById('submit-teacher-feedback-btn').addEventListener('click', () => {
+    document.getElementById('teacher-feedback-confirm-stars').innerHTML = starsHtml(pendingTeacherFeedbackRating);
+    const note = document.getElementById('feedback-teacher-note').value.trim();
+    const noteEl = document.getElementById('teacher-feedback-confirm-note');
+    noteEl.textContent = note;
+    noteEl.hidden = !note;
+    document.getElementById('teacherFeedbackConfirmModal').classList.add('open');
+  });
+
+  document.getElementById('confirm-submit-teacher-feedback-btn').addEventListener('click', async () => {
+    const lesson = lessons.find((l) => l.id === activeLessonId);
+    document.getElementById('teacherFeedbackConfirmModal').classList.remove('open');
+    if (!lesson) return;
+
+    const noteInput = document.getElementById('feedback-teacher-note');
+    const note = noteInput.value.trim();
+    const res = await fetch(`/api/bookings?id=${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherRating: pendingTeacherFeedbackRating, teacherNote: note || null }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showLessonsAlert(apiErrorMessage(data, 'lessons.error.updateFailed'));
+      return;
+    }
+    const updated = await res.json();
+    lesson.teacherRating = updated.teacherRating;
+    lesson.teacherNote = updated.teacherNote;
+    noteInput.value = '';
+    showLessonDetail(lesson.id);
   });
 })();
 </script>

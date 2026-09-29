@@ -150,6 +150,13 @@
         <p data-i18n="admin.dash.emails.desc">管理系統自動寄出的信件內容</p>
       </span>
     </button>
+    <button type="button" class="dash-card" data-action="activity-log">
+      <span class="dash-card-icon"><img src="../assets/icons/details.png" alt=""></span>
+      <span>
+        <h3 data-i18n="admin.dash.activityLog.title">事件紀錄</h3>
+        <p data-i18n="admin.dash.activityLog.desc">依時間順序查看預約、取消、評分等所有事件</p>
+      </span>
+    </button>
   </div>
 
 </div>
@@ -189,6 +196,9 @@
   });
   document.querySelector('[data-action="emails"]').addEventListener('click', () => {
     window.location.href = 'email-templates.html';
+  });
+  document.querySelector('[data-action="activity-log"]').addEventListener('click', () => {
+    window.location.href = 'activity-log.html';
   });
 
   document.querySelectorAll('.dash-card').forEach((card) => applyTiltEffect(card));

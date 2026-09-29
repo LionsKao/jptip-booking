@@ -28,6 +28,7 @@
     gap: var(--space-4);
   }
   .wizard-nav .btn { flex: 1 1 0; min-width: 0; }
+  #admin-action-section .wizard-nav { max-width: none; margin: 0; }
 
   #card-bookings {
     max-width: 1000px;
@@ -95,6 +96,9 @@
       grid-template-columns: 1fr;
     }
   }
+
+  /* 取消預約的原因輸入框：跟其他 modal 的 text-input 同寬，但要能多打幾行字 */
+  #cancel-booking-reason { width: 100%; resize: vertical; margin: var(--space-3) 0; font-family: inherit; }
 </style>
 </head>
 <body class="admin-page">
@@ -154,18 +158,25 @@
           <span class="confirm-highlight-icon"><img src="../assets/icons/clock.png" alt=""></span>
           <span><p data-i18n="history.detail.time">時間・課程長度・時區</p><h3 id="detail-time">—</h3></span>
         </div>
+        <div class="confirm-highlight" id="detail-cancel-reason-row" hidden>
+          <span class="confirm-highlight-icon"><img src="../assets/icons/close.png" alt=""></span>
+          <span><p id="detail-cancel-reason-label">—</p><h3 id="detail-cancel-reason">—</h3></span>
+        </div>
       </div>
     </section>
-    <div class="wizard-nav" id="admin-action-nav">
-      <div class="wizard-nav-row">
-        <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
-        <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> <span data-i18n="status.absent">缺席</span></button>
-        <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> <span data-i18n="status.pending">需處理</span></button>
+    <section class="section" id="admin-action-section">
+      <div class="section-title"><img class="title-icon" src="../assets/icons/click.png" alt=""><h2 data-i18n="admin.bookings.actions.title">功能按鈕</h2></div>
+      <div class="wizard-nav" id="admin-action-nav">
+        <div class="wizard-nav-row">
+          <button type="button" class="btn red" id="mark-cancelled-btn"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelBooking">取消預約</span></button>
+          <button type="button" class="btn navy" id="mark-absent-btn"><i class="fa-solid fa-fw fa-question"></i> <span data-i18n="status.absent">缺席</span></button>
+          <button type="button" class="btn orange" id="mark-pending-btn"><i class="fa-solid fa-fw fa-triangle-exclamation"></i> <span data-i18n="status.pending">需處理</span></button>
+        </div>
+        <div class="wizard-nav-row">
+          <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.markAttended">完成課程</span></button>
+        </div>
       </div>
-      <div class="wizard-nav-row">
-        <button type="button" class="btn green" id="mark-attended-btn"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.markAttended">完成課程</span></button>
-      </div>
-    </div>
+    </section>
   </div>
 
 </div>
@@ -215,9 +226,10 @@
     <div class="modal-icon danger"><i class="fa-solid fa-xmark"></i></div>
     <h3 data-i18n="admin.bookings.cancelledConfirm.title">確定要取消這筆預約嗎？</h3>
     <p class="text-small" data-i18n="admin.bookings.cancelledConfirm.desc">學生的預約次數將會退還一次。</p>
+    <textarea id="cancel-booking-reason" class="text-input" rows="3" data-i18n-placeholder="admin.bookings.cancelledConfirm.reasonPlaceholder" placeholder="取消原因（例如：老師方停電、臨時身體不適）"></textarea>
     <div class="modal-actions">
       <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
-      <button class="btn red" id="confirm-mark-cancelled-btn" style="flex:1;"><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelConfirm.confirm">確定取消</span></button>
+      <button class="btn red" id="confirm-mark-cancelled-btn" style="flex:1;" disabled><i class="fa-solid fa-fw fa-xmark"></i> <span data-i18n="history.cancelConfirm.confirm">確定取消</span></button>
     </div>
   </div>
 </div>
@@ -405,6 +417,15 @@
       ribbonText.className = `course-ribbon ${ribbon.tone}`;
     }
 
+    // 取消原因：只有取消時才有，管理者取消一定會填，學生自己取消沒有原因就不顯示這行
+    const cancelReasonRow = document.getElementById('detail-cancel-reason-row');
+    cancelReasonRow.hidden = booking.status !== 'cancelled' || !booking.cancelReason;
+    if (!cancelReasonRow.hidden) {
+      document.getElementById('detail-cancel-reason-label').textContent =
+        booking.cancelledBy === 'admin' ? t('admin.bookings.cancelReason.byAdmin') : t('admin.bookings.cancelReason.byStudent');
+      document.getElementById('detail-cancel-reason').textContent = booking.cancelReason;
+    }
+
     window.scrollTo(0, 0);
   }
 
@@ -426,14 +447,14 @@
   // 狀態變更後，課程堂數（已預約／已上課）由伺服器在同一次請求裡自動調整
   // （轉入/轉出 cancelled 會影響已預約，轉入/轉出 attended 會影響已上課），
   // 前端不用也不該自己再算一次。
-  async function setBookingStatus(newStatus) {
+  async function setBookingStatus(newStatus, extra = {}) {
     const booking = student.bookings.find((b) => b.id === activeBookingId);
     if (!booking) return;
 
     const res = await fetch(`/api/bookings?id=${booking.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: newStatus, ...extra }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -471,12 +492,23 @@
     setBookingStatus('pending');
   });
 
+  // 取消一定要填原因（例如老師方停電、臨時身體不適），才查得到「這堂課是因為誰的問題被取消」
+  const cancelReasonInput = document.getElementById('cancel-booking-reason');
+  const confirmCancelBtn = document.getElementById('confirm-mark-cancelled-btn');
   document.getElementById('mark-cancelled-btn').addEventListener('click', () => {
+    cancelReasonInput.value = '';
+    setButtonEnabled(confirmCancelBtn, false);
     document.getElementById('markCancelledConfirmModal').classList.add('open');
+    setTimeout(() => cancelReasonInput.focus(), 50);
   });
-  document.getElementById('confirm-mark-cancelled-btn').addEventListener('click', () => {
+  cancelReasonInput.addEventListener('input', () => {
+    setButtonEnabled(confirmCancelBtn, cancelReasonInput.value.trim() !== '');
+  });
+  confirmCancelBtn.addEventListener('click', () => {
+    const reason = cancelReasonInput.value.trim();
+    if (!reason) return;
     document.getElementById('markCancelledConfirmModal').classList.remove('open');
-    setBookingStatus('cancelled');
+    setBookingStatus('cancelled', { reason });
   });
 
   document.getElementById('back-btn').addEventListener('click', () => {

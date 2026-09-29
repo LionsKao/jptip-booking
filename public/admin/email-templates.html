@@ -81,7 +81,7 @@
 <div class="page">
 
   <section class="section">
-    <div class="section-title"><img class="title-icon" src="../assets/icons/email.png" alt=""><h2 data-i18n="admin.dash.emails.title">系統信件</h2></div>
+    <div class="section-title"><img class="title-icon" src="../assets/icons/email.png" alt=""><h2 data-i18n="admin.dash.emails.title">系統信件</h2><button type="button" class="btn sm outline" id="view-email-log-btn" style="margin-left:auto;"><i class="fa-solid fa-fw fa-list-check"></i> <span data-i18n="admin.emails.viewLog">寄信紀錄</span></button></div>
     <div class="search-box">
       <i class="fa-solid fa-fw fa-magnifying-glass"></i>
       <input type="text" id="email-search" data-i18n-placeholder="admin.emails.searchPlaceholder" placeholder="搜尋信件名稱">
@@ -165,6 +165,10 @@ function emailTemplateIcon(key) {
   });
 
   renderEmails();
+
+  document.getElementById('view-email-log-btn').addEventListener('click', () => {
+    window.location.href = 'email-log.html';
+  });
 
   document.getElementById('back-btn').addEventListener('click', () => {
     window.location.href = 'index.html';

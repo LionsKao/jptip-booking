@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LionBooking — 寄信紀錄</title>
+<link rel="icon" type="image/png" href="../assets/icons/favicon.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body.admin-page .page {
+    max-width: 1000px;
+    padding-top: calc(var(--space-6) + 64px + var(--space-5));
+  }
+
+  /* 卡片夠寬，搜尋框跟篩選放同一行：搜尋框吃滿剩下的寬度，篩選固定在右邊，兩個高度拉一樣 */
+  .search-filter-row {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .search-filter-row .search-box {
+    flex: 1;
+    margin-bottom: 0;
+    min-width: 0;
+  }
+
+  /* 分段切換：預設看全部，切到「只看失敗」才篩掉成功的，跟請求書頁的「有堂數／全部」同一套做法。 */
+  .log-filter {
+    display: flex;
+    flex: none;
+    margin-bottom: 0;
+  }
+  .log-filter-group {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-card-alt);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    box-sizing: border-box;
+    height: 100%;
+  }
+  .log-filter-thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    width: calc(33.33% - 4px);
+    background: var(--bg-card);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-sm);
+    transition: left .22s ease, width .22s ease;
+  }
+  .log-filter-btn {
+    position: relative;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: var(--fs-small);
+    font-weight: 700;
+    padding: 7px 18px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: color .2s ease;
+  }
+  .log-filter-btn.active {
+    color: var(--text-main);
+  }
+
+  /* 一筆一行，扁扁的像 log；點一下展開看主旨／失敗原因，再點一下收合 */
+  #email-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .log-row {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    padding: var(--space-2) var(--space-4);
+    cursor: pointer;
+  }
+  .log-row-failed {
+    border-color: var(--color-red);
+  }
+  /* 沒點開時，這行看起來要跟原本一模一樣：實際內容都在 .log-row-main，
+     .log-row-detail 收合時完全零高度、零間距（margin-top 也是 0） */
+  .log-row-main {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  /* 展開／收合用 grid-template-rows 做高度動畫，不用寫死高度 */
+  .log-row-detail {
+    display: grid;
+    grid-template-rows: 0fr;
+    margin-top: 0;
+    transition: grid-template-rows .22s ease, margin-top .22s ease;
+  }
+  .log-row.log-row-open .log-row-detail {
+    grid-template-rows: 1fr;
+    margin-top: var(--space-2);
+  }
+  .log-row-detail-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .log-row-detail-inner > div {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    word-break: break-word;
+  }
+  .log-row-detail-inner > div + div {
+    margin-top: 2px;
+  }
+  .log-row-resend-btn {
+    margin-top: var(--space-2);
+  }
+  .log-row-resend-btn:disabled {
+    opacity: .6;
+    cursor: default;
+  }
+  /* 切換篩選／搜尋時，清單整批重繪，每一列都是新節點，animation 會自動重播 */
+  @keyframes logRowIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .log-row {
+      animation: logRowIn .22s ease both;
+    }
+  }
+  .log-row-time {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+    margin-left: auto;
+  }
+  .log-row-template {
+    font-weight: 700;
+    flex: none;
+  }
+  .log-row-recipient {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 圖示代表信件類別（登入／預約成立／提醒／取消），不是寄送狀態；寄送成功或失敗改用
+     整張卡片的框線顏色表示（見 .log-row-failed） */
+  .log-status-icon {
+    padding: 6px;
+    flex: none;
+  }
+
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+</style>
+</head>
+<body class="admin-page">
+
+<div class="back-header">
+  <button type="button" class="back-btn" id="back-btn"><i class="fa-solid fa-fw fa-arrow-left"></i></button>
+</div>
+
+<div class="page">
+  <section class="section">
+    <div class="section-title"><img class="title-icon" src="../assets/icons/email.png" alt=""><h2 data-i18n="admin.emailLog.title">寄信紀錄</h2><button type="button" class="info-btn" data-modal-open="emailLogRecordInfoModal" data-i18n-aria-label="common.info" aria-label="說明"><i class="fa-solid fa-fw fa-circle-question"></i></button></div>
+    <div class="search-filter-row">
+      <div class="search-box">
+        <i class="fa-solid fa-fw fa-magnifying-glass"></i>
+        <input type="text" id="email-log-search" data-i18n-placeholder="admin.emailLog.searchPlaceholder" placeholder="搜尋收件人、姓名或信件名稱">
+        <button type="button" class="search-clear-btn" id="email-log-search-clear" hidden data-i18n-aria-label="admin.common.clearSearch" aria-label="清除搜尋"><i class="fa-solid fa-fw fa-xmark"></i></button>
+      </div>
+      <div class="log-filter">
+        <div class="log-filter-group">
+          <span class="log-filter-thumb" aria-hidden="true"></span>
+          <button type="button" class="log-filter-btn" data-filter="all" data-i18n="admin.emailLog.filterAll">全部</button>
+          <button type="button" class="log-filter-btn" data-filter="sent" data-i18n="admin.emailLog.filterSent">成功</button>
+          <button type="button" class="log-filter-btn" data-filter="failed" data-i18n="admin.emailLog.filterFailed">失敗</button>
+        </div>
+      </div>
+    </div>
+    <div id="email-log-list"></div>
+  </section>
+  <div class="page-nav">
+    <div class="pagination" id="email-log-pagination"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="basicInfoAlertModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon warning"><i class="fa-solid fa-exclamation"></i></div>
+    <h3 id="basicInfoAlertText"></h3>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.ok">好</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resendConfirmModal" data-modal-persistent>
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-paper-plane"></i></div>
+    <h3 data-i18n="admin.emailLog.resendConfirm.title">確定要重新寄送這封信嗎？</h3>
+    <p class="text-small" data-i18n="admin.emailLog.resendConfirm.desc">會用預約目前的資料重新產生內容，寄給這筆紀錄的收件人。</p>
+    <div class="modal-actions">
+      <button class="btn outline" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-arrow-left"></i> <span data-i18n="common.cancel">取消</span></button>
+      <button class="btn blue" id="resend-confirm-btn" style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="admin.bookings.confirm">確定</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="emailLogRecordInfoModal">
+  <div class="modal" style="text-align:center;">
+    <button class="modal-close" data-modal-close><i class="fa-solid fa-fw fa-xmark"></i></button>
+    <div class="modal-icon info"><i class="fa-solid fa-fw fa-clock-rotate-left"></i></div>
+    <h3 data-i18n="admin.emailLog.recordInfo.title">寄信紀錄最多顯示 30 天內</h3>
+    <p class="text-small" data-i18n="admin.emailLog.recordInfo.desc">從今天往回算 30 天，超過的寄信紀錄就不會再顯示囉。</p>
+    <div class="modal-actions">
+      <button class="btn blue" data-modal-close style="flex:1;"><i class="fa-solid fa-fw fa-check"></i> <span data-i18n="common.gotIt">知道了</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+(async () => {
+  const adminMe = await fetch('/api/admins/me').then((res) => (res.ok ? res.json() : null)).catch(() => null);
+  await initI18n((adminMe && adminMe.language) || getCurrentLang());
+
+  // 只顯示 30 天內的寄信紀錄，避免清單隨著時間一直往下長，太久以前的紀錄大多也失去參考價值
+  const RECORD_WINDOW_DAYS = 30;
+  const cutoffDate = new Date();
+  cutoffDate.setHours(0, 0, 0, 0);
+  cutoffDate.setDate(cutoffDate.getDate() - RECORD_WINDOW_DAYS);
+
+  async function loadLogs() {
+    return fetch('/api/email-log').then((res) => (res.ok ? res.json() : []))
+      .then((rows) => rows.filter((r) => new Date(r.createdAt.slice(0, 10)) >= cutoffDate))
+      .catch(() => []);
+  }
+  let logs = await loadLogs();
+
+  function showAlert(message) {
+    document.getElementById('basicInfoAlertText').textContent = message;
+    document.getElementById('basicInfoAlertModal').classList.add('open');
+  }
+
+  const FILTER_KEY = 'admin-email-log-filter';
+  let filterMode = ['sent', 'failed'].includes(localStorage.getItem(FILTER_KEY)) ? localStorage.getItem(FILTER_KEY) : 'all';
+
+  function templateName(key) {
+    const i18nKey = `emailTemplate.${key}.name`;
+    return i18nDict[i18nKey] ? t(i18nKey) : key;
+  }
+
+  // 跟系統信件管理頁（email-templates.html）用同一套規則，圖示才會一致
+  function emailTemplateIcon(key) {
+    if (key.startsWith('login_')) return 'key.png';
+    if (key.startsWith('booking_created_')) return 'check.png';
+    if (key.startsWith('booking_reminder_')) return 'bell.png';
+    return 'close.png';
+  }
+
+  // created_at 存的已經是 UTC+8 的 "YYYY-MM-DD HH:MM:SS"，不用另外轉時區；中間插入星期縮寫
+  function formatLogTime(raw) {
+    const datePart = raw.slice(0, 10);
+    const timePart = raw.slice(11, 16);
+    return `${datePart} ${weekdayNarrowForDbDate(datePart)} ${timePart}`;
+  }
+
+  // 一筆一行，扁扁的：類別圖示、範本、收件人、時間擠在同一行；圖示代表信件類別。寄送
+  // 成功／失敗改用整張卡片的框線顏色表示。點一下這一列可以展開看主旨／失敗原因，
+  // 再點一下收合（見下面的 click 委派監聽）
+  function renderLogCard(row) {
+    const isSent = row.status === 'sent';
+    const pill = `<span class="pill tone-blue has-icon log-status-icon"><img class="pill-icon" src="../assets/icons/${emailTemplateIcon(row.templateKey)}" alt=""></span>`;
+    const recipient = row.recipientName ? `${row.recipientName} ${row.recipient}` : row.recipient;
+    const detailLines = [`${t('admin.emails.subject')}：${escapeHtml(row.subject || '')}`];
+    if (!isSent && row.error) detailLines.push(`${t('admin.emailLog.errorReason')}：${escapeHtml(row.error)}`);
+    // 登入驗證碼沒有 booking 可以重新產生內容，碼本身也早就過期了，不給重寄
+    const canResend = !row.templateKey.startsWith('login_');
+    const resendBtn = canResend
+      ? `<button type="button" class="btn sm outline log-row-resend-btn" data-resend-id="${row.id}"><i class="fa-solid fa-fw fa-paper-plane"></i> ${t('admin.emailLog.resend')}</button>`
+      : '';
+    return `<div class="log-row${isSent ? '' : ' log-row-failed'}">
+      <div class="log-row-main">
+        ${pill}
+        <span class="log-row-template">${escapeHtml(templateName(row.templateKey))}</span>
+        <span class="log-row-recipient">${escapeHtml(recipient)}</span>
+        <span class="log-row-time">${escapeHtml(formatLogTime(row.createdAt))}</span>
+      </div>
+      <div class="log-row-detail"><div class="log-row-detail-inner">${detailLines.map((l) => `<div>${l}</div>`).join('')}${resendBtn}</div></div>
+    </div>`;
+  }
+
+  const EMPTY_KEY = { all: 'admin.emailLog.empty', sent: 'admin.emailLog.emptySent', failed: 'admin.emailLog.emptyFailed' };
+  const searchInput = document.getElementById('email-log-search');
+  const pageState = { page: 1 };
+  function renderList() {
+    const byStatus = filterMode === 'all' ? logs : logs.filter((r) => r.status === filterMode);
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = query
+      ? byStatus.filter((r) => [r.recipient, r.recipientName, templateName(r.templateKey), r.subject].some((f) => (f || '').toLowerCase().includes(query)))
+      : byStatus;
+    paginate(filtered, 20, renderLogCard,
+      document.getElementById('email-log-list'),
+      document.getElementById('email-log-pagination'),
+      pageState,
+      `<div class="booking-card-empty">${t(query ? 'admin.emailLog.noMatch' : EMPTY_KEY[filterMode])}</div>`,
+      () => {});
+  }
+
+  function moveFilterThumb() {
+    const activeBtn = document.querySelector('.log-filter-btn.active');
+    const thumb = document.querySelector('.log-filter-thumb');
+    if (!activeBtn || !thumb) return;
+    thumb.style.left = `${activeBtn.offsetLeft}px`;
+    thumb.style.width = `${activeBtn.offsetWidth}px`;
+  }
+
+  // 重新寄送：只重寄「這一筆」對應的收件人，用預約目前的資料重新產生內容（不是把原本
+  // 存的內容原封不動再寄一次）。寄送結果（不管成功失敗）後端都會另外多記一筆寄信紀錄，
+  // 所以成功後要整批重新抓一次清單，新的那筆才會出現。
+  async function handleResend(btn) {
+    const id = btn.dataset.resendId;
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-fw fa-spinner fa-spin"></i> ${t('admin.emailLog.resending')}`;
+    try {
+      const res = await fetch(`/api/email-log/resend?id=${id}`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        logs = await loadLogs();
+        renderList();
+      } else {
+        showAlert(data.error || t('admin.emailLog.resendFailed'));
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    } catch {
+      showAlert(t('admin.emailLog.resendFailed'));
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+
+  // 重新寄送要先跳 modal 確認一次，避免手滑點到就直接寄出去
+  let pendingResendBtn = null;
+  document.getElementById('resend-confirm-btn').addEventListener('click', () => {
+    document.getElementById('resendConfirmModal').classList.remove('open');
+    if (pendingResendBtn) handleResend(pendingResendBtn);
+    pendingResendBtn = null;
+  });
+
+  // 清單整批重繪但容器本身不變，用事件委派在容器上綁一次就好，展開狀態純粹是 UI
+  // 開關，不用記住哪幾筆展開過
+  document.getElementById('email-log-list').addEventListener('click', (e) => {
+    const resendBtn = e.target.closest('.log-row-resend-btn');
+    if (resendBtn) {
+      pendingResendBtn = resendBtn;
+      document.getElementById('resendConfirmModal').classList.add('open');
+      return;
+    }
+    e.target.closest('.log-row')?.classList.toggle('log-row-open');
+  });
+
+  document.querySelectorAll('.log-filter-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.filter === filterMode);
+    btn.addEventListener('click', () => {
+      if (btn.dataset.filter === filterMode) return;
+      filterMode = btn.dataset.filter;
+      localStorage.setItem(FILTER_KEY, filterMode);
+      document.querySelectorAll('.log-filter-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      moveFilterThumb();
+      pageState.page = 1;
+      renderList();
+    });
+  });
+  moveFilterThumb();
+
+  const SEARCH_KEY = 'admin-email-log-search';
+  const searchClearBtn = document.getElementById('email-log-search-clear');
+  try { searchInput.value = localStorage.getItem(SEARCH_KEY) || ''; } catch { /* 無痕模式等讀不到就當沒有 */ }
+  searchClearBtn.hidden = searchInput.value === '';
+  let searchDebounce = null;
+  searchInput.addEventListener('input', () => {
+    searchClearBtn.hidden = searchInput.value === '';
+    try { localStorage.setItem(SEARCH_KEY, searchInput.value); } catch { /* 存不了就算了 */ }
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => { pageState.page = 1; renderList(); }, 300);
+  });
+  searchClearBtn.addEventListener('click', () => {
+    clearTimeout(searchDebounce);
+    searchInput.value = '';
+    searchClearBtn.hidden = true;
+    try { localStorage.setItem(SEARCH_KEY, ''); } catch { /* 存不了就算了 */ }
+    searchInput.focus();
+    pageState.page = 1;
+    renderList();
+  });
+
+  renderList();
+
+  document.getElementById('back-btn').addEventListener('click', () => { window.location.href = 'email-templates.html'; });
+})();
+</script>
+
+</body>
+</html>
